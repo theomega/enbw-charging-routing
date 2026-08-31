@@ -1,0 +1,11 @@
+name = "charging-routing-api"
+main = "worker/index.ts"
+compatibility_date = "2024-12-30"
+
+# The EnBW subscription key is NOT stored here. Set it once with:
+#   pnpm wrangler secret put ENBW_SUBSCRIPTION_KEY
+# For local `wrangler dev`, put it in .dev.vars (gitignored):
+#   ENBW_SUBSCRIPTION_KEY=...
+
+[observability]
+enabled = true

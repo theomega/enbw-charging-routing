@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.local
+.wrangler
+.DS_Store
+*.log
+.dev.vars
+
+# pnpm is the package manager for this repo (see packageManager in package.json).
+# Ignore competing lockfiles so a stray `npm install` cannot be committed.
+package-lock.json
+yarn.lock
+.pnpm-store/
