@@ -1,0 +1,2 @@
+--volume
+{{cache}}/node_modules:{{root}}/node_modules
