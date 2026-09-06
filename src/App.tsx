@@ -5,6 +5,7 @@ import { RoutePicker } from './components/RoutePicker'
 import { DestinationSearch } from './components/DestinationSearch'
 import { SettingsSheet } from './components/SettingsSheet'
 import { formatClock, formatDistance, formatDuration } from './components/format'
+import { ExpandIcon } from './components/icons'
 import { useGeolocation } from './hooks/useGeolocation'
 import { useRouteSearch } from './search/useRouteSearch'
 import { useAppStore } from './state/store'
@@ -54,14 +55,20 @@ export default function App() {
 
         {search.selected && (
           <div className="flex items-center justify-between gap-3 px-4 pb-3 text-xs text-slate-500">
+            {/*
+              Always reachable, unlike the control on the map itself, which
+              scrolls away with it.
+            */}
             <button
               onClick={() => setShowRouteMap(true)}
-              className="min-w-0 truncate text-left text-slate-400"
+              className="flex min-w-0 items-center gap-1.5 text-left text-slate-400"
             >
-              {search.selected.summary ? `via ${search.selected.summary} · ` : ''}
-              {formatDistance(search.selected.route.totalDistanceM)} ·{' '}
-              {formatDuration(search.selected.route.totalDurationS)}{' '}
-              <span aria-hidden>⛶</span>
+              <span className="truncate">
+                {search.selected.summary ? `via ${search.selected.summary} · ` : ''}
+                {formatDistance(search.selected.route.totalDistanceM)} ·{' '}
+                {formatDuration(search.selected.route.totalDurationS)}
+              </span>
+              <ExpandIcon className="h-3.5 w-3.5 shrink-0" />
             </button>
             <button
               onClick={search.refresh}
@@ -83,6 +90,8 @@ export default function App() {
           selected={search.selected}
           onSelect={search.selectRoute}
           onExpand={() => setShowRouteMap(true)}
+          chargers={search.results}
+          position={position}
         />
 
         {!destination && (
@@ -121,7 +130,12 @@ export default function App() {
       )}
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
       {showRouteMap && search.selected && (
-        <RouteMapSheet option={search.selected} onClose={() => setShowRouteMap(false)} />
+        <RouteMapSheet
+          option={search.selected}
+          chargers={search.results}
+          position={position}
+          onClose={() => setShowRouteMap(false)}
+        />
       )}
     </div>
   )

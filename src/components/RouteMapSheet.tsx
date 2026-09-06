@@ -1,31 +1,31 @@
-import { useElementSize } from '../hooks/useElementSize'
+import type { ChargerOnRoute, LatLon } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
-import { staticMapUrl } from '../services/mapbox/staticMap'
 import { formatDistance, formatDuration } from './format'
+import { RouteMap } from './RouteMap'
 
 /**
- * The chosen route, as large as the screen allows.
+ * The chosen route, with the whole screen and every gesture.
  *
  * The picker's map answers "which of these?"; this one answers the question
  * that comes later, halfway down the charger list — "wait, does this thing
- * really go the way I think it does?". Only the selected route is drawn: the
- * alternatives are noise once the choice is made.
+ * really go the way I think it does?". That question is usually about one
+ * junction or one pass, so the answer needs zoom, which is the whole reason
+ * this is a live map and not a picture.
  *
- * The image is sized from the container rather than a guess, because a static
- * map is fetched at fixed dimensions and Mapbox frames the route to fit them —
- * ask for the wrong aspect ratio and the route sits in a letterboxed band.
+ * Only the selected route is drawn: the alternatives are noise once the choice
+ * is made, and the lines they would add are lines the driver already rejected.
  */
 export function RouteMapSheet({
   option,
+  chargers,
+  position,
   onClose,
 }: {
   option: RouteOption
+  chargers: ChargerOnRoute[]
+  position: LatLon | null
   onClose: () => void
 }) {
-  const [ref, size] = useElementSize<HTMLDivElement>()
-  // Null on the first paint, before the container has been measured.
-  const map = size ? staticMapUrl([{ route: option.route, selected: true }], { ...size, pins: true }) : null
-
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-950">
       <header className="flex items-center justify-between gap-3 border-b border-slate-800 p-4">
@@ -43,15 +43,15 @@ export function RouteMapSheet({
         </button>
       </header>
 
-      <div ref={ref} className="flex-1 overflow-hidden">
-        {map ? (
-          <img src={map} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-slate-500">
-            {size ? 'No map available — add a Mapbox token to see the route.' : null}
-          </div>
-        )}
-      </div>
+      {/* Owns the viewport, so one finger pans: no cooperative gestures here. */}
+      <RouteMap
+        routes={[option]}
+        selectedId={option.id}
+        chargers={chargers}
+        position={position}
+        padding={48}
+        className="flex-1"
+      />
     </div>
   )
 }

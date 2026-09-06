@@ -1,6 +1,9 @@
+import type { ChargerOnRoute, LatLon } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
-import { staticMapUrl, strokeColours } from '../services/mapbox/staticMap'
 import { formatDistance, formatDuration, formatDurationDelta } from './format'
+import { ExpandIcon } from './icons'
+import { RouteMap } from './RouteMap'
+import { strokeColours } from './routeColours'
 
 interface Props {
   routes: RouteOption[]
@@ -8,6 +11,8 @@ interface Props {
   onSelect: (id: string) => void
   /** Open the selected route full-screen, for a closer look at how it runs. */
   onExpand: () => void
+  chargers: ChargerOnRoute[]
+  position: LatLon | null
 }
 
 /**
@@ -18,59 +23,49 @@ interface Props {
  * are genuinely different drives (Jaufenpass vs Brenner) with entirely different
  * chargers along them, so the choice belongs to the driver.
  *
- * All of them go on one map. A row of thumbnails cannot answer "which of these
- * do I want" — at that size every route is the same grey squiggle, and the eye
- * has to compare two pictures instead of one. Drawn together, the shared trunk
- * overlaps and only the part where they differ stands out, which is the only
- * part the decision turns on. The rows below are the legend.
+ * All of them go on one map. Side-by-side thumbnails cannot answer "which of
+ * these do I want" — the eye has to compare two pictures instead of one. Drawn
+ * together, the shared trunk overlaps and only the part where they differ
+ * stands out, which is the only part the decision turns on.
+ *
+ * The map is live, so a route can be picked by tapping its line. The rows below
+ * are both the legend and the same choice in words, for the times a line is
+ * buried under another one.
  */
-
-/**
- * Rendered at the column width (max-w-xl less padding) in 16:9. The exact
- * numbers only set the pixel density of the fetched PNG; CSS does the layout.
- */
-const MAP_WIDTH = 560
-const MAP_HEIGHT = 315
-
-export function RoutePicker({ routes, selected, onSelect, onExpand }: Props) {
+export function RoutePicker({ routes, selected, onSelect, onExpand, chargers, position }: Props) {
   if (routes.length === 0 || !selected) return null
 
   const fastest = routes[0]
-  const layers = routes.map((option) => ({
-    route: option.route,
-    selected: option.id === selected.id,
-  }))
-  const map = staticMapUrl(layers, { width: MAP_WIDTH, height: MAP_HEIGHT, pins: true })
-  // Same rule the image is drawn by, so a swatch and a line are the same colour.
-  const colours = strokeColours(layers)
+  // Same rule the map draws by, so a swatch and a line are the same colour.
+  const colours = strokeColours(routes.map((option) => ({ selected: option.id === selected.id })))
 
   return (
     <div className="border-b border-slate-800 p-3">
-      {map ? (
+      <div className="relative overflow-hidden rounded-xl bg-slate-900">
+        <RouteMap
+          routes={routes}
+          selectedId={selected.id}
+          onSelectRoute={onSelect}
+          chargers={chargers}
+          position={position}
+          // Embedded in the scrolling page: one finger must still scroll past it.
+          cooperativeGestures
+          className="aspect-video w-full"
+        />
+        {/*
+          A separate control rather than a tap on the map itself, which now
+          belongs to picking routes and panning. Top right: Mapbox owns both
+          bottom corners (logo left, attribution right) and a control placed
+          there is simply covered.
+        */}
         <button
           onClick={onExpand}
           aria-label="Show route full screen"
-          className="relative block w-full overflow-hidden rounded-xl bg-slate-900"
+          className="absolute right-2 top-2 rounded-lg bg-slate-950/85 p-2 text-slate-200 ring-1 ring-slate-700"
         >
-          <img
-            src={map}
-            alt=""
-            width={MAP_WIDTH}
-            height={MAP_HEIGHT}
-            className="aspect-video w-full object-cover"
-          />
-          <span
-            aria-hidden
-            className="absolute bottom-2 right-2 rounded-lg bg-slate-950/80 px-2 py-1 text-sm text-slate-200 ring-1 ring-slate-700"
-          >
-            ⛶
-          </span>
+          <ExpandIcon />
         </button>
-      ) : (
-        // No Mapbox token, or a degenerate route — degrade to the rows alone,
-        // never a broken image.
-        <div className="aspect-video w-full rounded-xl bg-slate-900" aria-hidden />
-      )}
+      </div>
 
       <ul className="mt-2 space-y-1.5">
         {routes.map((option, i) => (
@@ -102,7 +97,7 @@ function RouteRow({
 }: {
   option: RouteOption
   fastest: RouteOption
-  /** The stroke this route is drawn with on the map, as a bare hex triplet. */
+  /** The colour this route is drawn with on the map. */
   colour: string
   isSelected: boolean
   showLegend: boolean
@@ -124,7 +119,7 @@ function RouteRow({
         <span
           aria-hidden
           className="h-1 w-6 shrink-0 rounded-full"
-          style={{ backgroundColor: `#${colour}` }}
+          style={{ backgroundColor: colour }}
         />
       )}
 
@@ -139,9 +134,7 @@ function RouteRow({
       </span>
 
       {showLegend && (
-        <span
-          className={`shrink-0 text-xs ${delta <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}
-        >
+        <span className={`shrink-0 text-xs ${delta <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
           {formatDurationDelta(delta)}
         </span>
       )}

@@ -187,12 +187,13 @@ Three layers, and the dependency arrows only ever point downwards.
 src/core/       the maths. No I/O, no React, no wire formats.
                 types · geo (the TurfJS seam) · route · corridor · detour · filters
 src/services/   everything that talks to something.
-                mapbox/{client,geocoding,directions,matrix,staticMap}
+                mapbox/{client,geocoding,directions,matrix}
                 enbw/{wire,stations,availability}
 src/search/     the pipeline, as React hooks.
                 useRoutes · useCorridor · useAvailability · useDetours
                 useRouteSearch composes them and is the only thing App.tsx sees
-src/components/ presentation
+src/components/ presentation. RouteMap wraps Mapbox GL; mapFeatures builds
+                what it draws, so the decisions in it are testable without WebGL
 src/state/      persisted destination and settings
 ```
 
@@ -215,8 +216,8 @@ plausible-looking point in the wrong hemisphere.
 | Corridor around the route | `buffer` + `booleanPointInPolygon` |
 | Where along the route a charger sits | `nearestPointOnLine` |
 | Distances (GPS movement, segment fractions, offsets) | `distance` |
-| Thumbnail polyline reduction | `simplify` |
 | Occupancy box covers | `bbox` |
+| Framing the map on the routes | `bbox` |
 
 Two things this costs, both accepted:
 
@@ -376,14 +377,41 @@ was silently dropping.
 
 ## Route alternatives
 
-Mapbox returns up to three routes (`alternatives=true`, no extra request cost) and each is shown as
-a static map thumbnail with its road summary from `legs[].summary` — enough to tell "via SS44,
-Jaufenpass" from "via A22" at a glance — plus distance, duration and penalty against the fastest.
+Mapbox returns up to three routes (`alternatives=true`, no extra request cost). They are drawn
+together on **one** Mapbox GL map — the chosen route emerald, each alternative in its own colour —
+rather than as one thumbnail each. Side-by-side pictures cannot answer "which of these do I want":
+the eye has to compare two images. Drawn together the shared trunk overlaps, so only the stretch
+where they part company stands out, which is the only part the decision turns on. Under the map,
+one row per route carries the road summary from `legs[].summary` — enough to tell "via SS44,
+Jaufenpass" from "via A22" — plus distance, duration and penalty against the fastest, with a swatch
+in the line's own colour. `components/routeColours.ts` is the single source for both, so a swatch
+and the line it names cannot drift apart.
 
-Tapping an alternative re-places the corridor for it, which is now pure local geometry. Thumbnails
-come from the Static Images API, with the polyline Douglas–Peucker-simplified (`turf.simplify`) until the URL fits
-its character budget. Simplification is for display only — the corridor maths always uses the full
-geometry.
+A route is picked by tapping its line or its row; tapping either re-places the corridor for it,
+which is pure local geometry. The header's route summary opens the same map full screen, where
+the question is no longer "which one" but "does this really go the way I think" — that one is
+usually about a single junction or pass, so it needs zoom.
+
+Two things a live map needs on a phone, both of which look like details and are not:
+
+- **`cooperativeGestures` on the inline map.** It is embedded in a scrolling page, and a
+  full-gesture map swallows the drag meant to scroll to the chargers below it — the page simply
+  stops moving under your thumb. Two fingers pan the map; one finger scrolls the page. The
+  full-screen sheet owns the viewport and turns this off.
+- **Invisible hit layers.** The route lines are 3–5 px and the charger dots scale down to ~3 px at
+  whole-trip zoom, so that a chain of them does not bury the very line they are strung along. Both
+  are far below the ~44 px a fingertip actually covers, so tapping is served by separate
+  transparent layers (`routes-hit`, `chargers-hit`) that are much fatter than what is drawn.
+
+Chargers are drawn as GeoJSON circle layers, not DOM markers — a route can carry hundreds, and that
+many absolutely-positioned elements fighting the map's own transform is what makes embedded maps
+feel broken on a phone. Their colour carries the same three states as the list's availability badge,
+including "no live data" as distinct from "none free". Tapping one opens a popup built by
+`components/chargerPopup.ts`, which escapes every value: the text is provider data, not ours.
+
+The geometry goes to the map exactly as Mapbox returned it. The previous static-image thumbnails had
+to be Douglas–Peucker-simplified until the URL fit a character budget; a GL map has no such budget,
+so there is no display simplification left to reason about.
 
 **Detour is re-baselined onto the selected route.** `t_direct` from the Matrix is the *fastest*
 path, so without correction every charger on a slower alternative inherits that route's whole

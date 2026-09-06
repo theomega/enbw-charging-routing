@@ -12,3 +12,31 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
+
+/*
+ * Mapbox ships its popups and gesture hint as light cards, which flash white on
+ * a dark map at night. Restyle rather than override per-instance, so every map
+ * in the app matches without remembering to pass anything.
+ */
+.mapboxgl-popup-content {
+  @apply rounded-xl bg-slate-900 px-3 py-2 text-xs shadow-lg ring-1 ring-slate-700;
+}
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: theme('colors.slate.900');
+}
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: theme('colors.slate.900');
+}
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: theme('colors.slate.900');
+}
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: theme('colors.slate.900');
+}
+
+.mapboxgl-ctrl-group {
+  @apply bg-slate-900 ring-1 ring-slate-700;
+}
+.mapboxgl-ctrl-group button + button {
+  @apply border-slate-700;
+}

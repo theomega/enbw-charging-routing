@@ -16,14 +16,13 @@
     "build:stations": "node scripts/build-station-list.mjs"
   },
   "dependencies": {
-    "@mapbox/polyline": "^1.2.1",
     "@turf/bbox": "^7.4.0",
     "@turf/boolean-point-in-polygon": "^7.4.0",
     "@turf/buffer": "^7.4.0",
     "@turf/distance": "^7.4.0",
     "@turf/helpers": "^7.4.0",
     "@turf/nearest-point-on-line": "^7.4.0",
-    "@turf/simplify": "^7.4.0",
+    "mapbox-gl": "^3.30.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"
@@ -32,7 +31,6 @@
     "@cloudflare/workers-types": "^4.20241230.0",
     "@turf/destination": "^7.4.0",
     "@types/geojson": "^7946.0.16",
-    "@types/mapbox__polyline": "^1.0.5",
     "@types/node": "^26.4.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

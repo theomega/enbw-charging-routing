@@ -7,7 +7,6 @@ import { fetchAvailability, type OccupancyRecord } from '../services/enbw/availa
 import { parseStationList, type StationList } from '../services/enbw/stations'
 import { fetchRoutes, type RouteOption } from '../services/mapbox/directions'
 import { fetchMatrix } from '../services/mapbox/matrix'
-import { staticMapUrl } from '../services/mapbox/staticMap'
 
 /**
  * Opt-in integration check: real Mapbox routes, the shipped station list, real
@@ -157,27 +156,10 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
     expect(new Set(routes.map((r) => r.summary)).size).toBeGreaterThan(1)
     for (const r of routes) {
       expect(r.summary.length).toBeGreaterThan(0)
-      expect(
-        staticMapUrl([{ route: r.route, selected: true }], { width: 96, height: 64 }),
-      ).toContain('api.mapbox.com')
+      // The map draws these coordinates directly, with no simplification and no
+      // budget to fit, so an unusable geometry would surface as a blank map.
+      expect(r.route.coordinates.length).toBeGreaterThan(1)
     }
-
-    // The comparison map the picker actually renders: every alternative, pins,
-    // full-size. Overlay syntax is the kind of thing only the real API can
-    // confirm — a malformed path or marker comes back as a 422, not a bad
-    // picture, and no unit test would notice.
-    const comparison = staticMapUrl(
-      routes.map((r, i) => ({ route: r.route, selected: i === 0 })),
-      { width: 560, height: 315, pins: true },
-    )!
-    const res = await fetch(comparison)
-    // eslint-disable-next-line no-console
-    console.log(
-      `\n  comparison map: ${routes.length} route(s), ${comparison.length} chars -> ` +
-        `${res.status} ${res.headers.get('content-type')}`,
-    )
-    expect(res.status).toBe(200)
-    expect(res.headers.get('content-type')).toContain('image/')
 
     // Detour, priced by the real Matrix API against the slower alternative.
     const list = await loadList()
