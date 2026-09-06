@@ -1,4 +1,4 @@
-import type { Charger } from '../providers/types'
+import type { Charger } from '../core/types'
 
 export type MapsApp = 'auto' | 'apple' | 'google'
 

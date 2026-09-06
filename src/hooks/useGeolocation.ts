@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { LatLon } from '../providers/types'
+import { distanceM } from '../core/geo'
+import type { LatLon } from '../core/types'
 
 export interface GeolocationState {
   position: LatLon | null
@@ -53,7 +54,7 @@ export function useGeolocation(minMoveM = 50): GeolocationState {
       (pos) => {
         const next = { lat: pos.coords.latitude, lon: pos.coords.longitude }
         const last = lastRef.current
-        if (last && roughMetres(last, next) < minMoveM) {
+        if (last && distanceM(last, next) < minMoveM) {
           // Still clear the loading flag on the first fix even if we ignore it.
           setState((s) => (s.loading ? { ...s, loading: false } : s))
           return
@@ -70,9 +71,3 @@ export function useGeolocation(minMoveM = 50): GeolocationState {
   return state
 }
 
-/** Cheap planar distance; only used for a movement threshold. */
-function roughMetres(a: LatLon, b: LatLon): number {
-  const dLat = (b.lat - a.lat) * 111_320
-  const dLon = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180)
-  return Math.hypot(dLat, dLon)
-}

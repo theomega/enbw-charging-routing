@@ -9,32 +9,45 @@
  *     Origin: http://localhost:5173 -> 403 forbidden
  *
  * Browsers set `Origin` themselves and JS cannot override it, so the call has
- * to happen server-side. The Worker also does the tile fan-out, which keeps a
- * phone on a slow connection down to a single request.
+ * to happen server-side.
+ *
+ * It used to do much more: the app discovered chargers by tiling a route
+ * corridor, so this file carried a fan-out with cluster subdivision, depth
+ * caps, subrequest budgets and truncation reporting — a measured 907 upstream
+ * requests for one 743 km route. The station list is now generated offline
+ * (`scripts/build-station-list.mjs`), so all that is gone.
+ *
+ * It then asked for small bounding boxes around the stations the client wanted.
+ * That is gone too. A box is answered through EnBW's clustering grid, which
+ * collapses any grid cell holding two stations into a placeholder carrying no
+ * id and no occupancy — and measured on a real route, a box never covered more
+ * than one candidate anyway (17 stations, 17 boxes). Asking for one station by
+ * id costs the same number of requests and cannot cluster.
+ *
+ * Typically 17-20 requests per search, well inside Cloudflare's free-plan limit
+ * of 50 subrequests per invocation.
  */
 
-import type { EnbwStation } from '../src/providers/enbw'
+import type { OccupancyRecord } from '../src/services/enbw/availability'
+import type { EnbwStation } from '../src/services/enbw/wire'
 
 export interface Env {
   ENBW_SUBSCRIPTION_KEY: string
-}
-
-interface Tile {
-  fromLat: number
-  toLat: number
-  fromLon: number
-  toLon: number
 }
 
 const ENBW_BASE = 'https://api.emp.emob-enbw.com/emobility-public-api/api/v1/chargestations'
 /** The only Origin the upstream accepts. */
 const REQUIRED_ORIGIN = 'https://www.enbw.com'
 
-/** Availability is live data, so cache only long enough to absorb retries. */
+/** Occupancy is live data, so cache only long enough to absorb retries. */
 const CACHE_TTL_SECONDS = 60
-/** Stay well clear of the Workers subrequest limit and of upstream rate limits. */
+/** Cloudflare allows 6 simultaneous outgoing connections per invocation. */
 const MAX_CONCURRENCY = 6
-const MAX_TILES = 120
+/**
+ * Well above what a route needs (~17-20 stations) and comfortably under the
+ * free plan's 50-subrequest ceiling.
+ */
+const MAX_STATIONS = 60
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -47,95 +60,86 @@ export default {
       return json({ error: 'ENBW_SUBSCRIPTION_KEY is not configured' }, 500)
     }
 
-    let tiles: Tile[]
+    let stationIds: number[]
     try {
-      const body = (await request.json()) as { tiles?: unknown }
-      tiles = validateTiles(body.tiles)
+      const body = (await request.json()) as { stationIds?: unknown }
+      stationIds = validateStationIds(body.stationIds)
     } catch (err) {
       return json({ error: (err as Error).message }, 400)
     }
 
     try {
-      const stations = await fetchTiles(tiles, env, ctx)
-      return json({ stations, tileCount: tiles.length, fetchedAt: new Date().toISOString() })
+      const stations = await fetchOccupancy(stationIds, env, ctx)
+      return json({ stations, fetchedAt: new Date().toISOString() })
     } catch (err) {
       return json({ error: `Upstream request failed: ${(err as Error).message}` }, 502)
     }
   },
 }
 
-function validateTiles(raw: unknown): Tile[] {
-  if (!Array.isArray(raw) || raw.length === 0) throw new Error('tiles must be a non-empty array')
-  if (raw.length > MAX_TILES) throw new Error(`too many tiles (max ${MAX_TILES})`)
-  return raw.map((t, i) => {
-    const tile = t as Record<string, unknown>
-    for (const k of ['fromLat', 'toLat', 'fromLon', 'toLon']) {
-      if (typeof tile[k] !== 'number' || !Number.isFinite(tile[k])) {
-        throw new Error(`tile ${i}: ${k} must be a finite number`)
-      }
+function validateStationIds(raw: unknown): number[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error('stationIds must be a non-empty array')
+  }
+  if (raw.length > MAX_STATIONS) throw new Error(`too many stations (max ${MAX_STATIONS})`)
+
+  return raw.map((id, i) => {
+    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
+      throw new Error(`stationIds[${i}] must be a positive integer`)
     }
-    const out = tile as unknown as Tile
-    if (out.fromLat >= out.toLat || out.fromLon >= out.toLon) {
-      throw new Error(`tile ${i}: from* must be less than to*`)
-    }
-    return out
+    return id
   })
 }
 
-/**
- * Fan out over tiles with bounded concurrency, then merge.
- *
- * A tile that comes back with cluster placeholders is retried once as four
- * quarter-tiles: EnBW clusters based on how large the bbox is, so subdividing
- * is what actually resolves individual stations.
- */
-async function fetchTiles(tiles: Tile[], env: Env, ctx: ExecutionContext): Promise<EnbwStation[]> {
-  const byId = new Map<number, EnbwStation>()
-  const queue = [...tiles]
-  const retried = new Set<string>()
+/** Fetch every station with bounded concurrency. */
+async function fetchOccupancy(
+  stationIds: number[],
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<OccupancyRecord[]> {
+  const out: OccupancyRecord[] = []
+  let next = 0
 
   const worker = async (): Promise<void> => {
     for (;;) {
-      const tile = queue.shift()
-      if (!tile) return
-      const stations = await fetchTile(tile, env, ctx)
-      let sawCluster = false
-      for (const s of stations) {
-        if (s.grouped) {
-          sawCluster = true
-          continue
-        }
-        // Tiles overlap by design, so the same station arrives repeatedly.
-        if (!byId.has(s.stationId)) byId.set(s.stationId, s)
-      }
-      const key = tileKey(tile)
-      if (sawCluster && !retried.has(key) && queue.length + 4 <= MAX_TILES * 4) {
-        retried.add(key)
-        queue.push(...subdivide(tile))
-      }
+      const i = next++
+      if (i >= stationIds.length) return
+      const station = await fetchStation(stationIds[i], env, ctx)
+      // A 404 is not an error. EnBW re-issues station ids in bulk, so a list a
+      // few days old always has some. The client already knows the address and
+      // the point count from that list, so an absent id costs only the badge.
+      if (station) out.push(station)
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, tiles.length) }, worker))
-  return [...byId.values()]
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENCY, stationIds.length) }, worker),
+  )
+  return out
 }
 
-async function fetchTile(tile: Tile, env: Env, ctx: ExecutionContext): Promise<EnbwStation[]> {
-  const upstream = new URL(ENBW_BASE)
-  upstream.searchParams.set('fromLat', String(tile.fromLat))
-  upstream.searchParams.set('toLat', String(tile.toLat))
-  upstream.searchParams.set('fromLon', String(tile.fromLon))
-  upstream.searchParams.set('toLon', String(tile.toLon))
-  upstream.searchParams.set('grouping', 'false')
-  upstream.searchParams.set('groupingDivisor', '15')
+/**
+ * One station's occupancy, or null if EnBW no longer has that id.
+ *
+ * Trimmed to the counts before it leaves this file: an upstream record averages
+ * 3.8 KB (a big hub is 24 KB) and carries the whole charge-point array, none of
+ * which the client needs — it has the address, power and point count from the
+ * shipped list already.
+ */
+async function fetchStation(
+  stationId: number,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<OccupancyRecord | null> {
+  const upstream = `${ENBW_BASE}/${stationId}`
 
   // Cache on the URL alone; the key header must never become part of the key.
-  const cacheKey = new Request(upstream.toString(), { method: 'GET' })
+  const cacheKey = new Request(upstream, { method: 'GET' })
   const cache = caches.default
   const cached = await cache.match(cacheKey)
-  if (cached) return (await cached.json()) as EnbwStation[]
+  if (cached) return (await cached.json()) as OccupancyRecord
 
-  const res = await fetch(upstream.toString(), {
+  const res = await fetch(upstream, {
     headers: {
       'Ocp-Apim-Subscription-Key': env.ENBW_SUBSCRIPTION_KEY,
       Origin: REQUIRED_ORIGIN,
@@ -144,21 +148,35 @@ async function fetchTile(tile: Tile, env: Env, ctx: ExecutionContext): Promise<E
     },
   })
 
+  if (res.status === 404) return null
   if (!res.ok) {
     const hint =
       res.status === 403
         ? ' (403 usually means the Origin gate changed or the key was rotated)'
         : ''
-    throw new Error(`EnBW returned ${res.status}${hint}`)
+    throw new Error(`EnBW returned ${res.status} for station ${stationId}${hint}`)
   }
 
-  const stations = (await res.json()) as EnbwStation[]
-  if (!Array.isArray(stations)) throw new Error('EnBW returned an unexpected payload')
+  const station = (await res.json()) as EnbwStation
+  if (typeof station?.stationId !== 'number') {
+    throw new Error('EnBW returned an unexpected payload')
+  }
+
+  const occupancy: OccupancyRecord = {
+    stationId: station.stationId,
+    availablePoints: station.availableChargePoints ?? 0,
+    unknownPoints: station.unknownStateChargePoints ?? 0,
+    // Omitted rather than zeroed: the client's list knows the real total, and
+    // "0 points" would render as a nonsense denominator.
+    ...(station.numberOfChargePoints != null
+      ? { totalPoints: station.numberOfChargePoints }
+      : {}),
+  }
 
   ctx.waitUntil(
     cache.put(
       cacheKey,
-      new Response(JSON.stringify(stations), {
+      new Response(JSON.stringify(occupancy), {
         headers: {
           'content-type': 'application/json',
           'cache-control': `max-age=${CACHE_TTL_SECONDS}`,
@@ -166,23 +184,8 @@ async function fetchTile(tile: Tile, env: Env, ctx: ExecutionContext): Promise<E
       }),
     ),
   )
-  return stations
+  return occupancy
 }
-
-/** Split a tile into quarters to break up EnBW's clustering. */
-function subdivide(tile: Tile): Tile[] {
-  const midLat = (tile.fromLat + tile.toLat) / 2
-  const midLon = (tile.fromLon + tile.toLon) / 2
-  return [
-    { fromLat: tile.fromLat, toLat: midLat, fromLon: tile.fromLon, toLon: midLon },
-    { fromLat: tile.fromLat, toLat: midLat, fromLon: midLon, toLon: tile.toLon },
-    { fromLat: midLat, toLat: tile.toLat, fromLon: tile.fromLon, toLon: midLon },
-    { fromLat: midLat, toLat: tile.toLat, fromLon: midLon, toLon: tile.toLon },
-  ]
-}
-
-const tileKey = (t: Tile) =>
-  `${t.fromLat.toFixed(5)},${t.toLat.toFixed(5)},${t.fromLon.toFixed(5)},${t.toLon.toFixed(5)}`
 
 const corsHeaders = () => ({
   'access-control-allow-origin': '*',

@@ -1,5 +1,4 @@
-import type { ChargerOnRoute, LatLon } from '../providers/types'
-import { MATRIX_MAX_COORDS, fetchMatrix, type MatrixQuery } from './mapbox'
+import type { ChargerOnRoute, LatLon } from './types'
 
 /**
  * Detour pricing.
@@ -12,9 +11,33 @@ import { MATRIX_MAX_COORDS, fetchMatrix, type MatrixQuery } from './mapbox'
  * uses `driving`, so reusing the route's duration as t_direct would mix
  * profiles and produce nonsense (routinely negative). Instead t_direct is read
  * out of the same matrix call, by appending the destination as an extra target.
+ *
+ * Nothing here touches the network. The matrix is a parameter, so the whole
+ * module is testable — and so the arithmetic stays readable next to the API
+ * quota arithmetic that shapes it.
  */
 
-/** Origin + destination occupy two of the 25 coordinate slots. */
+/**
+ * A duration matrix request, in the abstract: which points, which of them are
+ * sources, which are destinations.
+ */
+export interface MatrixQuery {
+  coordinates: LatLon[]
+  sources: number[]
+  destinations: number[]
+}
+
+/** Answers a `MatrixQuery` with seconds — `[source][destination]`, null where unroutable. */
+export type MatrixFn = (query: MatrixQuery, signal?: AbortSignal) => Promise<(number | null)[][]>
+
+/**
+ * Mapbox caps the `driving` matrix at 25 coordinates per request. This drives
+ * the chunking below, so it lives with the arithmetic rather than with the
+ * fetch that enforces it.
+ */
+export const MATRIX_MAX_COORDS = 25
+
+/** Origin + destination occupy two of the coordinate slots. */
 export const CHARGERS_PER_CHUNK = MATRIX_MAX_COORDS - 2
 
 /** Split candidates into chunks that fit inside one matrix request. */
@@ -59,26 +82,54 @@ export function buildChunkQueries(
 
 /**
  * The arithmetic, isolated so it can be tested without a network.
+ *
  * Returns null when either leg is unroutable; clamps at zero because a charger
  * sitting on a marginally faster alternative can price out slightly negative.
+ *
+ * `penaltyS` re-baselines onto the route the user actually chose. `tDirect` is
+ * the *fastest* path, so without it every charger on a slower alternative
+ * inherits that alternative's whole penalty — pick the Jaufenpass route and a
+ * charger sitting directly on the road you are driving would read "+22 min".
+ * See `routePenaltySeconds`.
  */
 export function detourSeconds(
   toCharger: number | null | undefined,
   fromCharger: number | null | undefined,
   tDirect: number | null | undefined,
+  penaltyS = 0,
 ): number | null {
   if (toCharger == null || fromCharger == null || tDirect == null) return null
-  const detour = toCharger + fromCharger - tDirect
+  const detour = toCharger + fromCharger - tDirect - penaltyS
   return detour < 0 ? 0 : detour
 }
 
-export type MatrixFn = (q: MatrixQuery, signal?: AbortSignal) => Promise<(number | null)[][]>
+/**
+ * How much slower the selected route is than the fastest one, in seconds.
+ *
+ * Approximate by construction: this is a `driving-traffic` delta applied to a
+ * `driving` baseline in `detourSeconds`. Mixing profiles in an absolute value
+ * produces nonsense (see the t_direct note above), but applying the difference
+ * between two same-profile routes as a correction is far better behaved — and
+ * it is exactly zero in the default case, where the fastest route is selected.
+ */
+export function routePenaltySeconds(
+  selectedDurationS: number,
+  fastestDurationS: number,
+): number {
+  const penalty = selectedDurationS - fastestDurationS
+  return penalty > 0 ? penalty : 0
+}
 
 export interface DetourOptions {
+  /** Answers the matrix queries. Injected, so this module never fetches. */
+  matrix: MatrixFn
   /** How many of the nearest candidates to price. Each 23 costs 2 requests. */
   limit?: number
-  /** Injectable for tests. */
-  matrix?: MatrixFn
+  /**
+   * Seconds by which the selected route is slower than the fastest one, from
+   * `routePenaltySeconds`. Zero when the fastest route is selected.
+   */
+  penaltyS?: number
   signal?: AbortSignal
 }
 
@@ -91,11 +142,11 @@ export async function priceDetours(
   origin: LatLon,
   destination: LatLon,
   candidates: ChargerOnRoute[],
-  options: DetourOptions = {},
+  options: DetourOptions,
 ): Promise<ChargerOnRoute[]> {
+  const { matrix, signal } = options
   const limit = options.limit ?? 20
-  const matrix = options.matrix ?? fetchMatrix
-  const { signal } = options
+  const penaltyS = options.penaltyS ?? 0
 
   const priced = candidates.slice(0, limit)
   if (priced.length === 0) return candidates
@@ -119,7 +170,7 @@ export async function priceDetours(
     if (tDirect == null) tDirect = chunkDirect
 
     chunk.forEach((c, i) => {
-      detours.set(c.charger.id, detourSeconds(rowA[i], b[i]?.[0], tDirect))
+      detours.set(c.charger.id, detourSeconds(rowA[i], b[i]?.[0], tDirect, penaltyS))
     })
   }
 

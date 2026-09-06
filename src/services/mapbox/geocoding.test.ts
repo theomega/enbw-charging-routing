@@ -1,29 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MATRIX_MAX_COORDS, buildGeocodeUrl, isPlaceholderToken, preferredLanguage } from './mapbox'
-
-describe('isPlaceholderToken', () => {
-  it('treats a missing or example token as unset', () => {
-    expect(isPlaceholderToken(undefined)).toBe(true)
-    expect(isPlaceholderToken('')).toBe(true)
-    expect(isPlaceholderToken('   ')).toBe(true)
-    // the literal value shipped in .env.example
-    expect(isPlaceholderToken('pk.xxxxxxxxxxxxxxxxxxxxxxxxxxxx')).toBe(true)
-  })
-
-  it('rejects a secret token pasted in by mistake', () => {
-    expect(isPlaceholderToken('sk.abc123')).toBe(true)
-  })
-
-  it('accepts a real public token', () => {
-    expect(isPlaceholderToken('pk.eyJ1IjoiZG9tIiwiYSI6ImNr')).toBe(false)
-  })
-})
-
-describe('matrix limit', () => {
-  it('matches the documented Mapbox driving-profile cap', () => {
-    expect(MATRIX_MAX_COORDS).toBe(25)
-  })
-})
+import { buildGeocodeUrl, preferredLanguage } from './geocoding'
 
 describe('buildGeocodeUrl', () => {
   const token = 'pk.test'

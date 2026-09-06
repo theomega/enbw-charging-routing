@@ -1,23 +1,23 @@
 /**
- * Provider-neutral charger model.
+ * The vocabulary of the app.
  *
- * Everything downstream of this file (corridor maths, detour, UI) speaks only
- * `Charger`. The EnBW adapter is the only place that knows about EnBW's wire
- * format, so a second source (e.g. Open Charge Map) can be added by writing
- * another adapter and nothing else.
+ * Everything above this file — corridor maths, detour pricing, the UI — speaks
+ * only these types. Wire formats stay inside `src/services/*`, so a second
+ * charger source or a different routing provider is an adapter and nothing else.
  */
 
+/** A position, in the order humans say it. Turf wants [lon, lat]; see core/geo.ts. */
 export interface LatLon {
   lat: number
   lon: number
 }
 
-/** A geographic bounding box, as the EnBW endpoint expects it. */
-export interface Tile {
-  fromLat: number
-  toLat: number
-  fromLon: number
-  toLon: number
+/** A geocoded destination. Persisted in the store, so keep it plain and small. */
+export interface Place extends LatLon {
+  id: string
+  name: string
+  /** Full formatted address, for the second line in the picker. */
+  context: string
 }
 
 export interface Charger extends LatLon {
@@ -36,7 +36,6 @@ export interface Charger extends LatLon {
   /** Points whose state the provider could not determine. */
   unknownPoints: number
   maxPowerKw: number | null
-  plugTypes: string[]
   operator: string | null
   operatorCode: string | null
   priceGroup: string | null
@@ -45,8 +44,9 @@ export interface Charger extends LatLon {
 }
 
 /**
- * How a charger relates to the current route. Produced by routing/corridor.ts
- * (the local, free part) and routing/detour.ts (the Matrix-priced part).
+ * How a charger relates to the route you are driving. Produced by
+ * `core/corridor.ts` (free, local geometry) and priced by `core/detour.ts`
+ * (costs Mapbox Matrix quota).
  */
 export interface ChargerOnRoute {
   charger: Charger
@@ -54,18 +54,11 @@ export interface ChargerOnRoute {
   alongDistanceM: number
   /** Seconds from the route start to the exit point. */
   alongDurationS: number
-  /** Crow-fly metres from the route to the charger. */
+  /** Metres from the route to the charger, measured on the ground. */
   offsetM: number
   /**
    * Extra seconds of driving incurred by stopping here.
    * `null` until priced, or when Mapbox could not route to the point.
    */
   detourS: number | null
-}
-
-export interface ChargerProvider {
-  readonly id: 'enbw'
-  readonly label: string
-  /** Fetch every charger inside the given tiles, deduplicated. */
-  fetchInTiles(tiles: Tile[], signal?: AbortSignal): Promise<Charger[]>
 }

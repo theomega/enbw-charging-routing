@@ -1,20 +1,20 @@
-import { PROVIDER_FILTER_LABELS, widenFilter } from '../providers/enbw'
-import type { ChargerOnRoute } from '../providers/types'
+import { DEFAULT_MAX_OFFSET_M } from '../core/corridor'
+import type { ChargerOnRoute } from '../core/types'
 import { useAppStore } from '../state/store'
-import type { SearchStatus } from '../hooks/useRouteSearch'
+import type { SearchStatus } from '../search/useRouteSearch'
 import { ChargerCard } from './ChargerCard'
 
 interface Props {
   status: SearchStatus
   results: ChargerOnRoute[]
   unfilteredCount: number
+  /** 0..1 while the corridor is being placed. */
+  progress: number | null
   error: string | null
 }
 
-export function ChargerList({ status, results, unfilteredCount, error }: Props) {
+export function ChargerList({ status, results, unfilteredCount, progress, error }: Props) {
   const settings = useAppStore((s) => s.settings)
-  const update = useAppStore((s) => s.updateSettings)
-  const next = widenFilter(settings.providerFilter)
 
   if (status === 'error' && error) {
     return (
@@ -27,12 +27,34 @@ export function ChargerList({ status, results, unfilteredCount, error }: Props) 
     )
   }
 
-  if (status === 'routing' || status === 'scanning') {
+  if (status === 'routing' || status === 'placing') {
     return (
       <div className="space-y-3 p-4">
         <p className="text-sm text-slate-500">
-          {status === 'routing' ? 'Calculating route…' : 'Scanning the route for chargers…'}
+          {status === 'routing' ? 'Calculating route…' : 'Finding chargers along the route…'}
         </p>
+
+        {/*
+          Placing is real work — every shipped station is measured against the
+          route geometry — so it gets a real bar rather than an indeterminate
+          shimmer that says nothing about how long is left.
+        */}
+        {status === 'placing' && progress != null && (
+          <div
+            role="progressbar"
+            aria-label="Finding chargers along the route"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
+            className="h-1.5 overflow-hidden rounded-full bg-slate-900"
+          >
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-[width] duration-150 ease-out"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        )}
+
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-32 animate-pulse rounded-xl bg-slate-900" />
         ))}
@@ -42,28 +64,11 @@ export function ChargerList({ status, results, unfilteredCount, error }: Props) 
 
   return (
     <div className="space-y-3 p-4">
-      {/*
-        A thin list is the expected outcome of the narrow default filter, not a
-        failure — so say which filter caused it and offer the next one up.
-      */}
-      {results.length < 3 && unfilteredCount > results.length && next && (
-        <button
-          onClick={() => update({ providerFilter: next })}
-          className="w-full rounded-xl bg-slate-900 p-4 text-left ring-1 ring-slate-800"
-        >
-          <p className="text-sm text-slate-300">
-            Only {results.length} charger{results.length === 1 ? '' : 's'} match “
-            {PROVIDER_FILTER_LABELS[settings.providerFilter]}”.
-          </p>
-          <p className="mt-1 text-sm font-medium text-emerald-400">
-            Widen to “{PROVIDER_FILTER_LABELS[next]}” →
-          </p>
-        </button>
-      )}
-
-      {results.length === 0 && unfilteredCount === 0 && status === 'ready' && (
+      {results.length === 0 && status === 'ready' && (
         <p className="p-4 text-center text-sm text-slate-500">
-          No chargers found within 5 km of this route.
+          {unfilteredCount === 0
+            ? `No EnBW chargers within ${DEFAULT_MAX_OFFSET_M / 1000} km of this route.`
+            : `No chargers match your filters — ${unfilteredCount} nearby are below ${settings.minPowerKw} kW or occupied.`}
         </p>
       )}
 

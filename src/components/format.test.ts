@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatDetour, formatDistance, formatDuration, formatPower } from './format'
+import {
+  formatDetour,
+  formatDistance,
+  formatDuration,
+  formatDurationDelta,
+  formatPower,
+} from './format'
 
 describe('formatDistance', () => {
   it('rounds metres to the nearest 10 below 1 km', () => {
@@ -38,5 +44,18 @@ describe('formatPower', () => {
   it('marks unknown power rather than guessing', () => {
     expect(formatPower(null)).toBe('? kW')
     expect(formatPower(299.9)).toBe('300 kW')
+  })
+})
+
+describe('formatDurationDelta', () => {
+  it('labels the fastest route rather than showing +0 min', () => {
+    expect(formatDurationDelta(0)).toBe('fastest')
+    expect(formatDurationDelta(-60)).toBe('fastest')
+  })
+
+  it('signs a real penalty and rolls over to hours', () => {
+    expect(formatDurationDelta(22 * 60)).toBe('+22 min')
+    expect(formatDurationDelta(90 * 60)).toBe('+1 h 30')
+    expect(formatDurationDelta(120 * 60)).toBe('+2 h')
   })
 })

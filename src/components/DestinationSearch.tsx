@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { geocode, type Place } from '../routing/mapbox'
-import type { LatLon } from '../providers/types'
+import type { Place } from '../core/types'
+import { geocode } from '../services/mapbox/geocoding'
+import type { LatLon } from '../core/types'
 import { useAppStore } from '../state/store'
 
 interface Props {

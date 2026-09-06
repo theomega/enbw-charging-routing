@@ -6,9 +6,12 @@ import {
   chunkCandidates,
   detourSeconds,
   priceDetours,
+  routePenaltySeconds,
+  MATRIX_MAX_COORDS,
+  type MatrixQuery,
 } from './detour'
-import { MATRIX_MAX_COORDS, type MatrixQuery } from './mapbox'
-import type { Charger, ChargerOnRoute } from '../providers/types'
+
+import type { Charger, ChargerOnRoute } from './types'
 
 const origin = { lat: 48.78, lon: 9.18 } // Stuttgart
 const destination = { lat: 48.4, lon: 9.99 } // Ulm
@@ -25,7 +28,6 @@ function candidate(id: string, lat: number, lon: number, alongM: number): Charge
     availablePoints: 3,
     unknownPoints: 0,
     maxPowerKw: 300,
-    plugTypes: ['CCS'],
     operator: 'EnBW',
     operatorCode: 'DEEBW',
     priceGroup: 'ENBW_GROUP',
@@ -57,8 +59,51 @@ describe('detourSeconds', () => {
   })
 })
 
+describe('route penalty re-baselining', () => {
+  it('is zero when the fastest route is selected', () => {
+    expect(routePenaltySeconds(45_000, 45_000)).toBe(0)
+  })
+
+  it('is the gap to the fastest route when a slower one is selected', () => {
+    // Jaufenpass at 12 h 52 against the A22 at 12 h 30.
+    expect(routePenaltySeconds(12 * 3600 + 52 * 60, 12 * 3600 + 30 * 60)).toBe(22 * 60)
+  })
+
+  it('never goes negative if the selected route somehow prices faster', () => {
+    expect(routePenaltySeconds(44_000, 45_000)).toBe(0)
+  })
+
+  it('leaves detours untouched at zero penalty', () => {
+    expect(detourSeconds(3_540, 360, 3_720, 0)).toBe(detourSeconds(3_540, 360, 3_720))
+  })
+
+  it('zeroes out a charger sitting on the selected slower alternative', () => {
+    // Driving the Jaufenpass: reaching this charger costs the route's own
+    // 22 min penalty and nothing more, so the detour is zero, not +22 min.
+    const t1 = 12 * 3600 + 40 * 60
+    const t2 = 12 * 60
+    const tDirect = 12 * 3600 + 30 * 60
+    expect(detourSeconds(t1, t2, tDirect)).toBe(22 * 60)
+    expect(detourSeconds(t1, t2, tDirect, 22 * 60)).toBe(0)
+  })
+
+  it('still reports a genuine detour on top of the route penalty', () => {
+    // 22 min route penalty plus a real 8 min excursion off it.
+    const t1 = 12 * 3600 + 48 * 60
+    const t2 = 12 * 60
+    const tDirect = 12 * 3600 + 30 * 60
+    expect(detourSeconds(t1, t2, tDirect, 22 * 60)).toBe(8 * 60)
+  })
+
+  it('never goes negative once the penalty is applied', () => {
+    expect(detourSeconds(3_000, 600, 3_600, 600)).toBe(0)
+  })
+})
+
 describe('chunkCandidates', () => {
   it('reserves two coordinate slots for origin and destination', () => {
+    // 25 is the documented Mapbox cap on the driving profile.
+    expect(MATRIX_MAX_COORDS).toBe(25)
     expect(CHARGERS_PER_CHUNK).toBe(23)
     expect(CHARGERS_PER_CHUNK + 2).toBe(MATRIX_MAX_COORDS)
   })
@@ -188,6 +233,16 @@ describe('priceDetours', () => {
     expect(out.slice(0, 3).every((c) => c.detourS === 200)).toBe(true)
     expect(out.slice(3).every((c) => c.detourS === null)).toBe(true)
     expect(out).toHaveLength(10)
+  })
+
+  it('threads the route penalty through to every priced charger', async () => {
+    const candidates = [candidate('a', 48.7, 9.3, 10_000)]
+    const matrix = fakeMatrix([3_000], [900], 3_600)
+    const [out] = await priceDetours(origin, destination, candidates, {
+      matrix,
+      penaltyS: 300,
+    })
+    expect(out.detourS).toBe(3_000 + 900 - 3_600 - 300)
   })
 
   it('makes no requests when there are no candidates', async () => {

@@ -3,19 +3,15 @@ import { DEFAULT_SETTINGS, PERSIST_VERSION, migratePersisted as migrate } from '
 
 describe('persisted settings migration', () => {
   it('is wired to the current persist version', () => {
-    expect(PERSIST_VERSION).toBe(3)
+    expect(PERSIST_VERSION).toBe(5)
   })
 
-  it('defaults to the EnBW network filter', () => {
-    expect(DEFAULT_SETTINGS.providerFilter).toBe('enbw')
-  })
-
-  it('remaps the v1 filter values that no longer exist', () => {
-    // Without this, a phone upgrading from v1 holds a value no predicate
-    // matches and shows an empty list forever.
-    for (const legacy of ['enbw-operated', 'enbw-tariff']) {
+  it('strips the providerFilter setting removed in v4', () => {
+    // The shipped station list contains only EnBW-tariff stations, so there is
+    // nothing left to select between.
+    for (const legacy of ['enbw', 'enbw-operated', 'card-usable']) {
       const migrated = migrate({ settings: { ...DEFAULT_SETTINGS, providerFilter: legacy } }, 1)
-      expect(migrated.settings.providerFilter).toBe('enbw')
+      expect('providerFilter' in migrated.settings).toBe(false)
     }
   })
 
@@ -29,19 +25,26 @@ describe('persisted settings migration', () => {
     expect('sortBy' in migrated.settings).toBe(false)
   })
 
-  it('leaves still-valid v1 values alone', () => {
-    const migrated = migrate(
-      { settings: { ...DEFAULT_SETTINGS, providerFilter: 'card-usable' } },
-      1,
-    )
-    expect(migrated.settings.providerFilter).toBe('card-usable')
+  it('leaves still-valid settings alone', () => {
+    const migrated = migrate({ settings: { ...DEFAULT_SETTINGS, minPowerKw: 150 } }, 1)
+    expect(migrated.settings.minPowerKw).toBe(150)
+  })
+
+  it('lifts a stored minimum power below the list floor (v4 -> v5)', () => {
+    // The shipped list starts at 50 kW, so "Any" and "22 kW+" are settings that
+    // can no longer match anything extra.
+    expect(migrate({ settings: { minPowerKw: 0 } }, 4).settings.minPowerKw).toBe(50)
+    expect(migrate({ settings: { minPowerKw: 22 } }, 4).settings.minPowerKw).toBe(50)
+  })
+
+  it('leaves a stricter minimum alone', () => {
+    expect(migrate({ settings: { minPowerKw: 300 } }, 4).settings.minPowerKw).toBe(300)
   })
 
   it('fills in settings added after the stored version was written', () => {
-    const migrated = migrate({ settings: { providerFilter: 'all' } }, 1)
-    expect(migrated.settings.minPowerKw).toBe(DEFAULT_SETTINGS.minPowerKw)
+    const migrated = migrate({ settings: { minPowerKw: 150 } }, 1)
+    expect(migrated.settings.minPowerKw).toBe(150)
     expect(migrated.settings.mapsApp).toBe(DEFAULT_SETTINGS.mapsApp)
-    expect(migrated.settings.providerFilter).toBe('all')
   })
 
   it('survives completely empty or absent persisted state', () => {

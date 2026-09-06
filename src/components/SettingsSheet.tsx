@@ -1,12 +1,11 @@
-import {
-  PROVIDER_FILTERS,
-  PROVIDER_FILTER_LABELS,
-  type ProviderFilter,
-} from '../providers/enbw'
 import type { MapsApp } from '../nav/deepLinks'
 import { useAppStore } from '../state/store'
 
-const POWER_OPTIONS = [0, 22, 50, 150, 300]
+/**
+ * No "Any" and no 22 kW: the shipped list starts at 50 kW, so those options
+ * would claim to widen a search that cannot widen. See MIN_STATION_POWER_KW.
+ */
+const POWER_OPTIONS = [50, 150, 300]
 const DETOUR_OPTIONS: (number | null)[] = [null, 5, 10, 20]
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
@@ -24,27 +23,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
       </header>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
-        <Section
-          title="Which stations"
-          hint="“EnBW network” is EnBW's own hardware at EnBW's own tariff, including SMATRICS EnBW abroad. “Works with my EnBW card” adds the whole roaming network, which is much larger outside Germany."
-        >
-          <div className="space-y-1">
-            {PROVIDER_FILTERS.map((f: ProviderFilter) => (
-              <Radio
-                key={f}
-                label={PROVIDER_FILTER_LABELS[f]}
-                checked={settings.providerFilter === f}
-                onChange={() => update({ providerFilter: f })}
-              />
-            ))}
-          </div>
-        </Section>
-
         <Section title="Minimum power">
           <Chips
             options={POWER_OPTIONS.map((kw) => ({
               key: String(kw),
-              label: kw === 0 ? 'Any' : `${kw} kW+`,
+              label: `${kw} kW+`,
               active: settings.minPowerKw === kw,
               onSelect: () => update({ minPowerKw: kw }),
             }))}
@@ -79,18 +62,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           />
         </Section>
 
-        <Section title="Other">
-          <label className="flex items-center justify-between rounded-lg bg-slate-900 p-3">
-            <span className="text-slate-200">Hide fully occupied stations</span>
-            <input
-              type="checkbox"
-              checked={settings.hideFullStations}
-              onChange={(e) => update({ hideFullStations: e.target.checked })}
-              className="h-5 w-5 accent-emerald-500"
-            />
-          </label>
-        </Section>
-
         <button
           onClick={reset}
           className="w-full rounded-lg bg-slate-900 p-3 text-sm text-slate-400 ring-1 ring-slate-800"
@@ -117,28 +88,6 @@ function Section({
       {children}
       {hint && <p className="pt-2 text-xs text-slate-600">{hint}</p>}
     </section>
-  )
-}
-
-function Radio({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: () => void
-}) {
-  return (
-    <button
-      onClick={onChange}
-      className={`flex w-full items-center justify-between rounded-lg p-3 text-left ${
-        checked ? 'bg-emerald-950 text-emerald-200 ring-1 ring-emerald-800' : 'bg-slate-900'
-      }`}
-    >
-      <span>{label}</span>
-      {checked && <span aria-hidden>✓</span>}
-    </button>
   )
 }
 

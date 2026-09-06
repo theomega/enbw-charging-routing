@@ -12,3 +12,5 @@ dist
 package-lock.json
 yarn.lock
 .pnpm-store/
+
+public/stations.enbw.json

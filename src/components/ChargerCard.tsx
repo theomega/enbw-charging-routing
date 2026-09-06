@@ -1,4 +1,4 @@
-import type { ChargerOnRoute } from '../providers/types'
+import type { ChargerOnRoute } from '../core/types'
 import { navigationUrl, type MapsApp } from '../nav/deepLinks'
 import { formatDetour, formatDistance, formatDuration, formatPower } from './format'
 
@@ -47,11 +47,6 @@ export function ChargerCard({ item, mapsApp }: Props) {
         <span className="rounded bg-slate-800 px-2 py-0.5 font-medium text-emerald-300">
           {formatPower(charger.maxPowerKw)}
         </span>
-        {charger.plugTypes.slice(0, 2).map((p) => (
-          <span key={p} className="rounded bg-slate-800 px-2 py-0.5">
-            {p}
-          </span>
-        ))}
         {charger.operator && <span className="truncate">{charger.operator}</span>}
       </div>
     </a>

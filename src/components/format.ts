@@ -22,6 +22,16 @@ export function formatDetour(seconds: number | null): string {
   return `+${mins} min`
 }
 
+/** How much slower an alternative is than the fastest route. */
+export function formatDurationDelta(seconds: number): string {
+  const mins = Math.round(seconds / 60)
+  if (mins <= 0) return 'fastest'
+  if (mins < 60) return `+${mins} min`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m === 0 ? `+${h} h` : `+${h} h ${m}`
+}
+
 export function formatPower(kw: number | null): string {
   if (kw == null) return '? kW'
   return `${Math.round(kw)} kW`

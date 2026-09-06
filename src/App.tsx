@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import { ChargerList } from './components/ChargerList'
+import { RouteMapSheet } from './components/RouteMapSheet'
+import { RoutePicker } from './components/RoutePicker'
 import { DestinationSearch } from './components/DestinationSearch'
 import { SettingsSheet } from './components/SettingsSheet'
 import { formatClock, formatDistance, formatDuration } from './components/format'
 import { useGeolocation } from './hooks/useGeolocation'
-import { useRouteSearch } from './hooks/useRouteSearch'
+import { useRouteSearch } from './search/useRouteSearch'
 import { useAppStore } from './state/store'
 
 export default function App() {
   const [showSearch, setShowSearch] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showRouteMap, setShowRouteMap] = useState(false)
 
   const destination = useAppStore((s) => s.lastDestination)
   const setDestination = useAppStore((s) => s.setDestination)
@@ -19,6 +22,12 @@ export default function App() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col">
+      {/*
+        Only the destination and the one-line route summary are pinned. The map
+        below is deliberately not: it is worth a third of the screen when you
+        are looking at it and nothing at all while you are reading charger rows,
+        so it scrolls away and the summary bar reopens it full-screen.
+      */}
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
         <div className="flex items-center gap-2 p-3">
           <button
@@ -43,13 +52,21 @@ export default function App() {
           </button>
         </div>
 
-        {search.route && (
-          <div className="flex items-center justify-between px-4 pb-3 text-xs text-slate-500">
-            <span>
-              Route {formatDistance(search.route.totalDistanceM)} ·{' '}
-              {formatDuration(search.route.totalDurationS)}
-            </span>
-            <button onClick={search.refresh} className="font-medium text-emerald-400">
+        {search.selected && (
+          <div className="flex items-center justify-between gap-3 px-4 pb-3 text-xs text-slate-500">
+            <button
+              onClick={() => setShowRouteMap(true)}
+              className="min-w-0 truncate text-left text-slate-400"
+            >
+              {search.selected.summary ? `via ${search.selected.summary} · ` : ''}
+              {formatDistance(search.selected.route.totalDistanceM)} ·{' '}
+              {formatDuration(search.selected.route.totalDurationS)}{' '}
+              <span aria-hidden>⛶</span>
+            </button>
+            <button
+              onClick={search.refresh}
+              className="shrink-0 font-medium text-emerald-400"
+            >
               {search.fetchedAt ? `Updated ${formatClock(search.fetchedAt)} · Refresh` : 'Refresh'}
             </button>
           </div>
@@ -60,6 +77,13 @@ export default function App() {
         {geoError && (
           <div className="m-4 rounded-xl bg-amber-950 p-4 text-sm text-amber-200">{geoError}</div>
         )}
+
+        <RoutePicker
+          routes={search.routes}
+          selected={search.selected}
+          onSelect={search.selectRoute}
+          onExpand={() => setShowRouteMap(true)}
+        />
 
         {!destination && (
           <div className="p-8 text-center text-slate-500">
@@ -79,6 +103,7 @@ export default function App() {
             status={search.status}
             results={search.results}
             unfilteredCount={search.unfilteredCount}
+            progress={search.progress}
             error={search.error}
           />
         )}
@@ -95,6 +120,9 @@ export default function App() {
         />
       )}
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
+      {showRouteMap && search.selected && (
+        <RouteMapSheet option={search.selected} onClose={() => setShowRouteMap(false)} />
+      )}
     </div>
   )
 }
