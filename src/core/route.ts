@@ -68,7 +68,13 @@ export function buildRouteGeometry(route: Route): RouteGeometry {
   // but reachable (origin and destination on the same spot), so answer it
   // directly rather than letting the helper throw.
   const line: Feature<LineString> | null =
-    n < 2 ? null : { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.coordinates } }
+    n < 2
+      ? null
+      : {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: route.coordinates },
+        }
 
   const geometry: RouteGeometry = {
     route,

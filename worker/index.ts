@@ -112,9 +112,7 @@ async function fetchOccupancy(
     }
   }
 
-  await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENCY, stationIds.length) }, worker),
-  )
+  await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, stationIds.length) }, worker))
   return out
 }
 
@@ -168,9 +166,7 @@ async function fetchStation(
     unknownPoints: station.unknownStateChargePoints ?? 0,
     // Omitted rather than zeroed: the client's list knows the real total, and
     // "0 points" would render as a nonsense denominator.
-    ...(station.numberOfChargePoints != null
-      ? { totalPoints: station.numberOfChargePoints }
-      : {}),
+    ...(station.numberOfChargePoints != null ? { totalPoints: station.numberOfChargePoints } : {}),
   }
 
   ctx.waitUntil(

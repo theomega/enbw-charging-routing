@@ -34,5 +34,4 @@ const ENTITIES: Record<string, string> = {
   "'": '&#39;',
 }
 
-export const escapeHtml = (value: string): string =>
-  value.replace(/[&<>"']/g, (c) => ENTITIES[c])
+export const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, (c) => ENTITIES[c])

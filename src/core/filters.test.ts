@@ -61,7 +61,6 @@ describe('applyStaticFilters', () => {
     const out = applyStaticFilters(items, settings({ minPowerKw: 50 }))
     expect(out.map((c) => c.charger.id)).toEqual(['good'])
   })
-
 })
 
 describe('applyLiveFilters', () => {

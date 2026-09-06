@@ -116,7 +116,9 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
           .slice(0, 8)
           .map((c) => {
             const o = live.get(c.charger.id)
-            const free = o ? `${o.availablePoints}/${o.totalPoints ?? c.charger.totalPoints}` : '?/?'
+            const free = o
+              ? `${o.availablePoints}/${o.totalPoints ?? c.charger.totalPoints}`
+              : '?/?'
             return (
               `    ${(c.alongDistanceM / 1000).toFixed(0).padStart(4)} km  ` +
               `${String(c.charger.maxPowerKw).padStart(4)} kW  ${free.padStart(6)} free  ` +

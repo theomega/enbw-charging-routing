@@ -70,4 +70,3 @@ export function useGeolocation(minMoveM = 50): GeolocationState {
 
   return state
 }
-

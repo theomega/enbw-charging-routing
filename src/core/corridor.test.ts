@@ -33,7 +33,13 @@ describe('buildCorridor', () => {
 
   it('admits everything when the route is too degenerate to buffer', () => {
     const corridor = buildCorridor(
-      { coordinates: [[9, 48.8]], distances: [], durations: [], totalDistanceM: 0, totalDurationS: 0 },
+      {
+        coordinates: [[9, 48.8]],
+        distances: [],
+        durations: [],
+        totalDistanceM: 0,
+        totalDurationS: 0,
+      },
       5_000,
     )
     expect(corridor.area).toBeNull()

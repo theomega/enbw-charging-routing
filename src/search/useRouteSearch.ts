@@ -54,8 +54,14 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
   const settings = useAppStore((s) => s.settings)
   const [nonce, setNonce] = useState(0)
 
-  const { routes, selected, selectRoute, anchor, loading: routing, error: routeError } =
-    useRoutes(origin, destination)
+  const {
+    routes,
+    selected,
+    selectRoute,
+    anchor,
+    loading: routing,
+    error: routeError,
+  } = useRoutes(origin, destination)
 
   const corridor = useCorridor(selected, DEFAULT_MAX_OFFSET_M)
 

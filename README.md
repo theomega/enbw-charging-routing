@@ -31,7 +31,7 @@ cp .env.example .env
 
 **Scopes: none required.** The three APIs this app calls — Geocoding v6, Directions
 v5, and Directions-Matrix v1 — are public APIs that work with any valid public token.
-Use the *Default public token*, or create a new one and leave the scope checkboxes at
+Use the _Default public token_, or create a new one and leave the scope checkboxes at
 their defaults. The default public scopes (`styles:tiles`, `styles:read`, `fonts:read`,
 `datasets:read`, `vision:read`) cover styles and tiles; none of them gate routing or
 search. Mapbox lists a required scope in an endpoint's docs whenever the default token
@@ -43,7 +43,7 @@ with `pk.`.
 
 Because the token is public, **URL restrictions are the actual security control**. Add
 `http://localhost:5173/*` and your deployed origin in the token settings. Note that URL
-restrictions are incompatible with Mapbox's *native* SDKs — fine for this browser SPA,
+restrictions are incompatible with Mapbox's _native_ SDKs — fine for this browser SPA,
 but it would break if you ever wrapped it in a native shell.
 
 **2. EnBW subscription key** (station list and live availability)
@@ -76,7 +76,7 @@ the default area: **1,789 requests in 41 seconds, 2,400 stations, 203 KB (73 KB 
 written to `public/stations.enbw.json`. It was 3,578 requests and 2.8 minutes before the
 `minPower` filter.
 
-The file carries station *identity* — address, power, point count, operator — which is why
+The file carries station _identity_ — address, power, point count, operator — which is why
 it is 203 KB rather than 74 KB, and why every row on screen is fully described before any
 network call. See [What the list carries](#what-the-list-carries). Re-run it every month or
 so, and after any run of stale rows — see [Known limitations](#known-limitations).
@@ -121,7 +121,7 @@ path.
 
 ## Why a proxy
 
-EnBW's gateway *looks* browser-callable — the CORS preflight answers
+EnBW's gateway _looks_ browser-callable — the CORS preflight answers
 `access-control-allow-origin: *` and allows the subscription-key header — but the
 actual GET is gated on the `Origin` header:
 
@@ -163,18 +163,20 @@ gate it on `Origin` or put Cloudflare Access in front.
    This is the one visibly expensive step — roughly 650 ms for a 318 km route on a laptop,
    a few seconds on a phone — so it runs in chunks, yields the main thread between them and
    drives a real progress bar rather than an indeterminate shimmer.
+
 4. **Live occupancy** (`src/services/enbw/availability.ts`) — only for the ~20 rows actually
    shown, and only the occupancy. Everything else about a station is already known from the
-   list, so this step can only add the `n/m free` badge; it can never decide what a row *is*.
+   list, so this step can only add the `n/m free` badge; it can never decide what a row _is_.
    EnBW has no bulk endpoint (`?stationIds=`, `?ids=`, `/batch`, `/status`, comma-joined ids
    and `POST` are all rejected), so it is one `GET /chargestations/{id}` per station —
    typically 17–20 requests. See [Why not bounding boxes](#why-not-bounding-boxes).
 5. **Detour** (`src/core/detour.ts`) — `T(origin→charger) + T(charger→dest) − T(origin→dest)`,
    from two Mapbox Matrix calls per 23 chargers.
 
-   `t_direct` is deliberately read from the *same* matrix call (by appending the destination as an
+   `t_direct` is deliberately read from the _same_ matrix call (by appending the destination as an
    extra target) rather than reused from step 1: the route uses `driving-traffic` and the matrix
    uses `driving`, and subtracting across profiles yields nonsense, routinely negative.
+
 6. **Hand off** — the list is always in **route order**, the order you drive past them. There is
    no sort control: `placeChargersOnRoute` orders by along-route distance and nothing downstream
    re-orders.
@@ -211,13 +213,13 @@ by hand outside `src/core/geo.ts` — that file is the single seam between this 
 `{ lat, lon }` and Turf's `[lon, lat]`, because getting that backwards produces a
 plausible-looking point in the wrong hemisphere.
 
-| Job | Turf |
-|---|---|
-| Corridor around the route | `buffer` + `booleanPointInPolygon` |
-| Where along the route a charger sits | `nearestPointOnLine` |
-| Distances (GPS movement, segment fractions, offsets) | `distance` |
-| Occupancy box covers | `bbox` |
-| Framing the map on the routes | `bbox` |
+| Job                                                  | Turf                               |
+| ---------------------------------------------------- | ---------------------------------- |
+| Corridor around the route                            | `buffer` + `booleanPointInPolygon` |
+| Where along the route a charger sits                 | `nearestPointOnLine`               |
+| Distances (GPS movement, segment fractions, offsets) | `distance`                         |
+| Occupancy box covers                                 | `bbox`                             |
+| Framing the map on the routes                        | `bbox`                             |
 
 Two things this costs, both accepted:
 
@@ -278,10 +280,10 @@ The occupancy lookup used to ask for a small bounding box around each station, o
 theory that one box could cover several nearby candidates. Measured on a real route, it
 covers exactly one — corridor candidates are kilometres apart:
 
-| | Requests | Upstream | Time |
-|---|---|---|---|
-| 17 bounding boxes | 17 | 12 KB | 1550 ms |
-| 17 station ids | 17 | 61 KB | 1310 ms |
+|                   | Requests | Upstream | Time    |
+| ----------------- | -------- | -------- | ------- |
+| 17 bounding boxes | 17       | 12 KB    | 1550 ms |
+| 17 station ids    | 17       | 61 KB    | 1310 ms |
 
 Same request count, no latency penalty, and the extra bytes are on the Worker→EnBW leg,
 which the Worker trims away before answering the phone. (An earlier note here claimed
@@ -299,10 +301,10 @@ constants, the Worker's span guard, and every `grouped` check in the client.
 Station ids are not stable. EnBW re-issued a contiguous block of Austrian (SMATRICS) ids;
 measured four days after a list build:
 
-| Sample | 404 from `/chargestations/{id}` |
-|---|---|
-| 124 shipped ids in 2.90M–3.00M | **71** |
-| 25 shipped ids below 2.90M | 0 |
+| Sample                         | 404 from `/chargestations/{id}` |
+| ------------------------------ | ------------------------------- |
+| 124 shipped ids in 2.90M–3.00M | **71**                          |
+| 25 shipped ids below 2.90M     | 0                               |
 
 That is 3.0% of the whole list, in four days. Each dead station had exactly one replacement
 at the same position with the same power:
@@ -313,7 +315,7 @@ shipped 2969949, 150 kW  ->  live 3029144 @0m, 150 kW  "Gewerbestraße 2, 3373 K
 ```
 
 A re-issued id 404s, so that row shows `?/n` until the list is rebuilt. Because identity now
-lives in the list, that is the *whole* cost — the address, power and point count are still
+lives in the list, that is the _whole_ cost — the address, power and point count are still
 right. Before this change the same event blanked the row.
 
 A position-based fallback (adopt a same-position, same-power record under a new id) was
@@ -335,12 +337,12 @@ stops happening and the scan converges quickly instead of grinding down through 
 
 Measured over the same 0.3°×0.4° region:
 
-| | Requests | Time | Stations | Converged |
-|---|---|---|---|---|
-| Unfiltered descent | 646 | 9.8 s | 201 | 4 clusters stuck |
-| **`priceGroups=ENBW_GROUP`** | **69** | **2.6 s** | **202** | **fully** |
+|                              | Requests | Time      | Stations | Converged        |
+| ---------------------------- | -------- | --------- | -------- | ---------------- |
+| Unfiltered descent           | 646      | 9.8 s     | 201      | 4 clusters stuck |
+| **`priceGroups=ENBW_GROUP`** | **69**   | **2.6 s** | **202**  | **fully**        |
 
-Cheaper *and* more complete — the unfiltered scan's own clustering had been hiding a station. Across
+Cheaper _and_ more complete — the unfiltered scan's own clustering had been hiding a station. Across
 the full area this took the build from a projected ~100,000 requests and several hours down to
 3,578 requests and under three minutes.
 
@@ -353,10 +355,10 @@ clustering that forces a deep descent mostly stops happening.
 
 Measured on two regions, against a scan that filters power afterwards instead:
 
-| Region | `priceGroups` only | `+ minPower=50` | Stations |
-|---|---|---|---|
-| 48.3–49.3 × 8.7–9.7 | 301 requests, 7.6 s | **97 requests, 2.9 s** | 123 either way |
-| 47.2–48.4 × 10.8–12.2 | 121 requests, 3.7 s | **93 requests, 2.5 s** | 77 either way |
+| Region                | `priceGroups` only  | `+ minPower=50`        | Stations       |
+| --------------------- | ------------------- | ---------------------- | -------------- |
+| 48.3–49.3 × 8.7–9.7   | 301 requests, 7.6 s | **97 requests, 2.9 s** | 123 either way |
+| 47.2–48.4 × 10.8–12.2 | 121 requests, 3.7 s | **93 requests, 2.5 s** | 77 either way  |
 
 The station sets come out identical, so this is purely cheaper — roughly **3x fewer
 requests** on the first region.
@@ -372,7 +374,7 @@ request.
 
 The script keeps a targeted fallback for any cluster that survives to the size floor — it probes the
 centroid the API reports rather than splitting blindly. On the filtered scan it never fires, but it
-earns its place: on the *unfiltered* scan it recovered 190 stations, 5 of them EnBW, that the floor
+earns its place: on the _unfiltered_ scan it recovered 190 stations, 5 of them EnBW, that the floor
 was silently dropping.
 
 ## Route alternatives
@@ -413,7 +415,7 @@ The geometry goes to the map exactly as Mapbox returned it. The previous static-
 to be Douglas–Peucker-simplified until the URL fit a character budget; a GL map has no such budget,
 so there is no display simplification left to reason about.
 
-**Detour is re-baselined onto the selected route.** `t_direct` from the Matrix is the *fastest*
+**Detour is re-baselined onto the selected route.** `t_direct` from the Matrix is the _fastest_
 path, so without correction every charger on a slower alternative inherits that route's whole
 penalty — pick the Jaufenpass and a charger sitting on the road you are driving would read
 `+22 min`. `routePenaltySeconds` subtracts it. This is approximate: it applies a `driving-traffic`
@@ -425,7 +427,7 @@ selected.
 The shipped list contains only stations on the EnBW tariff (`priceGroup === 'ENBW_GROUP'`), so
 there is no provider filter at runtime — that selection happens offline, in the list builder.
 
-**Why `priceGroup` and not `operatorCode`.** `DEEBW` is EnBW's *German* operator code. EnBW runs its
+**Why `priceGroup` and not `operatorCode`.** `DEEBW` is EnBW's _German_ operator code. EnBW runs its
 own network abroad under separate entities — `ITSMA` (SMATRICS EnBW Italia), `ATSMA` (SMATRICS
 Austria) — and has German subsidiaries such as `DEODR` and `DESMA`. All bill at `ENBW_GROUP`.
 Measured over 801 stations across five countries, `operatorCode === 'DEEBW'` matched 74 and
@@ -439,7 +441,7 @@ An 11 or 22 kW AC post is an overnight charger, not a stop you make in the middl
 drive, so a slower station is never the answer to "where do I charge on the way?".
 
 Half the network is below that line — 2,225 of 4,622 EnBW-tariff stations — so cutting it
-at the source halves the file the phone downloads *and* halves the geometry the corridor
+at the source halves the file the phone downloads _and_ halves the geometry the corridor
 runs, rather than measuring thousands of stations only to filter them out on screen.
 
 `MIN_POWER_KW` in `scripts/build-station-list.mjs` applies it when the list is built, and
@@ -482,7 +484,7 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
 
 - **The station list goes stale.** New or decommissioned stations are invisible until
   `pnpm build:stations` is re-run. This is the real cost of the whole approach. A station that has
-  disappeared shows as `?/n` rather than a wrong number, but a *new* one simply will not appear.
+  disappeared shows as `?/n` rather than a wrong number, but a _new_ one simply will not appear.
 - **Coverage depends on one offline run.** A build that silently under-scans would ship a
   permanently incomplete app, so the script prints its station count and warns loudly about any
   cluster it could not resolve — distinguishing EnBW-tariff clusters, which matter, from other
@@ -513,8 +515,9 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
 
   Because the list is in route order, those 20 are exactly the next 20 you will reach. Raising
   `ENRICHED_LIMIT` in `src/search/useRouteSearch.ts` is cheap: Mapbox bills per
-  *element* and the chunking sends `2k+1` elements for `k` chargers, so 20 chargers is 41 elements
+  _element_ and the chunking sends `2k+1` elements for `k` chargers, so 20 chargers is 41 elements
   per search — roughly 2,400 searches inside the 100,000-element monthly free tier.
+
 - **Detour uses the `driving` profile**, not `driving-traffic`, because the traffic profile caps
   matrix requests at 10 coordinates instead of 25. The headline route ETA is traffic-aware; the
   detour delta is not.

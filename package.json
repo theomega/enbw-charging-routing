@@ -12,6 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "deploy:worker": "wrangler deploy",
     "build:stations": "node scripts/build-station-list.mjs"
   },
@@ -37,6 +39,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
+    "prettier": "^3.9.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",

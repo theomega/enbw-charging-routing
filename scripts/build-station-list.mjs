@@ -158,7 +158,7 @@ async function readKey() {
   }
   throw new Error(
     'ENBW_SUBSCRIPTION_KEY not set. Put it in .dev.vars or the environment. ' +
-      'See the README for how to read it off EnBW\'s public map page.',
+      "See the README for how to read it off EnBW's public map page.",
   )
 }
 
@@ -208,9 +208,10 @@ async function fetchBox(box, key) {
       if (res.status === 429) {
         rateLimitHits++
         const retryAfter = Number(res.headers.get('retry-after'))
-        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
-          ? retryAfter * 1000
-          : RATE_LIMIT_BACKOFF_MS * 2 ** Math.min(attempt, 4)
+        const waitMs =
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? retryAfter * 1000
+            : RATE_LIMIT_BACKOFF_MS * 2 ** Math.min(attempt, 4)
         throttle.until = Math.max(throttle.until, Date.now() + waitMs)
         throw new Error('HTTP 429')
       }

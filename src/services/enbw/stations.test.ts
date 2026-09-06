@@ -61,8 +61,9 @@ describe('unpackStation', () => {
   })
 
   it('carries a null power through rather than inventing a number', () => {
-    expect(unpackStation([1, 48.8, 9.1, null, 'A 1, 70173 Stuttgart, DE', 2, 'EnBW']).maxPowerKw)
-      .toBeNull()
+    expect(
+      unpackStation([1, 48.8, 9.1, null, 'A 1, 70173 Stuttgart, DE', 2, 'EnBW']).maxPowerKw,
+    ).toBeNull()
   })
 
   it('tolerates a row that is missing its identity columns', () => {

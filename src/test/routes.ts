@@ -22,9 +22,11 @@ export function eastwardRouteOfKm(totalKm: number, segmentM = 733): Route {
   const steps = Math.round((totalKm * 1_000) / segmentM)
   for (let i = 0; i < steps; i++) {
     // Due east is bearing 90.
-    points.push(fromPosition(
-      destination(toPoint(points[i]), segmentM, 90, { units: 'meters' }).geometry.coordinates,
-    ))
+    points.push(
+      fromPosition(
+        destination(toPoint(points[i]), segmentM, 90, { units: 'meters' }).geometry.coordinates,
+      ),
+    )
   }
   return routeThrough(points)
 }

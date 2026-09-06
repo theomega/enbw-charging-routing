@@ -10,11 +10,7 @@ describe('strokeColours', () => {
   })
 
   it('gives each alternative its own colour, so a legend can name them', () => {
-    const colours = strokeColours([
-      { selected: true },
-      { selected: false },
-      { selected: false },
-    ])
+    const colours = strokeColours([{ selected: true }, { selected: false }, { selected: false }])
     expect(colours[1]).not.toBe(colours[2])
     expect(new Set(colours).size).toBe(3)
   })

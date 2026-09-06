@@ -112,10 +112,7 @@ export function detourSeconds(
  * between two same-profile routes as a correction is far better behaved — and
  * it is exactly zero in the default case, where the fastest route is selected.
  */
-export function routePenaltySeconds(
-  selectedDurationS: number,
-  fastestDurationS: number,
-): number {
+export function routePenaltySeconds(selectedDurationS: number, fastestDurationS: number): number {
   const penalty = selectedDurationS - fastestDurationS
   return penalty > 0 ? penalty : 0
 }

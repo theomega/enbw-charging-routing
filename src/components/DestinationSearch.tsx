@@ -124,9 +124,13 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
           ))}
         </ul>
 
-        {!searching && !showRecents && query.trim().length >= 2 && results.length === 0 && !error && (
-          <p className="p-3 text-sm text-slate-500">Nothing found for “{query.trim()}”.</p>
-        )}
+        {!searching &&
+          !showRecents &&
+          query.trim().length >= 2 &&
+          results.length === 0 &&
+          !error && (
+            <p className="p-3 text-sm text-slate-500">Nothing found for “{query.trim()}”.</p>
+          )}
       </div>
     </div>
   )

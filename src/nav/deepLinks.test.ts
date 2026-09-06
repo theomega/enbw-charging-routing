@@ -5,9 +5,7 @@ const charger = { lat: 48.4131, lon: 9.9526, name: 'Seligweiler' }
 
 describe('deep links', () => {
   it('builds an Apple Maps driving link', () => {
-    expect(appleMapsUrl(charger)).toBe(
-      'https://maps.apple.com/?daddr=48.4131%2C9.9526&dirflg=d',
-    )
+    expect(appleMapsUrl(charger)).toBe('https://maps.apple.com/?daddr=48.4131%2C9.9526&dirflg=d')
   })
 
   it('builds a Google Maps driving link', () => {

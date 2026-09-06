@@ -70,10 +70,7 @@ export default function App() {
               </span>
               <ExpandIcon className="h-3.5 w-3.5 shrink-0" />
             </button>
-            <button
-              onClick={search.refresh}
-              className="shrink-0 font-medium text-emerald-400"
-            >
+            <button onClick={search.refresh} className="shrink-0 font-medium text-emerald-400">
               {search.fetchedAt ? `Updated ${formatClock(search.fetchedAt)} · Refresh` : 'Refresh'}
             </button>
           </div>

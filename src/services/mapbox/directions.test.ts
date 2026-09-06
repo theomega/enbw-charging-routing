@@ -28,7 +28,13 @@ describe('mapDirectionsRoutes', () => {
   const route = (distance: number, duration: number, summary: string) => ({
     distance,
     duration,
-    geometry: { coordinates: [[13.4, 52.5], [11.2, 46.7], [11.15, 46.7]] as [number, number][] },
+    geometry: {
+      coordinates: [
+        [13.4, 52.5],
+        [11.2, 46.7],
+        [11.15, 46.7],
+      ] as [number, number][],
+    },
     legs: [leg(summary)],
   })
 

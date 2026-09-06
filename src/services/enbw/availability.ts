@@ -80,7 +80,10 @@ export async function fetchAvailability(
   if (chargers.length === 0) return { live, missing: [] }
 
   const fetcher = options.fetcher ?? fetchViaWorker
-  const records = await fetcher(chargers.map((c) => stationIdOf(c.id)), options.signal)
+  const records = await fetcher(
+    chargers.map((c) => stationIdOf(c.id)),
+    options.signal,
+  )
 
   const wanted = new Map(chargers.map((c) => [stationIdOf(c.id), c.id]))
   for (const record of records) {

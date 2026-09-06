@@ -26,9 +26,7 @@ export function ChargerCard({ item, mapsApp }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate font-semibold text-slate-100">{charger.name}</h3>
-          {charger.address && (
-            <p className="truncate text-sm text-slate-400">{charger.address}</p>
-          )}
+          {charger.address && <p className="truncate text-sm text-slate-400">{charger.address}</p>}
         </div>
         <AvailabilityBadge available={available} total={charger.totalPoints} />
       </div>

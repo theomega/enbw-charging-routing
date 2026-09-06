@@ -32,7 +32,8 @@ export function requireToken(): string {
 }
 
 /** Null rather than throwing, for callers that can degrade instead of failing. */
-export const optionalToken = (): string | null => (isPlaceholderToken(TOKEN) ? null : (TOKEN as string))
+export const optionalToken = (): string | null =>
+  isPlaceholderToken(TOKEN) ? null : (TOKEN as string)
 
 /** Mapbox URLs order coordinates lon,lat — the GeoJSON order, not the spoken one. */
 export const coordPair = (p: LatLon): string => `${p.lon},${p.lat}`

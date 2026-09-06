@@ -34,7 +34,13 @@ function candidate(id: string, lat: number, lon: number, alongM: number): Charge
     authMethods: ['MOBILITY_PLUS_CHARGE_CARD'],
     alwaysOpen: true,
   }
-  return { charger, alongDistanceM: alongM, alongDurationS: alongM / 25, offsetM: 200, detourS: null }
+  return {
+    charger,
+    alongDistanceM: alongM,
+    alongDurationS: alongM / 25,
+    offsetM: 200,
+    detourS: null,
+  }
 }
 
 describe('detourSeconds', () => {
@@ -132,7 +138,10 @@ describe('buildChunkQueries', () => {
   })
 
   it('puts the destination last so t_direct arrives in the same request', () => {
-    const chargers = [{ lat: 48.6, lon: 9.5 }, { lat: 48.5, lon: 9.7 }]
+    const chargers = [
+      { lat: 48.6, lon: 9.5 },
+      { lat: 48.5, lon: 9.7 },
+    ]
     const { fromOrigin } = buildChunkQueries(origin, destination, chargers)
     expect(fromOrigin.coordinates[0]).toEqual(origin)
     expect(fromOrigin.coordinates.at(-1)).toEqual(destination)
@@ -142,7 +151,10 @@ describe('buildChunkQueries', () => {
   })
 
   it('asks for charger -> destination in the second request', () => {
-    const chargers = [{ lat: 48.6, lon: 9.5 }, { lat: 48.5, lon: 9.7 }]
+    const chargers = [
+      { lat: 48.6, lon: 9.5 },
+      { lat: 48.5, lon: 9.7 },
+    ]
     const { toDestination } = buildChunkQueries(origin, destination, chargers)
     expect(toDestination.coordinates.at(-1)).toEqual(destination)
     expect(toDestination.sources).toEqual([0, 1])
@@ -174,10 +186,7 @@ describe('priceDetours', () => {
   }
 
   it('prices each candidate from the two matrix calls', async () => {
-    const candidates = [
-      candidate('a', 48.7, 9.3, 10_000),
-      candidate('b', 48.6, 9.6, 40_000),
-    ]
+    const candidates = [candidate('a', 48.7, 9.3, 10_000), candidate('b', 48.6, 9.6, 40_000)]
     const matrix = fakeMatrix([1800, 3000], [2000, 800], 3600)
     const out = await priceDetours(origin, destination, candidates, { matrix })
 
@@ -264,7 +273,9 @@ describe('DetourCache', () => {
   it('misses once the origin has actually moved', () => {
     const cache = new DetourCache()
     cache.set(origin, destination, 'enbw:1', 180)
-    expect(cache.has({ lat: origin.lat + 0.05, lon: origin.lon }, destination, 'enbw:1')).toBe(false)
+    expect(cache.has({ lat: origin.lat + 0.05, lon: origin.lon }, destination, 'enbw:1')).toBe(
+      false,
+    )
   })
 
   it('distinguishes a cached null from a missing entry', () => {

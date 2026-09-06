@@ -19,8 +19,7 @@ export const fromPosition = ([lon, lat]: Position): LatLon => ({ lat, lon })
 
 export const toPoint = (p: LatLon): Feature<Point> => point(toPosition(p))
 
-export const toLine = (path: LatLon[]): Feature<LineString> =>
-  lineString(path.map(toPosition))
+export const toLine = (path: LatLon[]): Feature<LineString> => lineString(path.map(toPosition))
 
 /** Great-circle metres between two points. */
 export const distanceM = (a: LatLon, b: LatLon): number =>
@@ -29,4 +28,3 @@ export const distanceM = (a: LatLon, b: LatLon): number =>
 /** Metres between two raw GeoJSON positions, for code already holding them. */
 export const positionDistanceM = (a: Position, b: Position): number =>
   distance(point(a), point(b), { units: 'meters' })
-

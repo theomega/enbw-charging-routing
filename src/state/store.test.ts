@@ -18,10 +18,7 @@ describe('persisted settings migration', () => {
   it('strips the sortBy setting removed in v3', () => {
     // Chargers are always listed in route order now; a persisted sort key is
     // meaningless and must not linger in localStorage.
-    const migrated = migrate(
-      { settings: { ...DEFAULT_SETTINGS, sortBy: 'detour' } },
-      2,
-    )
+    const migrated = migrate({ settings: { ...DEFAULT_SETTINGS, sortBy: 'detour' } }, 2)
     expect('sortBy' in migrated.settings).toBe(false)
   })
 

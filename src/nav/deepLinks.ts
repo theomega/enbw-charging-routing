@@ -22,7 +22,10 @@ export function googleMapsUrl(c: Pick<Charger, 'lat' | 'lon' | 'name'>): string 
 }
 
 /** True for iPhone/iPad, including iPadOS which reports itself as a Mac. */
-export function isApplePlatform(ua: string = navigator.userAgent, maxTouchPoints = navigator.maxTouchPoints): boolean {
+export function isApplePlatform(
+  ua: string = navigator.userAgent,
+  maxTouchPoints = navigator.maxTouchPoints,
+): boolean {
   if (/iPhone|iPad|iPod/i.test(ua)) return true
   return /Macintosh/i.test(ua) && maxTouchPoints > 1
 }
