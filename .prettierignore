@@ -3,5 +3,5 @@ dist
 .wrangler
 .pnpm-store
 pnpm-lock.yaml
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 public/stations.enbw.json
