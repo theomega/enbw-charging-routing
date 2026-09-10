@@ -35,8 +35,8 @@ const STYLE = 'mapbox://styles/mapbox/standard'
  * Standard's own 1-5 POI label budget; its default of 3 is tuned for a
  * full-window map and leaves one this size looking empty.
  *
- * Only does anything from about zoom 13 up — below that Standard draws no POIs
- * at any density, so this and `focusRadiusM` have to be right together.
+ * Only does anything from zoom 14 up — below that Standard draws no POIs at
+ * any density, so this and `focusRadiusM` have to be right together.
  *
  * Needs GL JS >= 3.11.1.
  */
@@ -79,10 +79,11 @@ interface Props {
    * Half-width of the box drawn around `focus`, in metres.
    *
    * Doubles as the zoom control, and the zoom is what decides whether any of
-   * the surroundings are drawn: measured in the detail panel, 1200 m framed to
-   * zoom 12, where Standard shows no POI at all, and 600 m frames to 13, where
-   * the restaurants and shops appear. Raising this past ~700 m empties the map
-   * again however high `POI_DENSITY` is set.
+   * the surroundings are drawn at all. Measured in the detail panel: 1200 m
+   * frames to zoom 12 and 600 m to zoom 13, both of which Standard draws
+   * without a single POI; 300 m frames to zoom 14, where the restaurants,
+   * supermarkets and hotels appear. Raising this back above ~350 m empties the
+   * map again however high `POI_DENSITY` is set.
    */
   focusRadiusM?: number
   className?: string
@@ -98,7 +99,7 @@ export function RouteMap({
   cooperativeGestures = false,
   padding = 32,
   focus = null,
-  focusRadiusM = 600,
+  focusRadiusM = 300,
   className,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
