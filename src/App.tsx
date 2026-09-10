@@ -61,16 +61,16 @@ export default function App() {
           >
             {destination ? (
               <>
-                <div className="text-xs uppercase tracking-wide text-slate-500">Destination</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Ziel</div>
                 <div className="truncate font-medium text-slate-100">{destination.name}</div>
               </>
             ) : (
-              <span className="text-slate-400">Where are you going?</span>
+              <span className="text-slate-400">Was ist das Ziel der Reise?</span>
             )}
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            aria-label="Settings"
+            aria-label="Einstellungen"
             className="rounded-lg bg-slate-900 px-3 py-3 ring-1 ring-slate-800"
           >
             ⚙
@@ -109,12 +109,12 @@ export default function App() {
               {refreshing ? (
                 <>
                   <SpinnerIcon />
-                  Refreshing…
+                  Lade Daten…
                 </>
               ) : search.fetchedAt ? (
-                `Updated ${formatClock(search.fetchedAt)} · Refresh`
+                `Aktualisiert: ${formatClock(search.fetchedAt)} · Aktualisieren`
               ) : (
-                'Refresh'
+                'Aktualisieren'
               )}
             </button>
           </div>
@@ -141,12 +141,15 @@ export default function App() {
             <p className="text-4xl" aria-hidden>
               ⚡
             </p>
-            <p className="mt-3">Pick a destination to see EnBW chargers along the way.</p>
+            <p className="mt-3">
+              Wähle ein Ziel aus um hier die ENBW Ladestationen entlang der Route von deinem
+              aktuellen Standort zum Ziel zu sehen.
+            </p>
           </div>
         )}
 
         {destination && !position && geoLoading && (
-          <p className="p-8 text-center text-sm text-slate-500">Waiting for your position…</p>
+          <p className="p-8 text-center text-sm text-slate-500">Warte auf GPS Position…</p>
         )}
 
         {destination && position && (
