@@ -2,12 +2,12 @@ import { useMemo } from 'react'
 import type { Charger, ChargerOnRoute } from '../core/types'
 import { navigationUrl, type MapsApp } from '../nav/deepLinks'
 import type { RouteOption } from '../services/mapbox/directions'
+import { describeGroup, groupChargePoints } from './chargePointGroups'
 import {
   asEstimate,
   formatDetour,
   formatDistance,
   formatDuration,
-  formatPointStatus,
   formatPower,
   formatProgress,
 } from './format'
@@ -43,7 +43,7 @@ interface Props {
  * footer already carry the location, the address, the operator, the peak power
  * and the free-point count, and repeating any of them here would only make the
  * panel longer to read past. What is left is what the header cannot say and the
- * per-point list does not: the opening hours.
+ * charge-point groups do not: the opening hours.
  */
 export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Props) {
   // Memoised for the same reason the pipeline memoises its slices: these are
@@ -134,32 +134,40 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Pr
           Charge points
           {charger.chargePoints && ` (${charger.chargePoints.length})`}
         </h4>
-        {loading && <p className="mt-2 text-sm text-slate-500">Loading charge points…</p>}
+        {/*
+          Only while there is nothing to show. A Refresh re-reads a panel that
+          is already open and full, and captioning the list it is standing on
+          would claim the points below are not there yet; the badge's spinner
+          is what reports that re-read.
+        */}
+        {loading && !charger.chargePoints && (
+          <p className="mt-2 text-sm text-slate-500">Loading charge points…</p>
+        )}
         {!loading && !charger.chargePoints && (
           <p className="mt-2 text-sm text-slate-500">
             EnBW did not answer for this station, so its individual points are unknown.
           </p>
         )}
+        {/*
+          Grouped rather than listed: a big station has dozens of points and
+          almost all of them repeat their neighbour. One row per connector and
+          speed says the same thing in three or four lines, and the EVSE id is
+          the only thing it costs — a number that matters once you have parked,
+          not while you are choosing where to.
+        */}
         {charger.chargePoints && charger.chargePoints.length > 0 && (
           <ul className="mt-2 space-y-1.5">
-            {charger.chargePoints.map((point, i) => (
-              <li
-                key={point.id ?? i}
-                className="flex items-center justify-between gap-3 rounded-lg bg-slate-950 px-3 py-2 text-sm"
-              >
-                <div className="min-w-0">
+            {groupChargePoints(charger.chargePoints).map((group) => (
+              <li key={group.key} className="rounded-lg bg-slate-950 px-3 py-2 text-sm">
+                <div className="flex items-baseline justify-between gap-3">
                   <p className="truncate text-slate-200">
-                    {point.plugs.length > 0 ? point.plugs.join(' · ') : 'Unknown connector'}
+                    {group.plugs.length > 0 ? group.plugs.join(' · ') : 'Unknown connector'}
                   </p>
-                  {/* The EVSE id is what is printed on the stall you drive up to. */}
-                  {point.id && <p className="truncate text-xs text-slate-500">{point.id}</p>}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-medium text-emerald-300">{formatPower(point.maxPowerKw)}</p>
-                  <p className={`text-xs ${statusTone(point.status)}`}>
-                    {formatPointStatus(point.status)}
+                  <p className="shrink-0 font-medium text-emerald-300">
+                    {formatPower(group.maxPowerKw)}
                   </p>
                 </div>
+                <p className={`text-xs ${freeTone(group.free)}`}>{describeGroup(group)}</p>
               </li>
             ))}
           </ul>
@@ -214,11 +222,6 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-const statusTone = (status: string | null): string =>
-  status === 'AVAILABLE'
-    ? 'text-emerald-400'
-    : status === 'OUT_OF_SERVICE'
-      ? 'text-rose-400'
-      : status === 'OCCUPIED'
-        ? 'text-amber-400'
-        : 'text-slate-500'
+/** Same three states the station badge colours by: unknown, none, some. */
+const freeTone = (free: number | null): string =>
+  free == null ? 'text-slate-500' : free === 0 ? 'text-rose-400' : 'text-emerald-400'

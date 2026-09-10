@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchAvailability, fetchViaWorker, type LiveStationRecord } from './availability'
+import {
+  fetchAvailability,
+  fetchViaWorker,
+  type LiveStationFetcher,
+  type LiveStationRecord,
+} from './availability'
 
 const record = (over: Partial<LiveStationRecord> & { stationId: number }): LiveStationRecord => ({
   availablePoints: 2,
@@ -17,7 +22,7 @@ describe('fetchAvailability', () => {
   it('asks for exactly the station ids it was given', async () => {
     const fetcher = vi.fn(async () => [])
     await fetchAvailability([charger(1), charger(2)], { fetcher })
-    expect(fetcher).toHaveBeenCalledWith([1, 2], undefined)
+    expect(fetcher).toHaveBeenCalledWith([1, 2], { signal: undefined })
   })
 
   it('maps occupancy back onto the requested chargers', async () => {
@@ -144,5 +149,62 @@ describe('fetchViaWorker', () => {
   it('returns empty rather than throwing when every station is merely a 404', async () => {
     stub(() => new Response('', { status: 404 }))
     await expect(fetchViaWorker([1, 2])).resolves.toEqual([])
+  })
+
+  /**
+   * The per-station report the list's spinners run on. Every id has to be
+   * reported exactly once whatever happened to it — a row that is never told
+   * its request is over spins for the rest of the session.
+   */
+  it('reports every station as its own request settles, however it settled', async () => {
+    stub((id) => {
+      if (id === 2) return new Response('', { status: 404 })
+      if (id === 3) return new Response('boom', { status: 500 })
+      return ok(id)
+    })
+
+    const seen: [number, number | null][] = []
+    await fetchViaWorker([1, 2, 3], {
+      onRecord: (id, r) => seen.push([id, r?.stationId ?? null]),
+    })
+
+    expect(seen.sort((a, b) => a[0] - b[0])).toEqual([
+      [1, 1],
+      // Answered "no data" rather than not answered: a re-issued id and a
+      // failed request both end the row's wait.
+      [2, null],
+      [3, null],
+    ])
+  })
+})
+
+describe('fetchAvailability progress', () => {
+  it('reports each station as a charger id, so a caller never sees station ids', async () => {
+    const fetcher: LiveStationFetcher = async (ids, options) => {
+      for (const id of ids) options?.onRecord?.(id, id === 1 ? record({ stationId: 1 }) : null)
+      return [record({ stationId: 1, availablePoints: 3 })]
+    }
+
+    const seen: [string, number | null][] = []
+    await fetchAvailability([charger(1), charger(2)], {
+      fetcher,
+      onStation: (id, station) => seen.push([id, station?.availablePoints ?? null]),
+    })
+
+    expect(seen).toEqual([
+      ['enbw:1', 2],
+      ['enbw:2', null],
+    ])
+  })
+
+  it('does not report a station nobody asked about', async () => {
+    const fetcher: LiveStationFetcher = async (_ids, options) => {
+      options?.onRecord?.(42, record({ stationId: 42 }))
+      return []
+    }
+
+    const seen: string[] = []
+    await fetchAvailability([charger(1)], { fetcher, onStation: (id) => seen.push(id) })
+    expect(seen).toEqual([])
   })
 })

@@ -67,8 +67,20 @@ export interface RouteSearch {
   /** 0..1 while the corridor is being placed, null otherwise. */
   progress: number | null
   fetchedAt: Date | null
+  /**
+   * Rows whose occupancy lookup is in flight. They still carry their last
+   * measured numbers, so this is what marks them as being re-read rather than
+   * as unknown.
+   */
+  refreshingIds: ReadonlySet<string>
   /** Re-fetch occupancy only. Never re-routes and never reloads the list. */
   refresh: () => void
+  /**
+   * Bumped by `refresh`. Rows outside `enrichedIds` hold their own live record
+   * and are not part of the pipeline's fan-out, so this is how they learn that
+   * a refresh happened and that theirs is now the only stale number on screen.
+   */
+  refreshNonce: number
 }
 
 export function useRouteSearch(origin: LatLon | null, destination: Place | null): RouteSearch {
@@ -97,7 +109,7 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
   const enriched = useMemo(() => filtered.slice(0, ENRICHED_LIMIT), [filtered])
   const enrichedIds = useMemo(() => new Set(enriched.map((c) => c.charger.id)), [enriched])
 
-  const { live, fetchedAt } = useAvailability(enriched, nonce)
+  const { live, fetchedAt, pending } = useAvailability(enriched, nonce)
   const { detours, pricing } = useDetours(
     anchor,
     destination,
@@ -157,6 +169,8 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
     unfilteredCount: corridor.placed.length,
     progress: corridor.progress,
     fetchedAt,
+    refreshingIds: pending,
     refresh,
+    refreshNonce: nonce,
   }
 }

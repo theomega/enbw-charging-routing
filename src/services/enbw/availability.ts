@@ -47,9 +47,24 @@ export interface LiveStationRecord extends LiveStation {
   stationId: number
 }
 
+export interface FetchOptions {
+  signal?: AbortSignal
+  /**
+   * Called once per station as its own lookup settles, with `null` for a
+   * station the upstream did not answer for — a re-issued id, or a request that
+   * failed. It exists so a caller can retire that row's spinner the moment its
+   * answer lands rather than when the slowest of 45 does; the resolved value is
+   * still the authoritative result.
+   *
+   * A fetcher that has no per-station structure may simply not call it. The
+   * final result is unaffected either way.
+   */
+  onRecord?: (stationId: number, record: LiveStationRecord | null) => void
+}
+
 export type LiveStationFetcher = (
   stationIds: number[],
-  signal?: AbortSignal,
+  options?: FetchOptions,
 ) => Promise<LiveStationRecord[]>
 
 /**
@@ -88,8 +103,24 @@ export async function fetchStationRecord(
  * and is rethrown so it reaches a log with its real message instead of
  * vanishing into an empty result.
  */
-export const fetchViaWorker: LiveStationFetcher = async (stationIds, signal) => {
-  const settled = await Promise.allSettled(stationIds.map((id) => fetchStationRecord(id, signal)))
+export const fetchViaWorker: LiveStationFetcher = async (stationIds, options = {}) => {
+  const settled = await Promise.allSettled(
+    stationIds.map((id) =>
+      fetchStationRecord(id, options.signal).then(
+        (record) => {
+          options.onRecord?.(id, record)
+          return record
+        },
+        (err) => {
+          // Reported as "no answer" before it is rethrown, so a row whose
+          // request failed stops waiting like any other. The rejection still
+          // reaches the wipeout check below.
+          options.onRecord?.(id, null)
+          throw err
+        },
+      ),
+    ),
+  )
 
   const records: LiveStationRecord[] = []
   const failures: unknown[] = []
@@ -119,33 +150,61 @@ export interface AvailabilityResult {
  */
 export async function fetchAvailability(
   chargers: Pick<Charger, 'id'>[],
-  options: { fetcher?: LiveStationFetcher; signal?: AbortSignal } = {},
+  options: {
+    fetcher?: LiveStationFetcher
+    signal?: AbortSignal
+    /**
+     * Per-charger progress, in charger ids rather than station ids: called as
+     * each station's own lookup settles, `null` when it did not answer. Only
+     * fired by a fetcher that resolves stations independently, which the
+     * default one does.
+     */
+    onStation?: (chargerId: string, station: LiveStation | null) => void
+  } = {},
 ): Promise<AvailabilityResult> {
   const live = new Map<string, LiveStation>()
   if (chargers.length === 0) return { live, missing: [] }
 
+  const wanted = new Map(chargers.map((c) => [stationIdOf(c.id), c.id]))
+  const { onStation } = options
+
   const fetcher = options.fetcher ?? fetchViaWorker
   const records = await fetcher(
     chargers.map((c) => stationIdOf(c.id)),
-    options.signal,
+    {
+      signal: options.signal,
+      ...(onStation && {
+        onRecord: (stationId, record) => {
+          const chargerId = wanted.get(stationId)
+          if (chargerId) onStation(chargerId, record ? toLiveStation(record) : null)
+        },
+      }),
+    },
   )
 
-  const wanted = new Map(chargers.map((c) => [stationIdOf(c.id), c.id]))
   for (const record of records) {
     const chargerId = wanted.get(record.stationId)
     if (!chargerId) continue
-    // Rebuilt field by field rather than spread: `stationId` must not survive
-    // into something that gets spread over a `Charger`, and a Worker running
-    // older code may answer without the newer fields at all.
-    live.set(chargerId, {
-      availablePoints: record.availablePoints,
-      ...(record.totalPoints != null ? { totalPoints: record.totalPoints } : {}),
-      unknownPoints: record.unknownPoints ?? 0,
-      operatorCode: record.operatorCode ?? null,
-      alwaysOpen: record.alwaysOpen ?? null,
-      chargePoints: record.chargePoints ?? null,
-    })
+    live.set(chargerId, toLiveStation(record))
   }
 
   return { live, missing: chargers.filter((c) => !live.has(c.id)).map((c) => c.id) }
+}
+
+/**
+ * The wire record as the fields that spread onto a `Charger`.
+ *
+ * Rebuilt field by field rather than spread: `stationId` must not survive into
+ * something that gets spread over a `Charger`, and a Worker running older code
+ * may answer without the newer fields at all.
+ */
+function toLiveStation(record: LiveStationRecord): LiveStation {
+  return {
+    availablePoints: record.availablePoints,
+    ...(record.totalPoints != null ? { totalPoints: record.totalPoints } : {}),
+    unknownPoints: record.unknownPoints ?? 0,
+    operatorCode: record.operatorCode ?? null,
+    alwaysOpen: record.alwaysOpen ?? null,
+    chargePoints: record.chargePoints ?? null,
+  }
 }

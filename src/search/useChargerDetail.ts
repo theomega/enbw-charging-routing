@@ -12,6 +12,13 @@ import { fetchAvailability, type LiveStation } from '../services/enbw/availabili
  *
  * A charger that already carries `chargePoints` is left alone: the pipeline
  * fetched it, and the search-wide Refresh keeps it current.
+ *
+ * A row this hook *does* own is re-read on that same Refresh, which is why it
+ * takes the nonce. Without it, opening row 46 once left its badge frozen at
+ * whatever it measured then — a number the list went on displaying, collapsed
+ * and unmarked, under a header claiming everything was updated seconds ago.
+ * One stale badge among 45 fresh ones is the worst possible failure here: it is
+ * indistinguishable from a live reading.
  */
 export function useChargerDetail(
   charger: Charger | null,
@@ -25,11 +32,13 @@ export function useChargerDetail(
    * being returned when this goes false again.
    */
   active: boolean,
+  /** Bumped by the search-wide Refresh; a row holding its own record re-reads it. */
+  nonce: number,
 ): {
   charger: Charger | null
   loading: boolean
 } {
-  const [extra, setExtra] = useState<{ id: string; live: LiveStation } | null>(null)
+  const [extra, setExtra] = useState<{ id: string; nonce: number; live: LiveStation } | null>(null)
   const [loading, setLoading] = useState(false)
 
   const id = charger?.id ?? null
@@ -40,13 +49,21 @@ export function useChargerDetail(
    * a request already on the wire.
    */
   const ownsLookup = !!charger && !pipelineFetches && charger.chargePoints == null
-  const shouldFetch = ownsLookup && active
+  /**
+   * A record of its own is the only way a collapsed row can be here, since
+   * `extra` is set nowhere but the branch below — so this widens Refresh to
+   * exactly the rows the driver already spent a request on, and to no others.
+   * Closing the panel must not strand a badge the list keeps showing.
+   */
+  const holdsOwnRecord = !!id && extra?.id === id
+  const shouldFetch = ownsLookup && (active || holdsOwnRecord)
 
   useEffect(() => {
     if (!id || !shouldFetch) return
-    // Already fetched for this charger on an earlier open. Re-running here is
-    // how the effect settles after it sets `extra`; it must not fetch again.
-    if (extra?.id === id) return
+    // Already fetched for this charger at this nonce. Re-running here is how
+    // the effect settles after it sets `extra`; it must not fetch again until
+    // Refresh moves the nonce on.
+    if (extra?.id === id && extra.nonce === nonce) return
 
     const controller = new AbortController()
     let cancelled = false
@@ -57,7 +74,11 @@ export function useChargerDetail(
         const { live } = await fetchAvailability([{ id }], { signal: controller.signal })
         if (cancelled) return
         const record = live.get(id)
-        if (record) setExtra({ id, live: record })
+        // Left alone when the station does not answer, rather than cleared: the
+        // previous reading is old but real, and the alternative is a row that
+        // drops to "?/n" on a refresh it was never asked to survive. It also
+        // keeps the nonce behind, so the next Refresh tries this station again.
+        if (record) setExtra({ id, nonce, live: record })
       } catch (err) {
         if (cancelled || controller.signal.aborted) return
         // Same rule as the list: the panel is still worth reading without this.
@@ -71,12 +92,15 @@ export function useChargerDetail(
       cancelled = true
       controller.abort()
     }
-  }, [id, shouldFetch, extra])
+  }, [id, shouldFetch, extra, nonce])
 
   if (!charger) return { charger: null, loading: false }
   // The pipeline's copy wins outright once it has one: a search-wide Refresh is
   // newer than whatever this hook fetched when the panel was first opened.
   if (!ownsLookup) return { charger, loading: false }
   if (extra?.id !== charger.id) return { charger, loading }
-  return { charger: { ...charger, ...extra.live }, loading: false }
+  // `loading` rather than a hardcoded false: with Refresh in the picture a
+  // re-read can be in flight over a record that is already on screen, and that
+  // is exactly the state the row's spinner reports.
+  return { charger: { ...charger, ...extra.live }, loading }
 }

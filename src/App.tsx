@@ -5,7 +5,7 @@ import { RoutePicker } from './components/RoutePicker'
 import { DestinationSearch } from './components/DestinationSearch'
 import { SettingsSheet } from './components/SettingsSheet'
 import { formatClock, formatDistance, formatDuration } from './components/format'
-import { ExpandIcon } from './components/icons'
+import { ExpandIcon, SpinnerIcon } from './components/icons'
 import { useGeolocation } from './hooks/useGeolocation'
 import { useRouteSearch } from './search/useRouteSearch'
 import { useAppStore } from './state/store'
@@ -28,6 +28,7 @@ export default function App() {
 
   const { position, error: geoError, loading: geoLoading } = useGeolocation()
   const search = useRouteSearch(position, destination)
+  const refreshing = search.refreshingIds.size > 0
 
   const toggleCharger = useCallback(
     (chargerId: string) => setExpandedId((open) => (open === chargerId ? null : chargerId)),
@@ -90,8 +91,28 @@ export default function App() {
               </span>
               <ExpandIcon className="h-3.5 w-3.5 shrink-0" />
             </button>
-            <button onClick={search.refresh} className="shrink-0 font-medium text-emerald-400">
-              {search.fetchedAt ? `Updated ${formatClock(search.fetchedAt)} · Refresh` : 'Refresh'}
+            {/*
+              Disabled while the fan-out is in flight rather than left tappable:
+              a second press aborts 45 requests that were already paid for and
+              starts 45 more, and the day's Worker budget is the real limit here.
+              The row spinners are what report progress; this only says why the
+              button is not taking a press.
+            */}
+            <button
+              onClick={search.refresh}
+              disabled={refreshing}
+              className="flex shrink-0 items-center gap-1.5 font-medium text-emerald-400 disabled:text-slate-500"
+            >
+              {refreshing ? (
+                <>
+                  <SpinnerIcon />
+                  Refreshing…
+                </>
+              ) : search.fetchedAt ? (
+                `Updated ${formatClock(search.fetchedAt)} · Refresh`
+              ) : (
+                'Refresh'
+              )}
             </button>
           </div>
         )}
@@ -136,6 +157,8 @@ export default function App() {
             onToggle={toggleCharger}
             route={search.selected}
             enrichedIds={search.enrichedIds}
+            refreshingIds={search.refreshingIds}
+            refreshNonce={search.refreshNonce}
           />
         )}
       </main>

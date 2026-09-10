@@ -38,3 +38,28 @@ export function ChevronIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/**
+ * Indeterminate ring, for a value that is being re-read while it stays on
+ * screen. Sized in `em` rather than in a Tailwind height, so it matches
+ * whatever text it sits beside — the availability badge shrinks it below the
+ * smallest usable `h-*` step.
+ */
+export function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="round"
+      aria-hidden
+      className={`animate-spin ${className ?? ''}`}
+      style={{ width: '0.85em', height: '0.85em' }}
+    >
+      {/* The track, then the arc that reads as motion against it. */}
+      <circle cx="12" cy="12" r="9" className="opacity-25" />
+      <path d="M21 12a9 9 0 0 0-9-9" />
+    </svg>
+  )
+}

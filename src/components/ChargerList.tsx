@@ -20,6 +20,10 @@ interface Props {
   route: RouteOption | null
   /** Rows the pipeline fetches live data for; the rest fetch their own on open. */
   enrichedIds: ReadonlySet<string>
+  /** Rows whose occupancy lookup is in flight right now. */
+  refreshingIds: ReadonlySet<string>
+  /** Bumped by Refresh; rows holding their own live record re-read it. */
+  refreshNonce: number
 }
 
 export function ChargerList({
@@ -32,6 +36,8 @@ export function ChargerList({
   onToggle,
   route,
   enrichedIds,
+  refreshingIds,
+  refreshNonce,
 }: Props) {
   const settings = useAppStore((s) => s.settings)
   const rows = useRef(new Map<string, HTMLDivElement>())
@@ -115,6 +121,8 @@ export function ChargerList({
             expanded={expandedId === item.charger.id}
             onToggle={() => onToggle(item.charger.id)}
             enriched={enrichedIds.has(item.charger.id)}
+            refreshing={refreshingIds.has(item.charger.id)}
+            refreshNonce={refreshNonce}
           />
         </div>
       ))}

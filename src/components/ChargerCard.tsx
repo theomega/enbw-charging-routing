@@ -4,7 +4,7 @@ import { useChargerDetail } from '../search/useChargerDetail'
 import type { RouteOption } from '../services/mapbox/directions'
 import { ChargerDetail } from './ChargerDetail'
 import { formatDetour, formatDistance, formatDuration, formatPower } from './format'
-import { ChevronIcon } from './icons'
+import { ChevronIcon, SpinnerIcon } from './icons'
 
 interface Props {
   item: ChargerOnRoute
@@ -14,6 +14,10 @@ interface Props {
   onToggle: () => void
   /** True when the search pipeline already looks this charger up. */
   enriched: boolean
+  /** True while the pipeline's lookup for this row is in flight. */
+  refreshing: boolean
+  /** Bumped by Refresh, so a row holding its own live record re-reads it too. */
+  refreshNonce: number
 }
 
 /**
@@ -33,8 +37,17 @@ interface Props {
  * the header stays on screen while the panel is open. It is still gated on
  * `expanded`, so nothing is fetched for a row nobody opened.
  */
-export function ChargerCard({ item, mapsApp, route, expanded, onToggle, enriched }: Props) {
-  const { charger, loading } = useChargerDetail(item.charger, enriched, expanded)
+export function ChargerCard({
+  item,
+  mapsApp,
+  route,
+  expanded,
+  onToggle,
+  enriched,
+  refreshing,
+  refreshNonce,
+}: Props) {
+  const { charger, loading } = useChargerDetail(item.charger, enriched, expanded, refreshNonce)
   if (!charger) return null
 
   const available = charger.availablePoints
@@ -66,7 +79,16 @@ export function ChargerCard({ item, mapsApp, route, expanded, onToggle, enriched
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <AvailabilityBadge available={available} total={charger.totalPoints} />
+            {/*
+              A row outside the enriched set has no pipeline lookup to wait for,
+              so its own fetch is what the badge reports instead — on first open
+              and on every Refresh after it.
+            */}
+            <AvailabilityBadge
+              available={available}
+              total={charger.totalPoints}
+              refreshing={refreshing || loading}
+            />
             <ChevronIcon
               className={`h-4 w-4 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
             />
@@ -132,30 +154,38 @@ export function Stat({
 /**
  * `null` means the provider has no live data at all, which is a different
  * statement from "zero free" — never render the two the same way.
+ *
+ * `refreshing` adds a spinner *beside* the numbers rather than replacing them.
+ * The last measurement is still the best answer a driver has until the next one
+ * lands, and swapping 45 badges for placeholders on every Refresh would throw
+ * away the whole list to report on something that usually comes back unchanged.
+ * The spinner is the only thing that says a refresh is happening at all when it
+ * does come back unchanged.
  */
 export function AvailabilityBadge({
   available,
   total,
+  refreshing = false,
 }: {
   available: number | null
   total: number
+  refreshing?: boolean
 }) {
-  if (available == null) {
-    return (
-      <span className="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1 text-sm text-slate-400">
-        ?/{total}
-      </span>
-    )
-  }
   const tone =
-    available === 0
-      ? 'bg-rose-950 text-rose-300'
-      : available <= 1
-        ? 'bg-amber-950 text-amber-300'
-        : 'bg-emerald-950 text-emerald-300'
+    available == null
+      ? 'bg-slate-800 text-slate-400'
+      : available === 0
+        ? 'bg-rose-950 text-rose-300 font-semibold'
+        : available <= 1
+          ? 'bg-amber-950 text-amber-300 font-semibold'
+          : 'bg-emerald-950 text-emerald-300 font-semibold'
   return (
-    <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-semibold ${tone}`}>
-      {available}/{total} free
+    <span
+      className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm ${tone}`}
+      aria-busy={refreshing || undefined}
+    >
+      {available == null ? `?/${total}` : `${available}/${total} free`}
+      {refreshing && <SpinnerIcon />}
     </span>
   )
 }
