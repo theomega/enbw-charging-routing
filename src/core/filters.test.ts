@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_SETTINGS, type Settings } from '../state/store'
+import { eastwardRoute } from '../test/routes'
 import { buildCorridor, placeChargersOnRoute } from './corridor'
 import { applyLiveFilters, applyStaticFilters } from './filters'
 import type { Charger, ChargerOnRoute } from './types'
-import { DEFAULT_SETTINGS, type Settings } from '../state/store'
-import { eastwardRoute } from '../test/routes'
 
 const settings = (over: Partial<Settings> = {}): Settings => ({ ...DEFAULT_SETTINGS, ...over })
 

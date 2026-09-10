@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildCorridor, placeChargersOnRoute } from './corridor'
 import { eastwardRoute } from '../test/routes'
+import { buildCorridor, placeChargersOnRoute } from './corridor'
 import type { Charger } from './types'
 
 function charger(id: string, lat: number, lon: number): Charger {

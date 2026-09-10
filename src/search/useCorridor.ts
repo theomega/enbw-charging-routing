@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_MAX_OFFSET_M, buildCorridor, placeChargersOnRoute } from '../core/corridor'
 import type { ChargerOnRoute } from '../core/types'
-import type { RouteOption } from '../services/mapbox/directions'
 import { loadStations } from '../services/enbw/stations'
+import type { RouteOption } from '../services/mapbox/directions'
 
 export interface CorridorPlacement {
   /** Every shipped charger within the corridor, in the order you drive past them. */

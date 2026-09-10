@@ -23,7 +23,7 @@
  * Requires ENBW_SUBSCRIPTION_KEY, from .dev.vars or the environment.
  */
 
-import { writeFile, readFile, mkdir, rm } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 const API = 'https://api.emp.emob-enbw.com/emobility-public-api/api/v1/chargestations'

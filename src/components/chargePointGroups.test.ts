@@ -96,31 +96,53 @@ describe('groupChargePoints', () => {
 
 describe('describeGroup', () => {
   const describe1 = (points: ChargePoint[]) => describeGroup(groupChargePoints(points)[0])
+  const busy = (n: number) => Array.from({ length: n }, () => point({ status: 'OCCUPIED' }))
 
-  it('leads with the free count and names only the states that occur', () => {
-    expect(describe1([point(), point(), point()])).toBe('3 points · 3 of 3 free')
-    expect(describe1([point(), point({ status: 'OCCUPIED' })])).toBe(
-      '2 points · 1 of 2 free · 1 in use',
-    )
-    expect(describe1([point(), point({ status: 'OUT_OF_SERVICE' })])).toBe(
-      '2 points · 1 of 2 free · 1 out of service',
-    )
+  it('never says how many are in use, that being the residual', () => {
+    // "8 Ladepunkte" and "5 belegt" both follow from "3 von 8 frei".
+    expect(describe1([point(), point(), point(), ...busy(5)])).toBe('3 von 8 frei')
+    expect(describe1(busy(8))).toBe('0 von 8 frei')
+    expect(describe1([point({ status: 'OCCUPIED' })])).toBe('0 von 1 frei')
+  })
+
+  it('names what is broken, which no subtraction reveals', () => {
+    // One fewer stall at this station today, unlike an occupied point, so it
+    // survives the rule above.
+    expect(
+      describe1([point(), point(), point(), ...busy(4), point({ status: 'OUT_OF_SERVICE' })]),
+    ).toBe('3 von 8 frei · 1 außer Betrieb')
+  })
+
+  it('counts the states it does name, since in use no longer accounts for them', () => {
+    expect(
+      describe1([
+        point(),
+        ...busy(2),
+        point({ status: 'OUT_OF_SERVICE' }),
+        point({ status: 'OUT_OF_SERVICE' }),
+      ]),
+    ).toBe('1 von 5 frei · 2 außer Betrieb')
+  })
+
+  it('says nothing further when every point is free', () => {
+    expect(describe1([point(), point(), point()])).toBe('3 von 3 frei')
+    expect(describe1([point()])).toBe('1 von 1 frei')
   })
 
   it('says unknown rather than claiming none are free', () => {
+    // No "von 2" to carry the size of the group, so it is stated outright.
     expect(describe1([point({ status: null }), point({ status: null })])).toBe(
-      '2 points · status unknown',
+      '2 Ladepunkte · Status unbekannt',
     )
-    expect(describe1([point({ status: 'OCCUPIED' })])).toBe('1 point · 0 of 1 free · 1 in use')
   })
 
-  it('counts one point in the singular', () => {
-    expect(describe1([point()])).toBe('1 point · 1 of 1 free')
+  it('carries a state it has never seen rather than assuming it means in use', () => {
+    expect(describe1([point(), point({ status: 'RESERVED' })])).toBe('1 von 2 frei · 1 reserved')
   })
 
-  it('lower-cases a state it has never seen instead of shouting it', () => {
-    expect(describe1([point(), point({ status: 'RESERVED' })])).toBe(
-      '2 points · 1 of 2 free · 1 reserved',
+  it('keeps the capital inside a state that is a noun', () => {
+    expect(describe1([point(), point({ status: 'OUT_OF_SERVICE' })])).toBe(
+      '1 von 2 frei · 1 außer Betrieb',
     )
   })
 })

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_MAX_OFFSET_M } from '../core/corridor'
 import type { ChargerOnRoute } from '../core/types'
-import { useAppStore } from '../state/store'
 import type { SearchStatus } from '../search/useRouteSearch'
 import type { RouteOption } from '../services/mapbox/directions'
+import { useAppStore } from '../state/store'
 import { ChargerCard } from './ChargerCard'
 
 interface Props {

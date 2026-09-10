@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { MapsApp } from '../nav/deepLinks'
 import type { ChargerFilters } from '../core/filters'
 import type { Place } from '../core/types'
+import type { MapsApp } from '../nav/deepLinks'
 import { MIN_STATION_POWER_KW } from '../services/enbw/stations'
 
 /**

@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   CHARGERS_PER_CHUNK,
   DetourCache,
+  MATRIX_MAX_COORDS,
   buildChunkQueries,
   chunkCandidates,
   detourMetres,
   detourSeconds,
   priceDetours,
   routePenaltySeconds,
-  MATRIX_MAX_COORDS,
   type MatrixQuery,
   type Pricing,
 } from './detour'

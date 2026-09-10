@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ChargerOnRoute } from '../core/types'
 import { ChargerList } from './ChargerList'
 
@@ -90,7 +90,7 @@ describe('ChargerList refresh of a row past ENRICHED_LIMIT', () => {
   it('shows a spinner on that row while the re-read is in flight', async () => {
     const spy = stubFetch()
     const { rerender } = render(<ChargerList {...listProps({ expandedId: 'enbw:46' })} />)
-    await waitFor(() => expect(screen.getByText('3/4 free')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('3/4 frei')).toBeTruthy())
 
     let release: () => void = () => {}
     spy.mockImplementationOnce(
@@ -108,11 +108,11 @@ describe('ChargerList refresh of a row past ENRICHED_LIMIT', () => {
     rerender(<ChargerList {...listProps({ expandedId: 'enbw:46', refreshNonce: 1 })} />)
 
     await waitFor(() => {
-      const badge = screen.getByText('3/4 free').closest('span')
+      const badge = screen.getByText('3/4 frei').closest('span')
       expect(badge?.getAttribute('aria-busy')).toBe('true')
     })
 
     await act(async () => release())
-    await waitFor(() => expect(screen.getByText('2/4 free')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('2/4 frei')).toBeTruthy())
   })
 })

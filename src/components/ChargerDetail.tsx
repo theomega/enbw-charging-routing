@@ -3,14 +3,8 @@ import type { Charger, ChargerOnRoute } from '../core/types'
 import { navigationUrl, type MapsApp } from '../nav/deepLinks'
 import type { RouteOption } from '../services/mapbox/directions'
 import { describeGroup, groupChargePoints } from './chargePointGroups'
-import {
-  asEstimate,
-  formatDetour,
-  formatDistance,
-  formatDuration,
-  formatPower,
-  formatProgress,
-} from './format'
+import { Fact } from './Fact'
+import { distanceOrEstimate, formatDuration, formatPower } from './format'
 import { RouteMap } from './RouteMap'
 
 interface Props {
@@ -28,46 +22,28 @@ interface Props {
   id: string
 }
 
-/**
- * One charger, in full.
- *
- * Two questions live here and the layout follows them in order. First "where is
- * this, really" — the map, framed on the charger rather than on the trip.
- * Then "does stopping here work", which is four numbers: how far into the drive
- * it sits, how far it is from where you are now, what the detour costs, and how
- * much road is left afterwards. That last pair is what decides whether the
- * battery reaches it and whether it can be the final stop.
- *
- * Only then the station itself, because none of it matters if the answer to the
- * route questions is no. Which is deliberately little: the card's header and
- * footer already carry the location, the address, the operator, the peak power
- * and the free-point count, and repeating any of them here would only make the
- * panel longer to read past. What is left is what the header cannot say and the
- * charge-point groups do not: the opening hours.
- */
+/** One charger, in full: only what the card's header and summary row cannot show. */
 export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Props) {
-  // Memoised for the same reason the pipeline memoises its slices: these are
-  // effect inputs inside RouteMap, and a fresh array every render would push
-  // the whole route geometry back into the GL source on each one.
+  // Effect inputs inside RouteMap: a fresh array each render would push the
+  // whole route geometry back into the GL source every time.
   const mapRoutes = useMemo(() => (route ? [route] : []), [route])
   const mapChargers = useMemo(() => [item], [item])
 
   const legs = item.legs
   const total = route?.route.totalDistanceM ?? 0
 
-  // Rows past ENRICHED_LIMIT were never sent to the Matrix, so their figures
-  // come from the route geometry instead — free, on every charger, and marked
-  // as estimates so they are not read as measurements.
-  const toCharger =
-    legs?.toChargerM != null
-      ? formatDistance(legs.toChargerM)
-      : asEstimate(formatDistance(item.alongDistanceM + item.offsetM))
-  const remaining =
-    legs?.fromChargerM != null
-      ? formatDistance(legs.fromChargerM)
-      : total > 0
-        ? asEstimate(formatDistance(Math.max(0, total - item.alongDistanceM)))
-        : '—'
+  const remaining = distanceOrEstimate(
+    legs?.fromChargerM,
+    total > 0 ? Math.max(0, total - item.alongDistanceM) : null,
+  )
+
+  // No route means no estimate either, and the note would caption an em dash.
+  const remainingSub =
+    legs?.fromChargerS != null
+      ? formatDuration(legs.fromChargerS)
+      : remaining === '—'
+        ? undefined
+        : 'aus der Route geschätzt'
 
   return (
     <div id={id} className="border-t border-slate-800 px-4 pb-4 pt-3">
@@ -84,87 +60,44 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Pr
         />
       </div>
 
-      <section className="mt-4">
-        <h4 className="text-xs uppercase tracking-wide text-slate-500">On this route</h4>
-        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
-          <Fact
-            label="Along the route"
-            value={formatDistance(item.alongDistanceM)}
-            sub={`${formatProgress(item.alongDistanceM, total)} in · ${formatDuration(item.alongDurationS)} driving`}
-          />
-          <Fact
-            label="From you"
-            value={toCharger}
-            sub={legs?.toChargerS != null ? formatDuration(legs.toChargerS) : 'by road'}
-          />
-          <Fact
-            label="Detour"
-            value={formatDetour(item.detourS)}
-            sub={item.detourM != null ? `${formatDistance(item.detourM)} extra` : 'not priced'}
-            emphasis={item.detourS != null && item.detourS <= 300}
-          />
-          <Fact
-            label="Left afterwards"
-            value={remaining}
-            sub={
-              legs?.fromChargerS != null ? formatDuration(legs.fromChargerS) : 'to the destination'
-            }
-          />
-        </dl>
-        <p className="mt-2 text-xs text-slate-500">
-          {item.offsetM < 100
-            ? 'Directly on the route.'
-            : `${formatDistance(item.offsetM)} off the route.`}
-        </p>
-      </section>
+      <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
+        <Fact label="Weiterfahrt zum Ziel" value={remaining} sub={remainingSub} />
 
-      {/* Null is "never fetched", not "no" — then the section has nothing to say
-          and does not appear at all, rather than heading an empty list. */}
-      {charger.alwaysOpen != null && (
-        <section className="mt-5">
-          <h4 className="text-xs uppercase tracking-wide text-slate-500">Station</h4>
-          <dl className="mt-2 space-y-1.5 text-sm">
-            <Row label="Opening" value={charger.alwaysOpen ? 'Open 24/7' : 'Restricted hours'} />
-          </dl>
-        </section>
-      )}
+        {/* Null is "never fetched", not "no". */}
+        {charger.alwaysOpen != null && (
+          <Fact
+            label="Zugang"
+            value={charger.alwaysOpen ? 'Rund um die Uhr geöffnet' : 'Eingeschränkte Zeiten'}
+          />
+        )}
+      </dl>
 
       <section className="mt-5">
         <h4 className="text-xs uppercase tracking-wide text-slate-500">
-          Charge points
+          Ladepunkte
           {charger.chargePoints && ` (${charger.chargePoints.length})`}
         </h4>
-        {/*
-          Only while there is nothing to show. A Refresh re-reads a panel that
-          is already open and full, and captioning the list it is standing on
-          would claim the points below are not there yet; the badge's spinner
-          is what reports that re-read.
-        */}
+        {/* Only while there is nothing to show; a Refresh over a full list is
+            reported by the badge's spinner instead. */}
         {loading && !charger.chargePoints && (
-          <p className="mt-2 text-sm text-slate-500">Loading charge points…</p>
+          <p className="mt-2 text-sm text-slate-500">Ladepunkte werden geladen …</p>
         )}
         {!loading && !charger.chargePoints && (
           <p className="mt-2 text-sm text-slate-500">
-            EnBW did not answer for this station, so its individual points are unknown.
+            EnBW hat für diese Station nicht geantwortet, die einzelnen Ladepunkte sind daher
+            unbekannt.
           </p>
         )}
-        {/*
-          Grouped rather than listed: a big station has dozens of points and
-          almost all of them repeat their neighbour. One row per connector and
-          speed says the same thing in three or four lines, and the EVSE id is
-          the only thing it costs — a number that matters once you have parked,
-          not while you are choosing where to.
-        */}
         {charger.chargePoints && charger.chargePoints.length > 0 && (
           <ul className="mt-2 space-y-1.5">
             {groupChargePoints(charger.chargePoints).map((group) => (
               <li key={group.key} className="rounded-lg bg-slate-950 px-3 py-2 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="truncate text-slate-200">
-                    {group.plugs.length > 0 ? group.plugs.join(' · ') : 'Unknown connector'}
-                  </p>
                   <p className="shrink-0 font-medium text-emerald-300">
                     {formatPower(group.maxPowerKw)}
+                  </p>
+                  <p className="truncate text-slate-200">
+                    {group.plugs.length > 0 ? group.plugs.join(' · ') : 'Unbekannter Stecker'}
                   </p>
                 </div>
                 <p className={`text-xs ${freeTone(group.free)}`}>{describeGroup(group)}</p>
@@ -174,50 +107,14 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Pr
         )}
       </section>
 
-      {/*
-        Navigation used to be the whole card. It is now one deliberate action at
-        the end of the panel, after everything a driver would want to read
-        before committing to a stop.
-      */}
       <a
         href={navigationUrl(charger, mapsApp)}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-5 block rounded-xl bg-emerald-600 px-4 py-3 text-center font-semibold text-white transition active:bg-emerald-700"
       >
-        Navigate here
+        Hierhin navigieren
       </a>
-    </div>
-  )
-}
-
-function Fact({
-  label,
-  value,
-  sub,
-  emphasis,
-}: {
-  label: string
-  value: string
-  sub?: string
-  emphasis?: boolean
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className={`font-semibold ${emphasis ? 'text-emerald-300' : 'text-slate-100'}`}>
-        {value}
-      </dd>
-      {sub && <dd className="text-xs text-slate-500">{sub}</dd>}
-    </div>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="shrink-0 text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-200">{value}</dd>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import type { ChargerOnRoute } from '../core/types'
 import { useAvailability } from './useAvailability'
 

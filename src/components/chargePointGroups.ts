@@ -21,6 +21,15 @@ import { formatPointStatus } from './format'
 const AVAILABLE = 'AVAILABLE'
 
 /**
+ * EnBW's word for a point someone is charging at.
+ *
+ * Named here only so `describeGroup` can leave it out: in use is the state a
+ * point is in when it is neither free nor reported as anything else, so its
+ * count is never worth screen space. See there.
+ */
+const OCCUPIED = 'OCCUPIED'
+
+/**
  * The bucket a point with no reported state falls into. EnBW's own `UNKNOWN`
  * lands here too: it is the same word on screen, and splitting "the provider
  * said unknown" from "the provider said nothing" would be a distinction with
@@ -136,22 +145,45 @@ function byPowerThenPlugs(a: ChargePointGroup, b: ChargePointGroup): number {
 }
 
 /**
- * The group's second line: how many points, how many free, and what the rest
- * are doing.
+ * Sentence case, for a status landing mid-clause.
  *
- * The free count leads because it is the only number that changes while you
- * drive towards the station. States other than free are named only when they
- * occur, so a fully free group reads as one short clause rather than a row of
- * zeroes.
+ * Not `toLowerCase()`: "Außer Betrieb" keeps the capital on "Betrieb", which is
+ * a noun. Only the first letter is an artefact of the standalone form.
+ */
+const uncapitalise = (status: string): string => status.charAt(0).toLowerCase() + status.slice(1)
+
+/**
+ * The group's second line: how many are free, and what is wrong with the rest.
+ *
+ * Only two things are worth saying. How many points are free, which is the one
+ * number that changes while you drive towards the station. And which of the
+ * others are unavailable for a reason that will not resolve on its own — a
+ * point out of service is one fewer stall at this station, today, in a way an
+ * occupied one is not.
+ *
+ * In use is therefore the residual and is never printed: whatever is neither
+ * free nor named here is someone charging, and saying so only repeats the
+ * subtraction the reader already did from "3 von 8 frei". The group size is
+ * left out for the same reason, since "von 8" carries it.
+ *
+ * The states that *are* named keep their counts. They are not derivable once
+ * in use goes unstated — "3 von 8 frei · 1 außer Betrieb" and the same group
+ * with five broken points would otherwise read alike.
  */
 export function describeGroup(group: ChargePointGroup): string {
-  const points = `${group.count} ${group.count === 1 ? 'point' : 'points'}`
-  // Nothing reported at all: saying "0 of 4 free" here would state a fact the
-  // provider never gave.
-  if (group.free == null) return `${points} · status unknown`
+  // Nothing reported at all: saying "0 von 4 frei" would state a fact the
+  // provider never gave, and with no "von 4" to carry it the size of the group
+  // has to be said outright.
+  if (group.free == null) {
+    return `${group.count} ${group.count === 1 ? 'Ladepunkt' : 'Ladepunkte'} · Status unbekannt`
+  }
 
-  const rest = group.others.map(
-    ({ status, count }) => `${count} ${formatPointStatus(status).toLowerCase()}`,
+  const free = `${group.free} von ${group.count} frei`
+  const named = group.others.filter(({ status }) => status !== OCCUPIED)
+  if (named.length === 0) return free
+
+  const rest = named.map(
+    ({ status, count }) => `${count} ${uncapitalise(formatPointStatus(status))}`,
   )
-  return [points, `${group.free} of ${group.count} free`, ...rest].join(' · ')
+  return [free, ...rest].join(' · ')
 }

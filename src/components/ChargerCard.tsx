@@ -3,7 +3,15 @@ import type { MapsApp } from '../nav/deepLinks'
 import { useChargerDetail } from '../search/useChargerDetail'
 import type { RouteOption } from '../services/mapbox/directions'
 import { ChargerDetail } from './ChargerDetail'
-import { formatDetour, formatDistance, formatDuration, formatPower } from './format'
+import { Fact } from './Fact'
+import {
+  distanceOrEstimate,
+  formatDetour,
+  formatDistance,
+  formatDuration,
+  formatPower,
+  formatProgress,
+} from './format'
 import { ChevronIcon, SpinnerIcon } from './icons'
 
 interface Props {
@@ -36,6 +44,14 @@ interface Props {
  * reads it too: the availability badge has to change when the record lands, and
  * the header stays on screen while the panel is open. It is still gated on
  * `expanded`, so nothing is fetched for a row nobody opened.
+ *
+ * The summary row is three figures that are three different measurements, and
+ * readers kept adding them up, so the labels are chosen to keep them apart.
+ * "Auf der Route" is a position *on the route line* and never leaves it, which
+ * is why it reads smaller than the road to the charger beside it. "Zur
+ * Ladestation" is that road, measured to the station itself. "Umweg" is a
+ * whole-journey figure — there and back on — so it is not the difference
+ * between the two and must not read as if it were.
  */
 export function ChargerCard({
   item,
@@ -52,6 +68,11 @@ export function ChargerCard({
 
   const available = charger.availablePoints
   const panelId = `charger-detail-${charger.id}`
+
+  const legs = item.legs
+  const total = route?.route.totalDistanceM ?? 0
+
+  const toCharger = distanceOrEstimate(legs?.toChargerM, item.alongDistanceM + item.offsetM)
 
   return (
     <div className="overflow-hidden rounded-xl bg-slate-900 ring-1 ring-slate-800">
@@ -96,11 +117,30 @@ export function ChargerCard({
         </div>
 
         <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
-          <Stat label="Away" value={formatDistance(item.alongDistanceM)} />
-          <Stat label="Drive" value={formatDuration(item.alongDurationS)} />
-          <Stat
-            label="Detour"
+          <Fact
+            label="Auf der Route"
+            value={formatDistance(item.alongDistanceM)}
+            sub={`${formatDuration(item.alongDurationS)} · ${formatProgress(item.alongDistanceM, total)} der Strecke`}
+          />
+          <Fact
+            label="Zur Ladestation"
+            value={toCharger}
+            sub={
+              legs?.toChargerS != null ? formatDuration(legs.toChargerS) : 'aus der Route geschätzt'
+            }
+          />
+          {/*
+            "extra" and not "mehr auf der ganzen Fahrt", which is what this
+            figure actually measures: the card is three columns wide on a phone
+            and the full phrase wraps to four lines there. The framing it drops
+            — that the detour is a whole-journey figure, there and back on, and
+            so is not the gap between the two cells to its left — belongs
+            somewhere with room to say it.
+          */}
+          <Fact
+            label="Umweg"
             value={formatDetour(item.detourS)}
+            sub={item.detourM != null ? `${formatDistance(item.detourM)} extra` : 'nicht berechnet'}
             emphasis={item.detourS != null && item.detourS <= 300}
           />
         </dl>
@@ -128,25 +168,6 @@ export function ChargerCard({
           mapsApp={mapsApp}
         />
       )}
-    </div>
-  )
-}
-
-export function Stat({
-  label,
-  value,
-  emphasis,
-}: {
-  label: string
-  value: string
-  emphasis?: boolean
-}) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className={emphasis ? 'font-semibold text-emerald-300' : 'font-semibold text-slate-100'}>
-        {value}
-      </dd>
     </div>
   )
 }
@@ -184,7 +205,7 @@ export function AvailabilityBadge({
       className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm ${tone}`}
       aria-busy={refreshing || undefined}
     >
-      {available == null ? `?/${total}` : `${available}/${total} free`}
+      {available == null ? `?/${total}` : `${available}/${total} frei`}
       {refreshing && <SpinnerIcon />}
     </span>
   )

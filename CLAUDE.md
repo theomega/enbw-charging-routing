@@ -7,3 +7,12 @@
 - Do not do any optimizations without asking the user if they want it.
 - Size of the bundle does not matter, it will be cached
 - Always ignore the .swp files, never inspect them
+- Do not document the layout in the code, it changes to often and is obvious.
+  Document only things that are not obvious.
+
+Wording:
+
+- Code should be written in English, but the UI is in German
+- The route to the destination is called "Route" in German
+- Charging Stations (so the group of Charging Points) are called "Ladestation" in German
+- The Charging Points are called "Ladesäulen" in German

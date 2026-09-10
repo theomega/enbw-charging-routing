@@ -57,7 +57,11 @@ export interface EnbwStation {
 export interface EnbwChargePoint {
   /** The OCPI EVSE id, e.g. "AT*SMA*EAT0300026*001DC". Unique per point. */
   evseId: string | null
-  /** Observed: AVAILABLE, OCCUPIED, OUT_OF_SERVICE. */
+  /**
+   * Observed: AVAILABLE, OCCUPIED, OUT_OF_SERVICE, BLOCKED. Not a closed set —
+   * kept as the provider's own string and translated for display in
+   * `formatPointStatus`, which is where an unseen one shows up.
+   */
   status: string | null
   connectors?: EnbwConnector[] | null
 }

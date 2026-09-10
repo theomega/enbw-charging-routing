@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildRouteGeometry, routePoints, type Route } from './route'
 import { eastwardRoute } from '../test/routes'
+import { buildRouteGeometry, routePoints, type Route } from './route'
 
 describe('buildRouteGeometry', () => {
   it('accumulates distance and duration so the last vertex matches the totals', () => {

@@ -2,8 +2,8 @@ import type { ChargerOnRoute, LatLon } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { formatDistance, formatDuration, formatDurationDelta } from './format'
 import { ExpandIcon } from './icons'
-import { RouteMap } from './RouteMap'
 import { strokeColours } from './routeColours'
+import { RouteMap } from './RouteMap'
 
 interface Props {
   routes: RouteOption[]
