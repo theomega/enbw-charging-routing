@@ -2,10 +2,3 @@ allowBuilds:
   esbuild: false
   sharp: false
   workerd: false
-supportedArchitectures:
-  os:
-    - linux
-    - darwin
-    - current
-  cpu:
-    - arm64
