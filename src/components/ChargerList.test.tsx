@@ -7,8 +7,8 @@ import { ChargerList } from './ChargerList'
 // The panel carries a live GL map, which has no business in this test.
 vi.mock('./RouteMap', () => ({ RouteMap: () => null }))
 
-// jsdom implements no layout, so it has no scrollIntoView. The list calls it to
-// centre a row opened from the map; here it only needs to not throw.
+// jsdom implements no layout, so it has no scrollIntoView. The list calls it
+// when a row opens; here it only needs to not throw.
 Element.prototype.scrollIntoView = vi.fn()
 
 const row = (n: number): ChargerOnRoute =>

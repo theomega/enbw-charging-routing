@@ -50,7 +50,10 @@ export default function App() {
         are looking at it and nothing at all while you are reading charger rows,
         so it scrolls away and the summary bar reopens it full-screen.
       */}
-      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
+      <header
+        data-sticky-header
+        className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 backdrop-blur"
+      >
         <div className="flex items-center gap-2 p-3">
           <button
             onClick={() => setShowSearch(true)}

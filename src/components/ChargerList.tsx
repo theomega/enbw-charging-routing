@@ -43,11 +43,18 @@ export function ChargerList({
   const rows = useRef(new Map<string, HTMLDivElement>())
 
   // A charger can also be opened by tapping its dot on the map, which leaves
-  // the row anywhere in a long list — usually off-screen. Bring it to the
-  // middle so the panel that just opened is the thing you are looking at.
+  // the row anywhere in a long list — usually off-screen.
+  //
+  // The margin is measured rather than a constant: the header is sticky, so a
+  // row aligned to the viewport top would sit under it, and its height changes
+  // with the route summary it shows once a route is picked.
   useEffect(() => {
     if (!expandedId) return
-    rows.current.get(expandedId)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const row = rows.current.get(expandedId)
+    if (!row) return
+    const header = document.querySelector('[data-sticky-header]')
+    row.style.scrollMarginTop = `${(header?.getBoundingClientRect().height ?? 0) + 12}px`
+    row.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }, [expandedId])
 
   if (status === 'error' && error) {
