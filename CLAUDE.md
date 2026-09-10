@@ -6,3 +6,4 @@
   user for confirmation.
 - Do not do any optimizations without asking the user if they want it.
 - Size of the bundle does not matter, it will be cached
+- Always ignore the .swp files, never inspect them
