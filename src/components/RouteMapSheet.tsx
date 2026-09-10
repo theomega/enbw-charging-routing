@@ -18,11 +18,14 @@ import { RouteMap } from './RouteMap'
 export function RouteMapSheet({
   option,
   chargers,
+  onSelectCharger,
   position,
   onClose,
 }: {
   option: RouteOption
   chargers: ChargerOnRoute[]
+  /** Tapping a charger dot closes this sheet and opens that charger's row. */
+  onSelectCharger?: (chargerId: string) => void
   position: LatLon | null
   onClose: () => void
 }) {
@@ -48,6 +51,7 @@ export function RouteMapSheet({
         routes={[option]}
         selectedId={option.id}
         chargers={chargers}
+        onSelectCharger={onSelectCharger}
         position={position}
         padding={48}
         className="flex-1"

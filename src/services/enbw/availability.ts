@@ -2,24 +2,36 @@ import type { Charger } from '../../core/types'
 import { stationIdOf } from './wire'
 
 /**
- * Live occupancy for a known set of stations — and nothing else.
+ * The live half of a station: what the shipped list cannot know.
  *
- * This used to fetch bounding boxes, because a box could in principle cover
- * several nearby stations for one request. Measured on a real route it covers
- * exactly one: corridor candidates are kilometres apart, so 17 stations cost 17
- * boxes. The boxes bought nothing and cost everything, because a box is answered
- * through EnBW's clustering grid — any grid cell holding two stations collapses
- * into a placeholder with no id and no occupancy, and the row it belonged to
- * lost its identity along with its badge.
+ * That used to mean occupancy and nothing else. It now also means the things
+ * only `/chargestations/{id}` returns — the individual charge points and their
+ * plugs — because the Worker was already making exactly this request per
+ * station and throwing that part of the answer away.
+ * Widening what it keeps costs no extra upstream request and no extra latency.
  *
- * Asking for one station by id has the same request count, the same latency,
- * and no grouping at all. A station id that no longer exists simply 404s
- * upstream and is absent here, which the caller renders as "?/n" — the rest of
- * the row is already known from the shipped list.
+ * Station *identity* is still not in here. Location, address, power and point
+ * count come from the shipped list, so a failed lookup costs the extras and
+ * never the row itself. The location line is the newest member of that rule:
+ * `additionalInfo` does come back on this request, but it is the raw
+ * multi-line blob — site name, then access and parking prose — and the list
+ * already carries the first line of it. Taking the live copy would rewrite a
+ * row's own heading the moment its panel was opened.
+ *
+ * One request per station: EnBW has no bulk endpoint. This used to fetch
+ * bounding boxes, because a box could in principle cover several nearby
+ * stations for one request. Measured on a real route it covers exactly one —
+ * corridor candidates are kilometres apart — and a box is answered through
+ * EnBW's clustering grid, which collapses any cell holding two stations into a
+ * placeholder with no id and no occupancy. Asking for one station by id has the
+ * same request count, the same latency, and no grouping at all.
  */
 
-/** The only thing that changes minute to minute. */
-export interface Occupancy {
+/** The fields a live lookup can add to a `Charger`, named to spread straight on. */
+export type LiveStation = Pick<
+  Charger,
+  'unknownPoints' | 'operatorCode' | 'alwaysOpen' | 'chargePoints'
+> & {
   /**
    * Points free right now. Null is impossible here — an absent station is
    * absent from the map — but `Charger.availablePoints` is nullable because the
@@ -28,44 +40,77 @@ export interface Occupancy {
   availablePoints: number
   /** Omitted when upstream does not report it, so the list's count survives. */
   totalPoints?: number
-  unknownPoints: number
 }
 
-/** Wire shape of the Worker's reply: occupancy per station id. */
-export interface OccupancyRecord extends Occupancy {
+/** Wire shape of the Worker's reply: one record per station id. */
+export interface LiveStationRecord extends LiveStation {
   stationId: number
 }
 
-export type OccupancyFetcher = (
+export type LiveStationFetcher = (
   stationIds: number[],
   signal?: AbortSignal,
-) => Promise<OccupancyRecord[]>
+) => Promise<LiveStationRecord[]>
 
-/** Default fetcher: through the Worker, which holds the key and the Origin. */
-export const fetchViaWorker: OccupancyFetcher = async (stationIds, signal) => {
-  const res = await fetch('/api/chargers', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ stationIds }),
-    signal,
-  })
+/**
+ * One station, through the Worker, which holds the key and the Origin.
+ *
+ * Null rather than throwing on 404: EnBW re-issues station ids in bulk, so a
+ * shipped list a few days old always has some, and an id it has dropped is a
+ * fact about the list rather than a failure of the lookup.
+ */
+export async function fetchStationRecord(
+  stationId: number,
+  signal?: AbortSignal,
+): Promise<LiveStationRecord | null> {
+  const res = await fetch(`/api/chargers/${stationId}`, { signal })
+  if (res.status === 404) return null
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
     throw new Error(`Availability lookup failed (${res.status}): ${detail.slice(0, 200)}`)
   }
-  const body = (await res.json()) as { stations: OccupancyRecord[] }
-  return body.stations
+  return (await res.json()) as LiveStationRecord
+}
+
+/**
+ * Default fetcher: one request per station, all of them in flight at once.
+ *
+ * No pool. Over HTTP/2 these are streams on a single connection and the
+ * browser schedules them; adding a semaphore here would only re-impose, worse,
+ * the six-at-a-time the Worker used to do. Note that a dev server proxying on
+ * HTTP/1.1 *will* cap this at six per origin, so latency measured through
+ * `vite dev` is not what production does.
+ *
+ * Failures are per station, which is the whole point of fanning out here: one
+ * station having a bad minute costs its own badge and nothing else. The
+ * exception is a total wipeout — no record at all, at least one error — which
+ * is not bad luck but the upstream being down or the key having been rotated,
+ * and is rethrown so it reaches a log with its real message instead of
+ * vanishing into an empty result.
+ */
+export const fetchViaWorker: LiveStationFetcher = async (stationIds, signal) => {
+  const settled = await Promise.allSettled(stationIds.map((id) => fetchStationRecord(id, signal)))
+
+  const records: LiveStationRecord[] = []
+  const failures: unknown[] = []
+  for (const outcome of settled) {
+    if (outcome.status === 'rejected') failures.push(outcome.reason)
+    else if (outcome.value) records.push(outcome.value)
+  }
+
+  if (records.length === 0 && failures.length > 0) throw failures[0]
+  return records
 }
 
 export interface AvailabilityResult {
-  /** Occupancy by charger id, to merge over the shipped station. */
-  live: Map<string, Occupancy>
+  /** Live fields by charger id, to merge over the shipped station. */
+  live: Map<string, LiveStation>
   /** Stations asked about that the upstream did not answer for. */
   missing: string[]
 }
 
 /**
- * Fetch occupancy for the given chargers.
+ * Fetch the live record for the given chargers.
  *
  * A station the upstream no longer knows — decommissioned, or re-issued under a
  * new id, which EnBW does in bulk — is simply absent from the result. Callers
@@ -74,9 +119,9 @@ export interface AvailabilityResult {
  */
 export async function fetchAvailability(
   chargers: Pick<Charger, 'id'>[],
-  options: { fetcher?: OccupancyFetcher; signal?: AbortSignal } = {},
+  options: { fetcher?: LiveStationFetcher; signal?: AbortSignal } = {},
 ): Promise<AvailabilityResult> {
-  const live = new Map<string, Occupancy>()
+  const live = new Map<string, LiveStation>()
   if (chargers.length === 0) return { live, missing: [] }
 
   const fetcher = options.fetcher ?? fetchViaWorker
@@ -89,10 +134,16 @@ export async function fetchAvailability(
   for (const record of records) {
     const chargerId = wanted.get(record.stationId)
     if (!chargerId) continue
+    // Rebuilt field by field rather than spread: `stationId` must not survive
+    // into something that gets spread over a `Charger`, and a Worker running
+    // older code may answer without the newer fields at all.
     live.set(chargerId, {
       availablePoints: record.availablePoints,
       ...(record.totalPoints != null ? { totalPoints: record.totalPoints } : {}),
       unknownPoints: record.unknownPoints ?? 0,
+      operatorCode: record.operatorCode ?? null,
+      alwaysOpen: record.alwaysOpen ?? null,
+      chargePoints: record.chargePoints ?? null,
     })
   }
 

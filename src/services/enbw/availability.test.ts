@@ -1,10 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fetchAvailability, type OccupancyRecord } from './availability'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchAvailability, fetchViaWorker, type LiveStationRecord } from './availability'
 
-const record = (over: Partial<OccupancyRecord> & { stationId: number }): OccupancyRecord => ({
+const record = (over: Partial<LiveStationRecord> & { stationId: number }): LiveStationRecord => ({
   availablePoints: 2,
   totalPoints: 4,
   unknownPoints: 0,
+  operatorCode: null,
+  alwaysOpen: null,
+  chargePoints: null,
   ...over,
 })
 
@@ -54,14 +57,23 @@ describe('fetchAvailability', () => {
   /**
    * The Worker omits totalPoints when upstream does not report it, so the
    * count the shipped list already knows is not overwritten with a zero.
+   *
+   * The bare record here is also what a Worker running older code answers with,
+   * and what a 60 s cache entry written before a deploy still holds — so this
+   * doubles as the check that the newer fields degrade to null rather than
+   * arriving as undefined and spreading `undefined` over a real charger.
    */
   it('omits totalPoints when the upstream did not report one', async () => {
     const fetcher = vi.fn(async () => [
-      { stationId: 1, availablePoints: 2, unknownPoints: 0 } as OccupancyRecord,
+      { stationId: 1, availablePoints: 2, unknownPoints: 0 } as LiveStationRecord,
     ])
     const { live } = await fetchAvailability([charger(1)], { fetcher })
-    expect(live.get('enbw:1')).toEqual({ availablePoints: 2, unknownPoints: 0 })
-    expect('totalPoints' in live.get('enbw:1')!).toBe(false)
+    const entry = live.get('enbw:1')!
+    expect(entry.availablePoints).toBe(2)
+    expect(entry.unknownPoints).toBe(0)
+    expect('totalPoints' in entry).toBe(false)
+    expect(entry.chargePoints).toBeNull()
+    expect(entry.alwaysOpen).toBeNull()
   })
 
   it('makes no request for an empty candidate list', async () => {
@@ -70,5 +82,67 @@ describe('fetchAvailability', () => {
     expect(fetcher).not.toHaveBeenCalled()
     expect(live.size).toBe(0)
     expect(missing).toEqual([])
+  })
+})
+
+/**
+ * The fan-out itself, which is what makes one flaky station cost one badge.
+ *
+ * The Worker answers a single station per request now, so the policy that used
+ * to live in it — keep what came back, drop what did not, but shout if nothing
+ * did — lives here instead and is worth pinning down.
+ */
+describe('fetchViaWorker', () => {
+  const stub = (handler: (id: number) => Response | Promise<Response>) => {
+    const spy = vi.fn(async (input: RequestInfo | URL) => {
+      const id = Number(String(input).split('/').pop())
+      return handler(id)
+    })
+    vi.stubGlobal('fetch', spy)
+    return spy
+  }
+
+  const ok = (id: number) =>
+    new Response(JSON.stringify(record({ stationId: id })), { status: 200 })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('asks for one station per request', async () => {
+    const spy = stub(ok)
+    await fetchViaWorker([1, 2, 3])
+
+    expect(spy).toHaveBeenCalledTimes(3)
+    expect(spy.mock.calls.map((c) => String(c[0]))).toEqual([
+      '/api/chargers/1',
+      '/api/chargers/2',
+      '/api/chargers/3',
+    ])
+  })
+
+  it('drops a 404 without failing the rest', async () => {
+    stub((id) => (id === 2 ? new Response('', { status: 404 }) : ok(id)))
+    const records = await fetchViaWorker([1, 2, 3])
+    expect(records.map((r) => r.stationId)).toEqual([1, 3])
+  })
+
+  it('keeps the stations that answered when one errors', async () => {
+    stub((id) => (id === 2 ? new Response('boom', { status: 500 }) : ok(id)))
+    const records = await fetchViaWorker([1, 2, 3])
+    expect(records.map((r) => r.stationId)).toEqual([1, 3])
+  })
+
+  /**
+   * Nothing came back at all: that is the key having been rotated or the
+   * upstream being down, not bad luck, and it has to reach a log with its real
+   * message rather than look like a route with no live data on it.
+   */
+  it('throws when every station fails', async () => {
+    stub(() => new Response('gone', { status: 502 }))
+    await expect(fetchViaWorker([1, 2])).rejects.toThrow(/502/)
+  })
+
+  it('returns empty rather than throwing when every station is merely a 404', async () => {
+    stub(() => new Response('', { status: 404 }))
+    await expect(fetchViaWorker([1, 2])).resolves.toEqual([])
   })
 })

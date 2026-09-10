@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ChargerList } from './components/ChargerList'
 import { RouteMapSheet } from './components/RouteMapSheet'
 import { RoutePicker } from './components/RoutePicker'
@@ -14,12 +14,32 @@ export default function App() {
   const [showSearch, setShowSearch] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showRouteMap, setShowRouteMap] = useState(false)
+  /**
+   * The charger whose detail panel is open, held as an id rather than as the
+   * item. `search.results` is rebuilt on every occupancy and detour refresh, so
+   * a stored object would freeze while the row beside it kept updating.
+   *
+   * One at a time: each panel carries a live Mapbox GL map.
+   */
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const destination = useAppStore((s) => s.lastDestination)
   const setDestination = useAppStore((s) => s.setDestination)
 
   const { position, error: geoError, loading: geoLoading } = useGeolocation()
   const search = useRouteSearch(position, destination)
+
+  const toggleCharger = useCallback(
+    (chargerId: string) => setExpandedId((open) => (open === chargerId ? null : chargerId)),
+    [],
+  )
+
+  // Tapping a dot on a map opens that charger's row. The full-screen map has to
+  // get out of the way first, or the panel it just opened is behind it.
+  const openCharger = useCallback((chargerId: string) => {
+    setShowRouteMap(false)
+    setExpandedId(chargerId)
+  }, [])
 
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col">
@@ -88,6 +108,7 @@ export default function App() {
           onSelect={search.selectRoute}
           onExpand={() => setShowRouteMap(true)}
           chargers={search.results}
+          onSelectCharger={openCharger}
           position={position}
         />
 
@@ -111,6 +132,10 @@ export default function App() {
             unfilteredCount={search.unfilteredCount}
             progress={search.progress}
             error={search.error}
+            expandedId={expandedId}
+            onToggle={toggleCharger}
+            route={search.selected}
+            enrichedIds={search.enrichedIds}
           />
         )}
       </main>
@@ -130,6 +155,7 @@ export default function App() {
         <RouteMapSheet
           option={search.selected}
           chargers={search.results}
+          onSelectCharger={openCharger}
           position={position}
           onClose={() => setShowRouteMap(false)}
         />

@@ -21,8 +21,9 @@ function charger(over: Partial<Charger> & { id: string }): Charger {
     operator: 'EnBW',
     operatorCode: 'DEEBW',
     priceGroup: 'ENBW_GROUP',
-    authMethods: ['MOBILITY_PLUS_CHARGE_CARD'],
     alwaysOpen: true,
+    chargePoints: null,
+    notes: null,
     ...over,
   }
 }
@@ -33,6 +34,8 @@ const onRoute = (c: Charger, alongM: number): ChargerOnRoute => ({
   alongDurationS: alongM / 25,
   offsetM: 100,
   detourS: null,
+  detourM: null,
+  legs: null,
 })
 
 describe('applyStaticFilters', () => {

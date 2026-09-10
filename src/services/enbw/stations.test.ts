@@ -10,11 +10,20 @@ import {
 } from './stations'
 
 const fileOf = (stations: PackedStation[]) => ({
-  version: 3,
+  version: 4,
   generatedAt: '2026-09-05T00:00:00.000Z',
   count: stations.length,
   minPowerKw: 50,
-  fields: ['stationId', 'lat', 'lon', 'maxPowerKw', 'address', 'totalPoints', 'operator'],
+  fields: [
+    'stationId',
+    'lat',
+    'lon',
+    'maxPowerKw',
+    'address',
+    'totalPoints',
+    'operator',
+    'location',
+  ],
   stations,
 })
 
@@ -26,6 +35,7 @@ const VOELS: PackedStation = [
   'Cytastraße 1, 6176 Völs, AT',
   2,
   'SMATRICS',
+  'MPREIS Völs',
 ]
 
 describe('unpackStation', () => {
@@ -44,8 +54,13 @@ describe('unpackStation', () => {
       operator: 'SMATRICS',
       operatorCode: null,
       priceGroup: 'ENBW_GROUP',
-      authMethods: [],
-      alwaysOpen: false,
+      // Null, not false or []: the packed row carries none of these, and
+      // "unknown" must not render as a positive claim about the station.
+      alwaysOpen: null,
+      chargePoints: null,
+      // The heading, straight out of the file — the reason a row never has to
+      // rename itself once a live lookup lands.
+      notes: 'MPREIS Völs',
     })
   })
 
@@ -64,6 +79,24 @@ describe('unpackStation', () => {
     expect(
       unpackStation([1, 48.8, 9.1, null, 'A 1, 70173 Stuttgart, DE', 2, 'EnBW']).maxPowerKw,
     ).toBeNull()
+  })
+
+  /**
+   * Version 3 files have no location column, and a phone with one in its HTTP
+   * cache must still render a usable row.
+   */
+  it('falls back to the street label when the row carries no location', () => {
+    const charger = unpackStation([
+      3029234,
+      47.25844,
+      11.32309,
+      50,
+      'Cytastraße 1, 6176 Völs, AT',
+      2,
+      'SMATRICS',
+    ])
+    expect(charger.notes).toBeNull()
+    expect(charger.name).toBe('Cytastraße 1')
   })
 
   it('tolerates a row that is missing its identity columns', () => {
@@ -91,7 +124,7 @@ describe('parseStationList', () => {
   it('keeps the stamp so a refreshed list is identifiable', () => {
     const list = parseStationList(fileOf([VOELS]))
     expect(list.meta).toEqual({
-      version: 3,
+      version: 4,
       generatedAt: '2026-09-05T00:00:00.000Z',
       count: 1,
     })

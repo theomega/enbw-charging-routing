@@ -45,13 +45,16 @@ const onRoute = (availablePoints: number | null, lon = 11.4): ChargerOnRoute => 
     operator: 'EnBW',
     operatorCode: null,
     priceGroup: null,
-    authMethods: [],
     alwaysOpen: true,
+    chargePoints: null,
+    notes: null,
   } satisfies Charger,
   alongDistanceM: 1_000,
   alongDurationS: 40,
   offsetM: 100,
   detourS: 120,
+  detourM: 3_000,
+  legs: null,
 })
 
 describe('routeFeatures', () => {
@@ -97,10 +100,9 @@ describe('chargerFeatures', () => {
     expect(colours).toEqual([CHARGER_FREE, CHARGER_BUSY, CHARGER_UNKNOWN])
   })
 
-  it('carries the popup markup, so a tap needs no second lookup', () => {
-    const [feature] = chargerFeatures([onRoute(2)]).features
-    expect(feature.properties!.html).toContain('EnBW Test')
-    expect(feature.properties!.html).toContain('150 kW')
+  it('carries the charger id, so a tap on a dot can name its row', () => {
+    const [feature] = chargerFeatures([onRoute(2, 11.4)]).features
+    expect(feature.properties!.id).toBe('enbw:11.4')
   })
 })
 

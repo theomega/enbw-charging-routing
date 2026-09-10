@@ -9,7 +9,8 @@
  *     Origin: http://localhost:5173 -> 403 forbidden
  *
  * Browsers set `Origin` themselves and JS cannot override it, so the call has
- * to happen server-side.
+ * to happen server-side. Holding the subscription key off the client is the
+ * second reason, but the Origin gate is the one that makes a proxy unavoidable.
  *
  * It used to do much more: the app discovered chargers by tiling a route
  * corridor, so this file carried a fan-out with cluster subdivision, depth
@@ -17,19 +18,25 @@
  * requests for one 743 km route. The station list is now generated offline
  * (`scripts/build-station-list.mjs`), so all that is gone.
  *
- * It then asked for small bounding boxes around the stations the client wanted.
- * That is gone too. A box is answered through EnBW's clustering grid, which
- * collapses any grid cell holding two stations into a placeholder carrying no
- * id and no occupancy — and measured on a real route, a box never covered more
- * than one candidate anyway (17 stations, 17 boxes). Asking for one station by
- * id costs the same number of requests and cannot cluster.
+ * It then took a batch of station ids and fetched them here, six at a time.
+ * That is gone too, and the reason is the shape of Cloudflare's limits: the
+ * free plan allows 50 subrequests *per invocation*, so batching N stations into
+ * one request made N compete for a single budget and capped a search at 48
+ * rows. One station per invocation spends one subrequest against its own
+ * budget, so the ceiling stops existing and the client decides how many rows
+ * are worth enriching. Fanning out from the browser also lets rows fail — and
+ * arrive — independently, which no amount of care in here could reproduce.
  *
- * Typically 17-20 requests per search, well inside Cloudflare's free-plan limit
- * of 50 subrequests per invocation.
+ * What is left is a single station lookup with no batching, no concurrency
+ * control and no cache. It should stay that way.
+ *
+ *     GET /api/chargers/:stationId  ->  200 the trimmed record
+ *                                       404 EnBW no longer has that id
+ *                                       502 upstream refused
  */
 
-import type { OccupancyRecord } from '../src/services/enbw/availability'
-import type { EnbwStation } from '../src/services/enbw/wire'
+import type { LiveStationRecord } from '../src/services/enbw/availability'
+import type { EnbwChargePoint, EnbwStation } from '../src/services/enbw/wire'
 
 export interface Env {
   ENBW_SUBSCRIPTION_KEY: string
@@ -39,105 +46,53 @@ const ENBW_BASE = 'https://api.emp.emob-enbw.com/emobility-public-api/api/v1/cha
 /** The only Origin the upstream accepts. */
 const REQUIRED_ORIGIN = 'https://www.enbw.com'
 
-/** Occupancy is live data, so cache only long enough to absorb retries. */
-const CACHE_TTL_SECONDS = 60
-/** Cloudflare allows 6 simultaneous outgoing connections per invocation. */
-const MAX_CONCURRENCY = 6
-/**
- * Well above what a route needs (~17-20 stations) and comfortably under the
- * free plan's 50-subrequest ceiling.
- */
-const MAX_STATIONS = 60
+const ROUTE = /^\/api\/chargers\/(\d+)$/
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url)
-
-    if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() })
-    if (url.pathname !== '/api/chargers') return json({ error: 'Not found' }, 404)
-    if (request.method !== 'POST') return json({ error: 'Use POST' }, 405)
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const match = ROUTE.exec(new URL(request.url).pathname)
+    if (!match) return json({ error: 'Not found' }, 404)
+    if (request.method !== 'GET') return json({ error: 'Use GET' }, 405)
     if (!env.ENBW_SUBSCRIPTION_KEY) {
       return json({ error: 'ENBW_SUBSCRIPTION_KEY is not configured' }, 500)
     }
 
-    let stationIds: number[]
-    try {
-      const body = (await request.json()) as { stationIds?: unknown }
-      stationIds = validateStationIds(body.stationIds)
-    } catch (err) {
-      return json({ error: (err as Error).message }, 400)
+    // The route pattern already guarantees digits; this only rejects the ones
+    // too large to survive the round trip through a JSON number.
+    const stationId = Number(match[1])
+    if (!Number.isSafeInteger(stationId) || stationId <= 0) {
+      return json({ error: 'stationId must be a positive integer' }, 400)
     }
 
     try {
-      const stations = await fetchOccupancy(stationIds, env, ctx)
-      return json({ stations, fetchedAt: new Date().toISOString() })
+      const station = await fetchStation(stationId, env)
+      // A 404 is not a failure. EnBW re-issues station ids in bulk, so a list a
+      // few days old always has some. The client already knows the address and
+      // the point count from the shipped list, so an absent id costs only the
+      // extras and the row still renders.
+      if (!station) return json({ error: `No station ${stationId}` }, 404)
+      return json(station)
     } catch (err) {
       return json({ error: `Upstream request failed: ${(err as Error).message}` }, 502)
     }
   },
 }
 
-function validateStationIds(raw: unknown): number[] {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error('stationIds must be a non-empty array')
-  }
-  if (raw.length > MAX_STATIONS) throw new Error(`too many stations (max ${MAX_STATIONS})`)
-
-  return raw.map((id, i) => {
-    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
-      throw new Error(`stationIds[${i}] must be a positive integer`)
-    }
-    return id
-  })
-}
-
-/** Fetch every station with bounded concurrency. */
-async function fetchOccupancy(
-  stationIds: number[],
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<OccupancyRecord[]> {
-  const out: OccupancyRecord[] = []
-  let next = 0
-
-  const worker = async (): Promise<void> => {
-    for (;;) {
-      const i = next++
-      if (i >= stationIds.length) return
-      const station = await fetchStation(stationIds[i], env, ctx)
-      // A 404 is not an error. EnBW re-issues station ids in bulk, so a list a
-      // few days old always has some. The client already knows the address and
-      // the point count from that list, so an absent id costs only the badge.
-      if (station) out.push(station)
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, stationIds.length) }, worker))
-  return out
-}
-
 /**
- * One station's occupancy, or null if EnBW no longer has that id.
+ * One station's live record, or null if EnBW no longer has that id.
  *
- * Trimmed to the counts before it leaves this file: an upstream record averages
- * 3.8 KB (a big hub is 24 KB) and carries the whole charge-point array, none of
- * which the client needs — it has the address, power and point count from the
- * shipped list already.
+ * Trimmed before it leaves this file. The upstream record is 3-9 KB and most of
+ * it is noise the client can never use — `viewPort`, `favorite`,
+ * `hiddenWithActiveProfile`, per-connector cable flags, the address and power
+ * the shipped list already carries. What is kept is what the detail panel
+ * renders, which is roughly a fifth of that.
+ *
+ * `pricingInfo` and `authenticationMethods` are dropped here on purpose rather
+ * than for size: both depend on the driver's own tariff, so passing them on
+ * would let the panel quote a price that is wrong for most people.
  */
-async function fetchStation(
-  stationId: number,
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<OccupancyRecord | null> {
-  const upstream = `${ENBW_BASE}/${stationId}`
-
-  // Cache on the URL alone; the key header must never become part of the key.
-  const cacheKey = new Request(upstream, { method: 'GET' })
-  const cache = caches.default
-  const cached = await cache.match(cacheKey)
-  if (cached) return (await cached.json()) as OccupancyRecord
-
-  const res = await fetch(upstream, {
+async function fetchStation(stationId: number, env: Env): Promise<LiveStationRecord | null> {
+  const res = await fetch(`${ENBW_BASE}/${stationId}`, {
     headers: {
       'Ocp-Apim-Subscription-Key': env.ENBW_SUBSCRIPTION_KEY,
       Origin: REQUIRED_ORIGIN,
@@ -160,38 +115,51 @@ async function fetchStation(
     throw new Error('EnBW returned an unexpected payload')
   }
 
-  const occupancy: OccupancyRecord = {
+  return {
     stationId: station.stationId,
     availablePoints: station.availableChargePoints ?? 0,
     unknownPoints: station.unknownStateChargePoints ?? 0,
     // Omitted rather than zeroed: the client's list knows the real total, and
     // "0 points" would render as a nonsense denominator.
     ...(station.numberOfChargePoints != null ? { totalPoints: station.numberOfChargePoints } : {}),
+    operatorCode: station.operatorCode ?? null,
+    alwaysOpen: station.alwaysOpen ?? null,
+    // `additionalInfo` is deliberately dropped: the shipped station list
+    // carries the location line, and the client heads every row with that.
+    chargePoints: trimChargePoints(station.chargePoints),
   }
-
-  ctx.waitUntil(
-    cache.put(
-      cacheKey,
-      new Response(JSON.stringify(occupancy), {
-        headers: {
-          'content-type': 'application/json',
-          'cache-control': `max-age=${CACHE_TTL_SECONDS}`,
-        },
-      }),
-    ),
-  )
-  return occupancy
 }
 
-const corsHeaders = () => ({
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'content-type',
-})
+/**
+ * The charge-point array, reduced to what a driver reads.
+ *
+ * A point's connectors are collapsed into a plug list and one power figure:
+ * every station measured had exactly one connector per point, and where there
+ * are several they are alternative cables on the same stall, so the point can
+ * deliver the highest of them and not their sum.
+ */
+function trimChargePoints(points: EnbwChargePoint[] | null | undefined) {
+  if (!Array.isArray(points)) return null
+  return points.map((point) => {
+    const connectors = point.connectors ?? []
+    const powers = connectors.map((c) => c.maxPowerInKw).filter((kw): kw is number => kw != null)
+    return {
+      id: point.evseId ?? null,
+      status: point.status ?? null,
+      plugs: connectors.map((c) => c.plugTypeName).filter((n): n is string => !!n),
+      maxPowerKw: powers.length > 0 ? Math.max(...powers) : null,
+    }
+  })
+}
 
+/**
+ * A plain GET with no custom headers is a CORS-simple request, so there is no
+ * preflight to answer and no `OPTIONS` branch below. Keep it that way: adding a
+ * request header on the client side would quietly reintroduce one.
+ */
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json', ...corsHeaders() },
+    headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
   })
 }

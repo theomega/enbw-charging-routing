@@ -1,4 +1,4 @@
-import type { ChargerOnRoute, LatLon } from './types'
+import type { ChargerLegs, ChargerOnRoute, LatLon } from './types'
 
 /**
  * Detour pricing.
@@ -27,8 +27,21 @@ export interface MatrixQuery {
   destinations: number[]
 }
 
-/** Answers a `MatrixQuery` with seconds — `[source][destination]`, null where unroutable. */
-export type MatrixFn = (query: MatrixQuery, signal?: AbortSignal) => Promise<(number | null)[][]>
+/**
+ * A matrix answer: `[source][destination]`, null where unroutable.
+ *
+ * `distances` is nullable as a whole because it is an annotation the provider
+ * may not return; the detour is priced from `durations` either way.
+ */
+export interface MatrixResult {
+  /** Seconds. */
+  durations: (number | null)[][]
+  /** Metres. */
+  distances: (number | null)[][] | null
+}
+
+/** Answers a `MatrixQuery`. */
+export type MatrixFn = (query: MatrixQuery, signal?: AbortSignal) => Promise<MatrixResult>
 
 /**
  * Mapbox caps the `driving` matrix at 25 coordinates per request. This drives
@@ -104,6 +117,24 @@ export function detourSeconds(
 }
 
 /**
+ * The same subtraction in metres.
+ *
+ * No `penaltyS` equivalent: re-baselining corrects for one route being slower
+ * than another in *time*, which is a traffic effect. There is no distance
+ * analogue — a longer alternative is longer for every charger on it, and that
+ * is a true statement rather than an artefact to subtract away.
+ */
+export function detourMetres(
+  toCharger: number | null | undefined,
+  fromCharger: number | null | undefined,
+  dDirect: number | null | undefined,
+): number | null {
+  if (toCharger == null || fromCharger == null || dDirect == null) return null
+  const detour = toCharger + fromCharger - dDirect
+  return detour < 0 ? 0 : detour
+}
+
+/**
  * How much slower the selected route is than the fastest one, in seconds.
  *
  * Approximate by construction: this is a `driving-traffic` delta applied to a
@@ -131,6 +162,20 @@ export interface DetourOptions {
 }
 
 /**
+ * Everything one matrix pass learns about a charger.
+ *
+ * The two legs are kept rather than collapsed into `detourS` alone: they cost
+ * nothing extra — the same response carries them — and they are what the detail
+ * panel needs to answer "how far to it" and "how far still to go afterwards"
+ * with real road figures.
+ */
+export interface Pricing {
+  detourS: number | null
+  detourM: number | null
+  legs: ChargerLegs
+}
+
+/**
  * Price the detour for the first `limit` candidates, which are already ordered
  * by how soon you reach them. Entries beyond the limit keep `detourS: null`
  * and the UI shows them as unpriced rather than hiding them.
@@ -149,12 +194,14 @@ export async function priceDetours(
   if (priced.length === 0) return candidates
 
   const chunks = chunkCandidates(priced)
-  const detours = new Map<string, number | null>()
+  const pricings = new Map<string, Pricing>()
 
   // t_direct is the same journey for every chunk; take it from the first chunk
   // that returns a usable value and reuse it, so chunk boundaries cannot make
-  // two otherwise-identical chargers disagree.
+  // two otherwise-identical chargers disagree. The same argument applies to the
+  // direct distance.
   let tDirect: number | null = null
+  let dDirect: number | null = null
 
   for (const chunk of chunks) {
     const points = chunk.map((c) => ({ lat: c.charger.lat, lon: c.charger.lon }))
@@ -162,18 +209,29 @@ export async function priceDetours(
 
     const [a, b] = await Promise.all([matrix(fromOrigin, signal), matrix(toDestination, signal)])
 
-    const rowA = a[0] ?? []
-    const chunkDirect = rowA[chunk.length] ?? null
-    if (tDirect == null) tDirect = chunkDirect
+    const durationsA = a.durations[0] ?? []
+    const distancesA = a.distances?.[0] ?? []
+    if (tDirect == null) tDirect = durationsA[chunk.length] ?? null
+    if (dDirect == null) dDirect = distancesA[chunk.length] ?? null
 
     chunk.forEach((c, i) => {
-      detours.set(c.charger.id, detourSeconds(rowA[i], b[i]?.[0], tDirect, penaltyS))
+      const toChargerS = durationsA[i] ?? null
+      const fromChargerS = b.durations[i]?.[0] ?? null
+      const toChargerM = distancesA[i] ?? null
+      const fromChargerM = b.distances?.[i]?.[0] ?? null
+
+      pricings.set(c.charger.id, {
+        detourS: detourSeconds(toChargerS, fromChargerS, tDirect, penaltyS),
+        detourM: detourMetres(toChargerM, fromChargerM, dDirect),
+        legs: { toChargerM, toChargerS, fromChargerM, fromChargerS },
+      })
     })
   }
 
-  return candidates.map((c) =>
-    detours.has(c.charger.id) ? { ...c, detourS: detours.get(c.charger.id) ?? null } : c,
-  )
+  return candidates.map((c) => {
+    const pricing = pricings.get(c.charger.id)
+    return pricing ? { ...c, ...pricing } : c
+  })
 }
 
 /* ------------------------------------------------------------------ *
@@ -191,9 +249,9 @@ export function detourCacheKey(origin: LatLon, destination: LatLon, chargerId: s
 }
 
 export class DetourCache {
-  private readonly entries = new Map<string, number | null>()
+  private readonly entries = new Map<string, Pricing>()
 
-  get(origin: LatLon, destination: LatLon, chargerId: string): number | null | undefined {
+  get(origin: LatLon, destination: LatLon, chargerId: string): Pricing | undefined {
     return this.entries.get(detourCacheKey(origin, destination, chargerId))
   }
 
@@ -201,8 +259,8 @@ export class DetourCache {
     return this.entries.has(detourCacheKey(origin, destination, chargerId))
   }
 
-  set(origin: LatLon, destination: LatLon, chargerId: string, detourS: number | null): void {
-    this.entries.set(detourCacheKey(origin, destination, chargerId), detourS)
+  set(origin: LatLon, destination: LatLon, chargerId: string, pricing: Pricing): void {
+    this.entries.set(detourCacheKey(origin, destination, chargerId), pricing)
   }
 
   clear(): void {

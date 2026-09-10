@@ -12,6 +12,8 @@ interface Props {
   /** Open the selected route full-screen, for a closer look at how it runs. */
   onExpand: () => void
   chargers: ChargerOnRoute[]
+  /** Tapping a charger dot opens that charger's row in the list below. */
+  onSelectCharger?: (chargerId: string) => void
   position: LatLon | null
 }
 
@@ -32,7 +34,15 @@ interface Props {
  * are both the legend and the same choice in words, for the times a line is
  * buried under another one.
  */
-export function RoutePicker({ routes, selected, onSelect, onExpand, chargers, position }: Props) {
+export function RoutePicker({
+  routes,
+  selected,
+  onSelect,
+  onExpand,
+  chargers,
+  onSelectCharger,
+  position,
+}: Props) {
   if (routes.length === 0 || !selected) return null
 
   const fastest = routes[0]
@@ -47,6 +57,7 @@ export function RoutePicker({ routes, selected, onSelect, onExpand, chargers, po
           selectedId={selected.id}
           onSelectRoute={onSelect}
           chargers={chargers}
+          onSelectCharger={onSelectCharger}
           position={position}
           // Embedded in the scrolling page: one finger must still scroll past it.
           cooperativeGestures

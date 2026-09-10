@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_MAX_OFFSET_M, buildCorridor, placeChargersOnRoute } from '../core/corridor'
 import { priceDetours, routePenaltySeconds } from '../core/detour'
 import type { Charger, ChargerOnRoute, LatLon } from '../core/types'
-import { fetchAvailability, type OccupancyRecord } from '../services/enbw/availability'
+import { fetchAvailability, type LiveStationRecord } from '../services/enbw/availability'
 import { parseStationList, type StationList } from '../services/enbw/stations'
+import { stationIdOf } from '../services/enbw/wire'
 import { fetchRoutes, type RouteOption } from '../services/mapbox/directions'
 import { fetchMatrix } from '../services/mapbox/matrix'
 
@@ -38,15 +39,19 @@ const loadList = async (): Promise<StationList> =>
 const placeAlong = (route: RouteOption, chargers: Charger[]): Promise<ChargerOnRoute[]> =>
   placeChargersOnRoute(buildCorridor(route.route, MAX_OFFSET_M), chargers)
 
-/** Ask the Worker for occupancy exactly as the browser would. */
-const viaWorker = async (stationIds: number[]): Promise<OccupancyRecord[]> => {
-  const res = await fetch(`${WORKER}/api/chargers`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ stationIds }),
-  })
-  if (!res.ok) throw new Error(`Worker returned ${res.status}: ${await res.text()}`)
-  return ((await res.json()) as { stations: OccupancyRecord[] }).stations
+/** Ask the Worker for occupancy exactly as the browser would: one GET each. */
+const viaWorker = async (stationIds: number[]): Promise<LiveStationRecord[]> => {
+  const settled = await Promise.allSettled(
+    stationIds.map(async (id) => {
+      const res = await fetch(`${WORKER}/api/chargers/${id}`)
+      if (res.status === 404) return null
+      if (!res.ok) throw new Error(`Worker returned ${res.status}: ${await res.text()}`)
+      return (await res.json()) as LiveStationRecord
+    }),
+  )
+  const failed = settled.find((o) => o.status === 'rejected')
+  if (failed?.status === 'rejected') throw failed.reason
+  return settled.flatMap((o) => (o.status === 'fulfilled' && o.value ? [o.value] : []))
 }
 
 describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupancy', () => {
@@ -202,6 +207,49 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
       expect(c.detourS!).toBeLessThan(45 * 60)
     }
   }, 180_000)
+
+  /**
+   * The charge-point array is undocumented and unmodelled outside `wire.ts`, and
+   * the Worker is the only thing that parses it. If EnBW renames a field or
+   * stops returning the array, every detail panel quietly loses its points list
+   * and nothing else in the suite would notice — this is the check that does.
+   */
+  it('returns the individual charge points, which no unit test can prove', async () => {
+    const list = await loadList()
+    // Low ids: the 2.90M-3.00M block is the one EnBW re-issued in bulk, so a
+    // 404 there would prove nothing about the response shape.
+    const stable = list.chargers.filter((c) => stationIdOf(c.id) < 2_900_000).slice(0, 6)
+    expect(stable.length).toBeGreaterThan(0)
+
+    const { live } = await fetchAvailability(stable, { fetcher: viaWorker })
+    const answered = stable.map((c) => live.get(c.id)).filter((o) => o != null)
+    expect(answered.length, 'at least one station must answer').toBeGreaterThan(0)
+
+    const withPoints = answered.filter((o) => (o!.chargePoints?.length ?? 0) > 0)
+    expect(withPoints.length, 'the detail endpoint must still carry chargePoints').toBeGreaterThan(
+      0,
+    )
+
+    const point = withPoints[0]!.chargePoints![0]
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n  ${withPoints.length}/${answered.length} stations carried charge points\n` +
+        withPoints
+          .slice(0, 3)
+          .map(
+            (o) =>
+              `    ${o!.chargePoints!.length} points, ` +
+              `plugs ${[...new Set(o!.chargePoints!.flatMap((p) => p.plugs))].join('/')}`,
+          )
+          .join('\n'),
+    )
+
+    // The trim in the Worker must survive: a point with no plug list and no
+    // power is a point the panel can say nothing useful about.
+    expect(point.plugs.length).toBeGreaterThan(0)
+    expect(point.maxPowerKw).toBeGreaterThan(0)
+    expect(point.status).toBeTruthy()
+  }, 60_000)
 
   it('includes EnBW stations abroad, fully described by the shipped list', async () => {
     const list = await loadList()

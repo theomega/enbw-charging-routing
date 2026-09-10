@@ -1,16 +1,14 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson'
 import type { ChargerOnRoute } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
-import { chargerPopupHtml } from './chargerPopup'
 import { CHARGER_BUSY, CHARGER_FREE, CHARGER_UNKNOWN, strokeColours } from './routeColours'
 
 /**
  * What the map is asked to draw, as plain GeoJSON.
  *
  * Split out from the component because this is the part with decisions in it —
- * which colour, which state, what the popup says — and none of it needs a
- * WebGL context to be checked. RouteMap is left as wiring: create, setData,
- * remove.
+ * which colour, which state — and none of it needs a WebGL context to be
+ * checked. RouteMap is left as wiring: create, setData, remove.
  */
 
 /** Feature properties the style expressions in RouteMap read by name. */
@@ -39,15 +37,22 @@ export function routeFeatures(
   }
 }
 
+/** Feature properties the charger layers read by name. */
+export interface ChargerProperties {
+  /** The charger id, so a tap on a dot can name the row it belongs to. */
+  id: string
+  colour: string
+}
+
 export function chargerFeatures(chargers: ChargerOnRoute[]): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: chargers.map<Feature<Point>>((item) => ({
       type: 'Feature',
       properties: {
+        id: item.charger.id,
         colour: dotColour(item),
-        html: chargerPopupHtml(item),
-      },
+      } satisfies ChargerProperties,
       geometry: { type: 'Point', coordinates: [item.charger.lon, item.charger.lat] },
     })),
   }

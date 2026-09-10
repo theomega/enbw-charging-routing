@@ -1,8 +1,10 @@
 import bbox from '@turf/bbox'
+import buffer from '@turf/buffer'
 import type { FeatureCollection } from 'geojson'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useEffect, useRef, useState } from 'react'
+import { toPoint } from '../core/geo'
 import type { ChargerOnRoute, LatLon } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { optionalToken } from '../services/mapbox/client'
@@ -33,6 +35,8 @@ interface Props {
   /** Tapping a line picks that route. Omit to make the lines inert. */
   onSelectRoute?: (id: string) => void
   chargers: ChargerOnRoute[]
+  /** Tapping a charger dot opens its row. Omit to make the dots inert. */
+  onSelectCharger?: (chargerId: string) => void
   /** The driver's own position, drawn as a device cursor. */
   position: LatLon | null
   /**
@@ -46,6 +50,17 @@ interface Props {
   cooperativeGestures?: boolean
   /** Room to leave around the routes when framing them, in pixels. */
   padding?: number
+  /**
+   * Frame on this point instead of on the routes.
+   *
+   * The default framing fits the whole trip, which is the right answer when the
+   * question is "which way do I go" and useless when it is "what is around this
+   * charger" — at whole-trip zoom a station is a 3 px dot. The detail panel
+   * passes its charger here.
+   */
+  focus?: LatLon | null
+  /** Half-width of the box drawn around `focus`, in metres. */
+  focusRadiusM?: number
   className?: string
 }
 
@@ -54,9 +69,12 @@ export function RouteMap({
   selectedId,
   onSelectRoute,
   chargers,
+  onSelectCharger,
   position,
   cooperativeGestures = false,
   padding = 32,
+  focus = null,
+  focusRadiusM = 1_200,
   className,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
@@ -71,8 +89,8 @@ export function RouteMap({
   // setup effect can stay a mount-once effect without lying about its
   // dependencies: a tap handler changes identity on every render, and tearing
   // the map down and rebuilding it for that would be a disaster.
-  const handlers = useRef({ onSelectRoute })
-  handlers.current = { onSelectRoute }
+  const handlers = useRef({ onSelectRoute, onSelectCharger })
+  handlers.current = { onSelectRoute, onSelectCharger }
 
   const token = optionalToken()
 
@@ -156,13 +174,12 @@ export function RouteMap({
       if (typeof id === 'string') handlers.current.onSelectRoute?.(id)
     })
 
+    // A dot used to open a popup here. It now opens the charger's row instead:
+    // one place to read a charger, rather than a cramped summary that had to be
+    // built as an escaped HTML string outside React.
     instance.on('click', 'chargers-hit', (e) => {
-      const feature = e.features?.[0]
-      if (!feature || feature.geometry.type !== 'Point') return
-      new mapboxgl.Popup({ offset: 10, closeButton: false, maxWidth: '260px' })
-        .setLngLat(feature.geometry.coordinates as [number, number])
-        .setHTML(String(feature.properties?.html ?? ''))
-        .addTo(instance)
+      const id = e.features?.[0]?.properties?.id
+      if (typeof id === 'string') handlers.current.onSelectCharger?.(id)
     })
 
     // Desktop affordance; harmless on touch.
@@ -192,13 +209,27 @@ export function RouteMap({
     const collection = routeFeatures(routes, selectedId)
     source(instance, ROUTE_SOURCE)?.setData(collection)
 
-    const key = framingKey(routes)
-    if (collection.features.length > 0 && framed.current !== key) {
+    // A focused map is framed on its point and never on the trip; the two
+    // framings would fight, and re-framing to the whole route the moment the
+    // charger data refreshed would throw the view away mid-look.
+    const key = focus ? `focus:${focus.lat},${focus.lon}` : framingKey(routes)
+    if (framed.current === key) return
+
+    if (focus) {
+      framed.current = key
+      const around = buffer(toPoint(focus), focusRadiusM, { units: 'meters' })
+      if (!around) return
+      const [west, south, east, north] = bbox(around)
+      instance.fitBounds([west, south, east, north], { padding, duration: 0 })
+      return
+    }
+
+    if (collection.features.length > 0) {
       framed.current = key
       const [west, south, east, north] = bbox(collection)
       instance.fitBounds([west, south, east, north], { padding, duration: 0 })
     }
-  }, [ready, routes, selectedId, padding])
+  }, [ready, routes, selectedId, padding, focus, focusRadiusM])
 
   useEffect(() => {
     const instance = map.current

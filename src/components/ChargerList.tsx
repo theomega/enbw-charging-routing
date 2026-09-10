@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react'
 import { DEFAULT_MAX_OFFSET_M } from '../core/corridor'
 import type { ChargerOnRoute } from '../core/types'
 import { useAppStore } from '../state/store'
 import type { SearchStatus } from '../search/useRouteSearch'
+import type { RouteOption } from '../services/mapbox/directions'
 import { ChargerCard } from './ChargerCard'
 
 interface Props {
@@ -11,10 +13,36 @@ interface Props {
   /** 0..1 while the corridor is being placed. */
   progress: number | null
   error: string | null
+  /** The charger whose detail panel is open, if any. */
+  expandedId: string | null
+  onToggle: (chargerId: string) => void
+  /** The route the panel measures against, for its map and its "left after". */
+  route: RouteOption | null
+  /** Rows the pipeline fetches live data for; the rest fetch their own on open. */
+  enrichedIds: ReadonlySet<string>
 }
 
-export function ChargerList({ status, results, unfilteredCount, progress, error }: Props) {
+export function ChargerList({
+  status,
+  results,
+  unfilteredCount,
+  progress,
+  error,
+  expandedId,
+  onToggle,
+  route,
+  enrichedIds,
+}: Props) {
   const settings = useAppStore((s) => s.settings)
+  const rows = useRef(new Map<string, HTMLDivElement>())
+
+  // A charger can also be opened by tapping its dot on the map, which leaves
+  // the row anywhere in a long list — usually off-screen. Bring it to the
+  // middle so the panel that just opened is the thing you are looking at.
+  useEffect(() => {
+    if (!expandedId) return
+    rows.current.get(expandedId)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [expandedId])
 
   if (status === 'error' && error) {
     return (
@@ -73,7 +101,22 @@ export function ChargerList({ status, results, unfilteredCount, progress, error 
       )}
 
       {results.map((item) => (
-        <ChargerCard key={item.charger.id} item={item} mapsApp={settings.mapsApp} />
+        <div
+          key={item.charger.id}
+          ref={(el) => {
+            if (el) rows.current.set(item.charger.id, el)
+            else rows.current.delete(item.charger.id)
+          }}
+        >
+          <ChargerCard
+            item={item}
+            mapsApp={settings.mapsApp}
+            route={route}
+            expanded={expandedId === item.charger.id}
+            onToggle={() => onToggle(item.charger.id)}
+            enriched={enrichedIds.has(item.charger.id)}
+          />
+        </div>
       ))}
     </div>
   )

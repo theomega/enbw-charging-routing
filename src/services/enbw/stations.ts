@@ -11,9 +11,9 @@ import { ENBW_PRICE_GROUP, chargerId } from './wire'
  * The station set barely changes, so it is generated offline by
  * `scripts/build-station-list.mjs` and shipped as data.
  *
- * The list carries identity: address, power, point count, operator. It does
- * *not* carry occupancy, which is the one thing that changes minute to minute
- * and is fetched live per station (see availability.ts).
+ * The list carries identity: location, address, power, point count, operator.
+ * It does *not* carry occupancy, which is the one thing that changes minute to
+ * minute and is fetched live per station (see availability.ts).
  *
  * That split is deliberate and was learned the hard way. Identity used to come
  * from the live call too, joined by station id, so any hiccup in that call —
@@ -42,7 +42,13 @@ export interface StationListMeta {
   count: number
 }
 
-/** Packed on the wire: [stationId, lat, lon, maxPowerKw, address, totalPoints, operator]. */
+/**
+ * Packed on the wire:
+ * [stationId, lat, lon, maxPowerKw, address, totalPoints, operator, location].
+ *
+ * `location` is trailing and optional because it arrived in file version 4. A
+ * version 3 file still parses; those rows simply fall back to the street label.
+ */
 export type PackedStation = [
   number,
   number,
@@ -51,6 +57,7 @@ export type PackedStation = [
   string | null,
   number | null,
   string | null,
+  (string | null)?,
 ]
 
 export interface StationListFile {
@@ -69,6 +76,8 @@ export interface StationList {
 }
 
 /**
+ * The fallback label, for a station with no location line of its own.
+ *
  * EnBW has no station name field. The street part of the address is the most
  * recognisable label, with the operator and then the bare id as fallbacks.
  */
@@ -89,7 +98,16 @@ export function stationLabel(
  * before its occupancy lookup lands.
  */
 export function unpackStation(row: PackedStation): Charger {
-  const [stationId, lat, lon, maxPowerKw, address = null, totalPoints = 0, operator = null] = row
+  const [
+    stationId,
+    lat,
+    lon,
+    maxPowerKw,
+    address = null,
+    totalPoints = 0,
+    operator = null,
+    location = null,
+  ] = row
   return {
     id: chargerId(stationId),
     providerId: 'enbw',
@@ -102,10 +120,17 @@ export function unpackStation(row: PackedStation): Charger {
     unknownPoints: 0,
     maxPowerKw,
     operator,
+    // Not in the packed row — the live record is the only source. Null rather
+    // than false, so the UI can say "unknown" instead of asserting something
+    // the list never knew.
     operatorCode: null,
     priceGroup: ENBW_PRICE_GROUP,
-    authMethods: [],
-    alwaysOpen: false,
+    alwaysOpen: null,
+    chargePoints: null,
+    // The heading the UI renders. In the list precisely so it never changes
+    // under the driver: it used to come from the live lookup, so a row opened
+    // its detail panel and its own title moved.
+    notes: location,
   }
 }
 

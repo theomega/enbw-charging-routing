@@ -18,8 +18,9 @@ function charger(id: string, lat: number, lon: number): Charger {
     operator: 'EnBW',
     operatorCode: 'DEEBW',
     priceGroup: 'ENBW_GROUP',
-    authMethods: ['MOBILITY_PLUS_CHARGE_CARD'],
     alwaysOpen: true,
+    chargePoints: null,
+    notes: null,
   }
 }
 

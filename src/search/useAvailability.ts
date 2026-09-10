@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react'
 import type { ChargerOnRoute } from '../core/types'
-import { fetchAvailability, type Occupancy } from '../services/enbw/availability'
+import { fetchAvailability, type LiveStation } from '../services/enbw/availability'
 
 export interface LiveAvailability {
-  /** Occupancy by charger id, to merge over the shipped station. */
-  live: Map<string, Occupancy>
+  /** Live fields by charger id, to merge over the shipped station. */
+  live: Map<string, LiveStation>
   fetchedAt: Date | null
 }
 
 /**
- * Live occupancy for the rows actually on screen — one request per station.
+ * The live record for the rows actually on screen — one request per station.
  *
- * This is the only EnBW traffic the app makes, and the only thing it asks for
- * is how busy each station is right now. Everything else on the card comes from
- * the shipped list, so a failure here costs the badge and nothing more. That is
- * why it is logged rather than surfaced: blanking the list would be far worse
- * than showing "?/n".
+ * This is the only EnBW traffic the app makes. It answers how busy each station
+ * is and what its points, plugs and tariff are; identity — name, address, power,
+ * point count — comes from the shipped list either way. So a failure here costs
+ * the badge and the detail panel's extras, never the row itself. That is why it
+ * is logged rather than surfaced: blanking the list would be far worse than
+ * showing "?/n".
  */
 export function useAvailability(candidates: ChargerOnRoute[], nonce: number): LiveAvailability {
-  const [live, setLive] = useState<Map<string, Occupancy>>(new Map())
+  const [live, setLive] = useState<Map<string, LiveStation>>(new Map())
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null)
 
   useEffect(() => {

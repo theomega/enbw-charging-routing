@@ -12,6 +12,10 @@
  * is worth splitting; a box that reports none is done. Empty countryside falls
  * out of the search almost immediately.
  *
+ * Then one `/chargestations/{id}` request per surviving station, for the
+ * location line — the heading the app shows — which the bounding-box query does
+ * not return at all. See `fetchLocations`.
+ *
  *   pnpm build:stations                    # default root: DE + AT + northern IT
  *   pnpm build:stations -- --bbox 48.3,49.3,8.7,9.7   # a small region, for testing
  *   pnpm build:stations -- --out public/stations.enbw.json
@@ -181,17 +185,21 @@ async function waitForThrottle() {
   }
 }
 
-async function fetchBox(box, key) {
-  const url = new URL(API)
-  url.searchParams.set('fromLat', String(box.fromLat))
-  url.searchParams.set('toLat', String(box.toLat))
-  url.searchParams.set('fromLon', String(box.fromLon))
-  url.searchParams.set('toLon', String(box.toLon))
-  url.searchParams.set('grouping', 'false')
-  url.searchParams.set('groupingDivisor', String(GROUPING_DIVISOR))
-  url.searchParams.set('priceGroups', PRICE_GROUP_FILTER)
-  url.searchParams.set('minPower', String(MIN_POWER_KW))
+/**
+ * Statuses worth trying again. A 429 is the account being throttled and a 5xx
+ * is upstream having a moment; anything else in the 4xx range is an answer —
+ * retrying a 404 eight times with backoff just makes the run slower.
+ */
+const isTransient = (status) => status === 429 || status >= 500
 
+/**
+ * One request, with the throttle gate and the retry ladder around it.
+ *
+ * Shared by both phases: the bounding-box scan and the per-station detail
+ * lookups hit the same rate limit on the same account, so they have to share
+ * the same cooldown.
+ */
+async function requestJson(url, key) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     await waitForThrottle()
     try {
@@ -215,21 +223,46 @@ async function fetchBox(box, key) {
         throttle.until = Math.max(throttle.until, Date.now() + waitMs)
         throw new Error('HTTP 429')
       }
-      if (res.status >= 500) throw new Error(`HTTP ${res.status}`)
-      if (!res.ok) {
+      if (!res.ok && !isTransient(res.status)) {
         const hint = res.status === 403 ? ' (the Origin gate or the key may have changed)' : ''
-        throw new Error(`HTTP ${res.status}${hint}`)
+        // Permanent: reported by the caller, never retried.
+        throw Object.assign(new Error(`HTTP ${res.status}${hint}`), { permanent: true })
       }
-      const body = await res.json()
-      if (!Array.isArray(body)) throw new Error('unexpected payload')
-      return body
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+      return await res.json()
     } catch (err) {
-      if (attempt === MAX_RETRIES) throw err
+      if (err.permanent || attempt === MAX_RETRIES) throw err
       await sleep(400 * 2 ** Math.min(attempt, 5))
     }
   }
-  return []
+  return null
 }
+
+async function fetchBox(box, key) {
+  const url = new URL(API)
+  url.searchParams.set('fromLat', String(box.fromLat))
+  url.searchParams.set('toLat', String(box.toLat))
+  url.searchParams.set('fromLon', String(box.fromLon))
+  url.searchParams.set('toLon', String(box.toLon))
+  url.searchParams.set('grouping', 'false')
+  url.searchParams.set('groupingDivisor', String(GROUPING_DIVISOR))
+  url.searchParams.set('priceGroups', PRICE_GROUP_FILTER)
+  url.searchParams.set('minPower', String(MIN_POWER_KW))
+
+  const body = await requestJson(url, key)
+  if (!Array.isArray(body)) throw new Error('unexpected payload')
+  return body
+}
+
+/**
+ * The detail record for one station.
+ *
+ * The only endpoint that returns `additionalInfo`, which is why phase 3 exists
+ * at all. Also the only one that can 404: the box query occasionally reports an
+ * id the detail endpoint no longer serves.
+ */
+const fetchStation = (stationId, key) => requestJson(new URL(`${API}/${stationId}`), key)
 
 const quarters = (b) => {
   const midLat = (b.fromLat + b.toLat) / 2
@@ -398,6 +431,80 @@ async function scan(root, key, checkpointPath, resume) {
   return { stations: [...stations.values()], depth, abandoned }
 }
 
+/**
+ * Location text that is not a location.
+ *
+ * Some stations carry a parking notice where the site name belongs — "Bitte
+ * beachten Sie die allgemeine Parkplatzverordnung am Standort bezüglich
+ * Höchstparkdauer…" — which is prose about the car park rather than a name to
+ * look for. A row headed with it says nothing about where the station is, so
+ * those fall back to the address like a station that reports no location at all.
+ *
+ * Matched case-insensitively against the whole field, not only the line that
+ * becomes the heading. Measured over 250 stations, every occurrence *was* the
+ * first line, so there is no good name to be saved by being narrower.
+ */
+const LOCATION_BLACKLIST = ['Parkplatzverordnung']
+
+const isNotice = (text) =>
+  !!text && LOCATION_BLACKLIST.some((word) => text.toLowerCase().includes(word.toLowerCase()))
+
+/**
+ * The heading a station is displayed under.
+ *
+ * EnBW packs several lines into `additionalInfo`: the name of the site it
+ * stands at, then access and parking prose. The first line is the name — "ENI
+ * Schottwien", "REWE Wirges, Samoborstraße 5" — and the rest belongs to a
+ * paragraph nobody reads at 130 km/h.
+ */
+const firstLine = (text) => text?.split(/\r?\n/)[0]?.trim() || null
+
+/**
+ * Phase 3: fill in the location line, one request per station.
+ *
+ * This is the expensive phase and it buys the one thing the scan cannot get.
+ * `additionalInfo` is returned only by `/chargestations/{id}` — the
+ * bounding-box query does not carry it at all — and it is what every row in
+ * the app is headed with, because the name on the sign you are looking for is
+ * more use than the street it stands on. Fetching it here rather than on the
+ * phone is what keeps that heading from changing under the driver a second
+ * after the list appears.
+ */
+async function fetchLocations(stations, key) {
+  let done = 0
+  let gone = 0
+  let notices = 0
+  let unnamed = 0
+  const locations = await mapPool(stations, CONCURRENCY, async (s) => {
+    let line = null
+    try {
+      const info = (await fetchStation(s.stationId, key))?.additionalInfo
+      if (isNotice(info)) {
+        notices++
+      } else {
+        line = firstLine(info)
+        if (!line) unnamed++
+      }
+    } catch {
+      // A 404 here is an id the box query reported and the detail endpoint no
+      // longer serves. The station keeps its street label; one missing heading
+      // is not worth failing a half-hour build over.
+      gone++
+    }
+    done++
+    if (done % 200 === 0 || done === stations.length) {
+      process.stdout.write(
+        `  locations: ${String(done).padStart(5)}/${stations.length}` +
+          (gone > 0 ? `  (${gone} unanswered)` : '') +
+          (rateLimitHits > 0 ? `  (${rateLimitHits} rate-limit pauses)` : '') +
+          '\n',
+      )
+    }
+    return line
+  })
+  return { locations, gone, notices, unnamed }
+}
+
 async function main() {
   const { out, root, resume } = parseArgs(process.argv.slice(2))
   const key = await readKey()
@@ -469,11 +576,24 @@ async function main() {
     )
   }
 
+  // Phase 3 runs on the filtered set, so the requests are spent only on
+  // stations that will actually be in the file.
+  const { locations, gone, notices, unnamed } = await fetchLocations(enbw, key)
+  const named = locations.filter(Boolean).length
+  console.log(
+    `  ${named} of ${enbw.length} stations have a location line; ` +
+      `${enbw.length - named} fall back to the address ` +
+      `(${notices} a parking notice, ${unnamed} not reported, ${gone} unanswered)`,
+  )
+
   const payload = {
     // 2: only stations at MIN_POWER_KW or above.
     // 3: carries identity — address, point count, operator — so the app never
     //    depends on a live lookup to know which station a row is.
-    version: 3,
+    // 4: carries the location line too, which is the heading the app shows. It
+    //    costs one detail request per station to build and is the reason a row
+    //    can name itself before any network call.
+    version: 4,
     generatedAt: new Date().toISOString(),
     bbox: root,
     count: enbw.length,
@@ -485,9 +605,18 @@ async function main() {
     // to minute, and a month-old snapshot rendered as authoritative would be
     // worse than the "?" the app shows until the live lookup lands.
     minPowerKw: MIN_POWER_KW,
-    fields: ['stationId', 'lat', 'lon', 'maxPowerKw', 'address', 'totalPoints', 'operator'],
+    fields: [
+      'stationId',
+      'lat',
+      'lon',
+      'maxPowerKw',
+      'address',
+      'totalPoints',
+      'operator',
+      'location',
+    ],
     stations: enbw
-      .map((s) => [
+      .map((s, i) => [
         s.stationId,
         Math.round(s.lat * 1e5) / 1e5,
         Math.round(s.lon * 1e5) / 1e5,
@@ -495,6 +624,7 @@ async function main() {
         s.shortAddress?.trim() || null,
         s.numberOfChargePoints ?? 0,
         s.operator?.trim() || null,
+        locations[i],
       ])
       .sort((a, b) => a[0] - b[0]),
   }

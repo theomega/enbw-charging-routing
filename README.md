@@ -3,8 +3,10 @@
 A mobile-browser SPA. Enter a destination and get the chargers along the route, in
 the order you drive past them, each showing how far away it is (km and minutes), how
 much detour it costs (minutes), and how many charge points are free right now. Tapping
-a charger hands off to Apple or Google Maps. Your last destination is remembered, so
-reopening the app mid-trip picks up where you left off.
+a charger opens it in place: a map of where it actually sits, the four numbers that decide
+whether to stop there, its individual charge points, and a Navigate button that hands off to
+Apple or Google Maps. Your last destination is remembered, so reopening the app mid-trip
+picks up where you left off.
 
 No accounts, no server-side state — destination history and settings live in
 `localStorage`.
@@ -72,14 +74,15 @@ pnpm build:stations -- --resume                       # continue an interrupted 
 
 It asks the API for EnBW-tariff stations at 50 kW and above, and both filters are applied
 server-side — see [Is there a listing endpoint?](#is-there-a-listing-endpoint). Measured for
-the default area: **1,789 requests in 41 seconds, 2,400 stations, 203 KB (73 KB gzipped)**
-written to `public/stations.enbw.json`. It was 3,578 requests and 2.8 minutes before the
-`minPower` filter.
+the default area: **4,285 requests in 33 seconds, 2,404 stations, 283 KB (96 KB gzipped)**
+written to `public/stations.enbw.json` — 1,881 box requests for the scan itself, then one
+detail request per station for the location line. The scan alone was 3,578 requests and 2.8
+minutes before the `minPower` filter.
 
-The file carries station _identity_ — address, power, point count, operator — which is why
-it is 203 KB rather than 74 KB, and why every row on screen is fully described before any
-network call. See [What the list carries](#what-the-list-carries). Re-run it every month or
-so, and after any run of stale rows — see [Known limitations](#known-limitations).
+The file carries station _identity_ — location, address, power, point count, operator —
+which is why it is 283 KB rather than 74 KB, and why every row on screen is fully described
+before any network call. See [What the list carries](#what-the-list-carries). Re-run it every
+month or so, and after any run of stale rows — see [Known limitations](#known-limitations).
 
 ## Running
 
@@ -107,9 +110,9 @@ pnpm build       # production bundle
 Deploy: `pnpm deploy:worker` for the API, and any static host for `dist/` — with two
 constraints.
 
-**Route `/api/*` to the Worker.** The client calls `/api/chargers` **same-origin**
-(`src/services/enbw/availability.ts` hard-codes the path; there is no configurable API
-base). Cloudflare Pages with a Worker route on the same zone does this; a host that only
+**Route `/api/*` to the Worker.** The client calls `/api/chargers/{stationId}`
+**same-origin** (`src/services/enbw/availability.ts` hard-codes the path; there is no
+configurable API base). Cloudflare Pages with a Worker route on the same zone does this; a host that only
 serves files does not.
 
 **Do not cache `/stations.enbw.json` for long.** Unlike the JS and CSS, it is served from
@@ -138,8 +141,9 @@ actually needs.
 
 The Worker answers `access-control-allow-origin: *` and does not check who is calling,
 so **a deployed Worker is an open proxy for your subscription key**. It is bounded — one
-route (`POST /api/chargers`), at most 60 station ids per call, responses cached 60 s — but
-anyone who finds the URL can spend your key against it. If that matters,
+route (`GET /api/chargers/{stationId}`), one station per request, no cache — but anyone who
+finds the URL can spend your key against it, and the free plan's 100,000 requests a day are
+shared with your own searches. If that matters,
 gate it on `Origin` or put Cloudflare Access in front.
 
 ## How it works
@@ -164,12 +168,17 @@ gate it on `Origin` or put Cloudflare Access in front.
    a few seconds on a phone — so it runs in chunks, yields the main thread between them and
    drives a real progress bar rather than an indeterminate shimmer.
 
-4. **Live occupancy** (`src/services/enbw/availability.ts`) — only for the ~20 rows actually
-   shown, and only the occupancy. Everything else about a station is already known from the
-   list, so this step can only add the `n/m free` badge; it can never decide what a row _is_.
-   EnBW has no bulk endpoint (`?stationIds=`, `?ids=`, `/batch`, `/status`, comma-joined ids
-   and `POST` are all rejected), so it is one `GET /chargestations/{id}` per station —
-   typically 17–20 requests. See [Why not bounding boxes](#why-not-bounding-boxes).
+4. **Live record** (`src/services/enbw/availability.ts`) — only for the ~20 rows actually
+   shown. Everything that decides what a row _is_ — name, address, power, point count — is
+   already known from the list, so this step can only add to a row; it can never take its
+   identity away. EnBW has no bulk endpoint (`?stationIds=`, `?ids=`, `/batch`, `/status`,
+   comma-joined ids and `POST` are all rejected), so it is one `GET /chargestations/{id}` per
+   station — typically 17–20 requests. See [Why not bounding boxes](#why-not-bounding-boxes).
+
+   That request used to be trimmed to three numbers. It now also keeps the individual charge
+   points and their plugs, because **the response already contained them** — see
+   [What the live call keeps](#what-the-live-call-keeps).
+
 5. **Detour** (`src/core/detour.ts`) — `T(origin→charger) + T(charger→dest) − T(origin→dest)`,
    from two Mapbox Matrix calls per 23 chargers.
 
@@ -194,8 +203,10 @@ src/services/   everything that talks to something.
 src/search/     the pipeline, as React hooks.
                 useRoutes · useCorridor · useAvailability · useDetours
                 useRouteSearch composes them and is the only thing App.tsx sees
+                useChargerDetail is off to one side: one charger, on demand
 src/components/ presentation. RouteMap wraps Mapbox GL; mapFeatures builds
                 what it draws, so the decisions in it are testable without WebGL
+                ChargerCard is the collapsed row, ChargerDetail the open panel
 src/state/      persisted destination and settings
 ```
 
@@ -234,6 +245,95 @@ Two things this costs, both accepted:
 Only the individual `@turf/*` packages are dependencies, never the `@turf/turf`
 meta-package, which would pull the entire library into the bundle.
 
+### What the live call keeps
+
+The `GET /chargestations/{id}` behind every occupancy badge returns a 3–9 KB record, and the
+Worker used to reduce it to three numbers. It now keeps what a driver would actually read:
+
+```
+chargePoints[]  evseId, status, plug names, kW      the stall you drive up to
+alwaysOpen, operatorCode
+```
+
+`additionalInfo` — the location line — is deliberately **not** in that set, even though this
+is the only endpoint that returns it. It is the heading every row is displayed under, so
+taking it from here would mean a row renaming itself the moment its panel was opened. The
+list builder pays one request per station to bake it in instead; see
+[What the list carries](#what-the-list-carries).
+
+**Two blocks are dropped on purpose, not for size.** The response also carries `pricingInfo`
+(a per-kWh rate, a blocking fee and a free-parking window) and `authenticationMethods`. Both
+depend on the tariff the _driver_ is on, which this app has no way of knowing — so rendering
+either would be quoting someone else's contract as though it were yours. They are not
+modelled in `wire.ts` and never leave the Worker.
+
+**This costs nothing.** It is the same request, to the same endpoint, that the badge has
+always needed — the data was being fetched and discarded. Measured through the Worker:
+
+| Station          | Upstream | Kept   |
+| ---------------- | -------- | ------ |
+| 4 charge points  | 3.2 KB   | 700 B  |
+| 18 charge points | 8.9 KB   | 1.9 KB |
+
+So a search moves roughly 18 KB instead of 2 KB for its 20 rows, and spends no extra request
+to do it. The rest of the upstream record is dropped in the Worker rather than on the phone:
+`viewPort`, `favorite`, `hiddenWithActiveProfile`, per-connector cable flags, and the address
+and power the shipped list already carries.
+
+Two `Charger` fields were **fixed** by this and a third was deleted. `operatorCode` and
+`alwaysOpen` were declared on the type and hard-coded to `null` / `false` in `unpackStation`,
+because the packed list does not carry them — so the UI would have rendered "not always open"
+as though it were a fact. They are now `null` out of the list, meaning _unknown_, and are
+filled in by the live call. Same rule as `availablePoints`: never measured and
+measured-as-zero are different statements. `authMethods` was dead in exactly the same way,
+but its contents are tariff-dependent, so it is gone from the domain type rather than fixed.
+
+### The charger detail panel
+
+Tapping a row expands it in place (`components/ChargerDetail.tsx`); tapping a charger dot on
+either map does the same thing, after dismissing the map and scrolling the row to the middle
+of the screen. One panel is open at a time, because each one carries a live Mapbox GL map and
+a route can list hundreds of chargers.
+
+The whole card used to be the maps deep link, on the reasoning that a small tap target is the
+wrong answer in a car. That reasoning still holds — the summary is still one full-width
+target — but it now opens the charger, and **Navigate** is a separate deliberate tap at the
+bottom of the panel. Committing to a stop is the one action here you cannot undo once you are
+driving towards it.
+
+Four numbers answer whether to stop, and two of them are new:
+
+| Row             | Where it comes from                                                    |
+| --------------- | ---------------------------------------------------------------------- |
+| Along the route | `alongDistanceM`, free on every charger, plus % of the trip            |
+| From you        | **real road metres** from the Matrix — the "will the battery reach it" |
+| Detour          | `detourS` as before, now with the extra kilometres alongside           |
+| Left afterwards | **real road metres** from the charger on — "can this be the last stop" |
+
+The two new ones are free. `priceDetours` already fetched `T(origin→charger)` and
+`T(charger→dest)` and collapsed both into one scalar; the matrix now asks for
+`annotations=duration,distance` instead of `duration` alone, and **Mapbox bills the Matrix
+API per element, not per annotation**, so the distances arrive on a request that was being
+made anyway. They are on the `driving` profile, like `detourS` and unlike the route's
+traffic-aware headline — which is exactly why they are taken from the Matrix rather than from
+a fresh Directions call. Mixing profiles is the bug this codebase warns about twice.
+
+Rows past `ENRICHED_LIMIT` were never sent to the Matrix, so their two distance rows fall
+back to route geometry — `alongDistanceM + offsetM` and `totalDistanceM − alongDistanceM` —
+prefixed `≈` and never shown as measurements. Detour still reads `—`. Their charge points are
+fetched on open, one request through the existing Worker route, keyed on the pipeline's own
+enriched set so a top-20 row opened before its lookup lands does not duplicate a request
+already in flight.
+
+`offsetM` is also finally rendered here. It has been computed for every corridor charger
+since the beginning and shown nowhere.
+
+The panel's **Station** block is deliberately thin: one row, the opening hours, and only
+when the live record actually reported them. Peak power, point count, address, location and
+operator all live on the card itself — the header, the badge and the footer — and repeating
+them below the map only made the panel longer to scroll past to reach the charge points.
+The per-point list is the reason to open the panel; the summary is the reason not to have to.
+
 ### Why a static station list
 
 The app used to discover chargers at runtime by tiling the route corridor and asking EnBW what was
@@ -249,21 +349,42 @@ subrequests per invocation.
 ### What the list carries
 
 ```
-fields: [stationId, lat, lon, maxPowerKw, address, totalPoints, operator]
+fields: [stationId, lat, lon, maxPowerKw, address, totalPoints, operator, location]
 
-[3029234, 47.25844, 11.32309, 50, "Cytastraße 1, 6176 Völs, AT", 2, "SMATRICS"]
+[83170, 47.64903, 15.85819, 50, "Schnellstraße 2, 2641 Schottwien, AT", 2, "SMATRICS",
+ "ENI Schottwien"]
 ```
 
 Packed positionally rather than as named objects — 2,400 rows of `{"stationId":…}` would
 triple the file and nothing reads these by name. The client unpacks in
 `src/services/enbw/stations.ts`.
 
+`location` is what a row is headed with — "ENI Schottwien", the name on the sign you are
+looking for, rather than the street it stands on — and it is the one field here the
+bounding-box query does not return at all. Only `/chargestations/{id}` carries it, so the
+builder spends a second phase of one request per surviving station on it. That is the most
+expensive part of the build by request count, and it buys a heading that is settled before
+the app draws a row: it used to come from the live lookup, which meant a row changed its own
+title a second after appearing, and again when its panel was opened.
+
+EnBW packs several lines into that field — the site name, then access and parking prose — so
+only the first line is kept, and a station that reports nothing falls back to the street part
+of its address, which is what every row used to show.
+
+Some stations put a notice where the name belongs, so the builder keeps a small blacklist
+(`LOCATION_BLACKLIST`, currently just `Parkplatzverordnung`): a field containing one of those
+words is prose about the car park rather than a place to look for, and the station takes the
+address fallback instead. The match is case-insensitive and against the whole field, not only
+the first line: sampled over 250 stations, every occurrence _was_ the first line, so nothing
+is lost by being blunt about it. It catches 54 of 2,404 stations; another 2 answered nothing
+at all, and those take the same fallback.
+
 The list is the source of truth for **who a station is**. The live call is the source of
-truth for **how busy it is right now**, and nothing else. That split was learned the hard
-way: identity used to come from the live call too, joined by station id, so any hiccup in
-that call left a row reading `Station 2970018` with no address — see
-[EnBW renumbers stations](#enbw-renumbers-stations). Identity has nothing to do with the
-network, so it no longer depends on it.
+truth for **everything that changes**, and for the per-charge-point detail the list is too
+small to carry. That split was learned the hard way: identity used to come from the live
+call too, joined by station id, so any hiccup in that call left a row reading
+`Station 2970018` with no address — see [EnBW renumbers stations](#enbw-renumbers-stations).
+Identity has nothing to do with the network, so it no longer depends on it.
 
 Occupancy is deliberately **not** in the file. It is the one field that changes minute to
 minute, and a month-old snapshot rendered as authoritative would be worse than the `?` the
@@ -408,8 +529,11 @@ Two things a live map needs on a phone, both of which look like details and are 
 Chargers are drawn as GeoJSON circle layers, not DOM markers — a route can carry hundreds, and that
 many absolutely-positioned elements fighting the map's own transform is what makes embedded maps
 feel broken on a phone. Their colour carries the same three states as the list's availability badge,
-including "no live data" as distinct from "none free". Tapping one opens a popup built by
-`components/chargerPopup.ts`, which escapes every value: the text is provider data, not ours.
+including "no live data" as distinct from "none free". Tapping one dismisses the map and
+opens that charger's row in the list below — see
+[The charger detail panel](#the-charger-detail-panel). There used to be a Mapbox popup here,
+built as an escaped HTML string because it is rendered outside React's root; the panel
+replaced it outright, so there is one place a charger is described rather than two.
 
 The geometry goes to the map exactly as Mapbox returned it. The previous static-image thumbnails had
 to be Douglas–Peucker-simplified until the URL fit a character budget; a GL map has no such budget,
@@ -455,7 +579,9 @@ off to. The power chips only ever raise the floor.
 
 There is no "hide fully occupied" toggle. A full station is still a station you might reach
 in twenty minutes, and hiding it makes the list lie about what is on the road ahead — the
-badge already says `0/2 free` in red. There is no plug filter either: it is CCS.
+badge already says `0/2 free` in red. There is no plug filter either: every station in the
+list has CCS. The detail panel does list each point's actual connectors, which is where the
+Typ 2 and CHAdeMO cables on the same stall become visible.
 
 ## Deep links
 
@@ -504,14 +630,19 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
   arrive. The header shows when it was fetched, next to a **Refresh** button that re-fetches
   occupancy only — never the routes or the station list, so it costs no Mapbox quota. There
   is no pull-to-refresh gesture and no auto-refresh.
-- **Only the first 20 rows have live occupancy.** Every row is fully described — name,
-  address, power, point count, operator — straight from the shipped list. What the rows past
-  `ENRICHED_LIMIT` lack is the live count, so they read `?/8` rather than `6/8 free`.
-- **Detour is priced for the 20 nearest candidates only.** The "Away" and "Drive" columns are free —
-  they come from projecting each charger onto the route polyline, so every charger in the corridor
-  has them. Detour needs real driving times to and from a point off the route, which costs Mapbox
-  Matrix quota. Rows past the first 20 show `—`, deliberately distinct from `on route` (measured,
-  costs nothing).
+- **Only the first 20 rows have live occupancy in the list.** Every row is fully described —
+  name, address, power, point count, operator — straight from the shipped list. What the rows
+  past `ENRICHED_LIMIT` lack is the live count, so they read `?/8` rather than `6/8 free`.
+  Opening one fetches its live record on the spot, so the panel is complete either way; the
+  collapsed row is what stays `?/8` until then.
+- **Detour is priced for the 20 nearest candidates only, and is never fetched on demand.** The
+  "Away" and "Drive" columns are free — they come from projecting each charger onto the route
+  polyline, so every charger in the corridor has them. Detour needs real driving times to and
+  from a point off the route, which costs Mapbox Matrix quota. Rows past the first 20 show
+  `—`, deliberately distinct from `on route` (measured, costs nothing), and their panel falls
+  back to `≈` route-geometry distances. Unlike the EnBW lookup this is not fetched when a
+  panel opens: one Matrix call per curious tap is a quota leak with no ceiling, and the
+  geometry estimate answers the same question closely enough to judge a stop by.
 
   Because the list is in route order, those 20 are exactly the next 20 you will reach. Raising
   `ENRICHED_LIMIT` in `src/search/useRouteSearch.ts` is cheap: Mapbox bills per

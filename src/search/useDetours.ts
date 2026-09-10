@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { DetourCache, priceDetours, routePenaltySeconds } from '../core/detour'
+import { DetourCache, priceDetours, routePenaltySeconds, type Pricing } from '../core/detour'
 import type { ChargerOnRoute, LatLon, Place } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { fetchMatrix } from '../services/mapbox/matrix'
 
 export interface PricedDetours {
-  /** Seconds by charger id; null where Mapbox could not route to the point. */
-  detours: Record<string, number | null>
+  /**
+   * Detour and the two driving legs, by charger id. Absent for rows past the
+   * limit; present with null members where Mapbox could not route to the point.
+   */
+  detours: Record<string, Pricing>
   pricing: boolean
 }
 
@@ -28,7 +31,7 @@ export function useDetours(
   candidates: ChargerOnRoute[],
   limit: number,
 ): PricedDetours {
-  const [detours, setDetours] = useState<Record<string, number | null>>({})
+  const [detours, setDetours] = useState<Record<string, Pricing>>({})
   const [pricing, setPricing] = useState(false)
   const cache = useRef(new DetourCache())
 
@@ -46,11 +49,12 @@ export function useDetours(
     // value on a different alternative — the cache key must say which.
     const keyOf = (chargerId: string) => `${selected?.id ?? ''}|${chargerId}`
 
-    const hits: Record<string, number | null> = {}
+    const hits: Record<string, Pricing> = {}
     const missing = wanted.filter((c) => {
       const key = keyOf(c.charger.id)
-      if (!cache.current.has(anchor, dest, key)) return true
-      hits[c.charger.id] = cache.current.get(anchor, dest, key) ?? null
+      const cached = cache.current.get(anchor, dest, key)
+      if (!cached) return true
+      hits[c.charger.id] = cached
       return false
     })
 
@@ -71,10 +75,20 @@ export function useDetours(
         })
         if (cancelled) return
 
-        const next: Record<string, number | null> = {}
+        const next: Record<string, Pricing> = {}
         for (const p of priced) {
-          cache.current.set(anchor, dest, keyOf(p.charger.id), p.detourS)
-          next[p.charger.id] = p.detourS
+          const entry: Pricing = {
+            detourS: p.detourS,
+            detourM: p.detourM,
+            legs: p.legs ?? {
+              toChargerM: null,
+              toChargerS: null,
+              fromChargerM: null,
+              fromChargerS: null,
+            },
+          }
+          cache.current.set(anchor, dest, keyOf(p.charger.id), entry)
+          next[p.charger.id] = entry
         }
         setDetours((d) => ({ ...d, ...next }))
       } catch (err) {

@@ -2,9 +2,23 @@
  * EnBW's undocumented public endpoint (the one behind their own web map), and
  * the only file that knows its field names.
  *
- * Only the Worker parses these records now: it asks for one station at a time
- * and trims the response to the occupancy counts before answering the client.
- * Everything else about a station comes from the shipped list.
+ * Only the Worker parses these records: it asks for one station at a time and
+ * trims the response before answering the client. Station *identity* — name,
+ * address, power, point count — still comes from the shipped list and never
+ * from here.
+ *
+ * Two endpoints answer with this shape, and they are not equally rich. The
+ * bounding-box query (offline list builder only) returns the station-level
+ * fields; `/chargestations/{id}` additionally returns `chargePoints`,
+ * `openingTimes` and the free-text notes. Everything below the occupancy counts
+ * is therefore optional: it is present on a detail lookup and absent on a box
+ * query.
+ *
+ * Two upstream blocks are deliberately not modelled at all. `pricingInfo` and
+ * `authenticationMethods` are both tariff-dependent — what a charge costs and
+ * how you unlock it follow the driver's own contract, which this app has no way
+ * of knowing — so quoting either would be presenting someone else's plan as
+ * fact.
  *
  * Verified against
  * api.emp.emob-enbw.com/emobility-public-api/api/v1/chargestations.
@@ -23,8 +37,37 @@ export interface EnbwStation {
   availableChargePoints: number | null
   unknownStateChargePoints: number | null
   maxPowerInKw: number | null
-  authenticationMethods: string[] | null
   alwaysOpen: boolean | null
+
+  /* Detail endpoint only, so all optional. */
+
+  /** One entry per physical charge point, each with its own connectors. */
+  chargePoints?: EnbwChargePoint[] | null
+  /**
+   * Free-text location, e.g. "ENI Schottwien" or a supermarket name, often with
+   * access and parking prose on the lines below it.
+   *
+   * Read by the offline list builder and by nothing at runtime: its first line
+   * is baked into the shipped list as each station's heading, so the app never
+   * waits on a lookup to know what to call a row.
+   */
+  additionalInfo?: string | null
+}
+
+export interface EnbwChargePoint {
+  /** The OCPI EVSE id, e.g. "AT*SMA*EAT0300026*001DC". Unique per point. */
+  evseId: string | null
+  /** Observed: AVAILABLE, OCCUPIED, OUT_OF_SERVICE. */
+  status: string | null
+  connectors?: EnbwConnector[] | null
+}
+
+export interface EnbwConnector {
+  /** Machine name, e.g. "CCS". `plugTypeName` is the one to show a human. */
+  chargePlugTypeGroup: string | null
+  /** Display name, e.g. "CCS (Typ 2)", "Typ 2", "CHAdeMO". */
+  plugTypeName: string | null
+  maxPowerInKw: number | null
 }
 
 /**
