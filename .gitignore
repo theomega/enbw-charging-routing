@@ -15,3 +15,5 @@ yarn.lock
 .pnpm-store/
 
 public/stations.enbw.json
+
+*.swp
