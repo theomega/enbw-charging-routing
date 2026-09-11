@@ -5,7 +5,7 @@ import { useAppStore } from '../state/store'
  * No "Any" and no 22 kW: the shipped list starts at 50 kW, so those options
  * would claim to widen a search that cannot widen. See MIN_STATION_POWER_KW.
  */
-const POWER_OPTIONS = [50, 150, 300]
+const POWER_OPTIONS = [50, 100, 150, 300]
 const DETOUR_OPTIONS: (number | null)[] = [null, 5, 10, 20]
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {

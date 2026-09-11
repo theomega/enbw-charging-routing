@@ -444,7 +444,7 @@ async function scan(root, key, checkpointPath, resume) {
  * becomes the heading. Measured over 250 stations, every occurrence *was* the
  * first line, so there is no good name to be saved by being narrower.
  */
-const LOCATION_BLACKLIST = ['Parkplatzverordnung']
+const LOCATION_BLACKLIST = ['Parkplatzverordnung', 'kostenlos']
 
 const isNotice = (text) =>
   !!text && LOCATION_BLACKLIST.some((word) => text.toLowerCase().includes(word.toLowerCase()))

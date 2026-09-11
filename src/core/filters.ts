@@ -19,8 +19,8 @@ export interface ChargerFilters {
  * network call.
  *
  * The list itself is already built to a 50 kW floor (see
- * services/enbw/stations.ts), so this only ever raises it further — to 150 or
- * 300 kW, for someone who will not stop for anything slower.
+ * services/enbw/stations.ts), so this only ever raises it further — to 100,
+ * 150 or 300 kW, for someone who will not stop for anything slower.
  *
  * Runs before enrichment, so it also decides which rows are worth spending an
  * occupancy lookup on.
