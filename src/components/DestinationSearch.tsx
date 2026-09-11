@@ -77,7 +77,9 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
 
         {showRecents && (
           <>
-            <h2 className="px-1 pb-2 text-xs uppercase tracking-wide text-slate-500">Letzte Ziele</h2>
+            <h2 className="px-1 pb-2 text-xs uppercase tracking-wide text-slate-500">
+              Letzte Ziele
+            </h2>
             <ul className="space-y-1">
               {recents.map((place) => (
                 <li key={place.id} className="flex items-center gap-2">
