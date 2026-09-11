@@ -42,7 +42,7 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> 
   const res = await fetch(url, { signal })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new MapboxError(`Mapbox ${res.status}: ${body.slice(0, 200)}`)
+    throw new MapboxError(`Mapbox-Fehler ${res.status}: ${body.slice(0, 200)}`)
   }
   return (await res.json()) as T
 }

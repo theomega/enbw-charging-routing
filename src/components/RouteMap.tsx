@@ -282,9 +282,7 @@ export function RouteMap({
       <div
         className={`flex items-center justify-center bg-slate-900 px-6 text-center text-sm text-slate-500 ${className ?? ''}`}
       >
-        {token
-          ? 'Dieses Gerät konnte keine Karte öffnen.'
-          : 'Add a Mapbox token to see the route on a map.'}
+        {token ? 'Dieses Gerät konnte keine Karte öffnen.' : 'Kein Mapbox-Token konfiguriert.'}
       </div>
     )
   }
@@ -317,6 +315,6 @@ const lineLayer = (id: string, selected: boolean): mapboxgl.LayerSpecification =
 function positionDot(): HTMLElement {
   const el = document.createElement('div')
   el.className = 'h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-600 shadow'
-  el.setAttribute('aria-label', 'Your position')
+  el.setAttribute('aria-label', 'Dein Standort')
   return el
 }

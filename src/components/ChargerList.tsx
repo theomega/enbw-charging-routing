@@ -77,7 +77,9 @@ export function ChargerList({
     return (
       <div className="space-y-3 p-4">
         <p className="text-sm text-slate-500">
-          {status === 'routing' ? 'Route wird berechnet…' : 'Ladestationen entlang der Route werden gesucht…'}
+          {status === 'routing'
+            ? 'Route wird berechnet…'
+            : 'Ladestationen entlang der Route werden gesucht…'}
         </p>
 
         {/*
