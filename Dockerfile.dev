@@ -10,6 +10,10 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
 RUN echo "deb [arch=arm64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
 
+# Enable non free for fonts
+RUN sed -i 's/^Components: main$/& contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
+
 # Add chrome and nodejs and npm (for MCP client support)
-RUN apt-get update && apt-get install -y --no-install-recommends google-chrome-stable nodejs npm \
+RUN apt-get update && apt-get install -y --no-install-recommends google-chrome-stable nodejs npm fonts-ubuntu fonts-liberation2 ttf-mscorefonts-installer \
     && rm -rf /var/lib/apt/lists/*
+
