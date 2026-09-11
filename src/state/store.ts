@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware'
 import type { ChargerFilters } from '../core/filters'
 import type { Place } from '../core/types'
 import type { MapsApp } from '../nav/deepLinks'
-import { MIN_STATION_POWER_KW } from '../services/enbw/stations'
 
 /**
  * Everything the user can change. The filtering half is `ChargerFilters`, which
@@ -25,47 +24,13 @@ const MAX_RECENTS = 10
 export const PERSIST_VERSION = 5
 
 /**
- * Migrate state written by an older build that may still be sitting in a
- * phone's localStorage.
- *
- * Exported (rather than inlined into the persist config) so it can be tested
- * directly: the persist middleware does not initialise in a Node test
- * environment, where there is no localStorage to read.
+ * What a phone starts with, and what it falls back to when the stored format is
+ * no longer the current one.
  */
-export function migratePersisted(persisted: unknown, version: number): AppState {
-  const state = (persisted ?? {}) as Partial<AppState>
-  // Merging over the defaults means a setting added after this state was
-  // written is populated rather than arriving as undefined.
-  const settings = { ...DEFAULT_SETTINGS, ...(state.settings ?? {}) }
-
-  // v2 -> v3: the sort setting is gone. Chargers are always listed in the order
-  // you drive past them, so a persisted 'sortBy' is now meaningless.
-  if (version < 3) {
-    delete (settings as Record<string, unknown>).sortBy
-  }
-
-  // v3 -> v4: the provider filter is gone. The station list shipped with the app
-  // contains only EnBW-tariff stations, so there is nothing left to select
-  // between. Strip the key rather than let it linger in localStorage.
-  // (v1 -> v2 previously remapped 'enbw-operated'/'enbw-tariff' onto 'enbw';
-  // that remap is now moot, since the setting itself no longer exists.)
-  if (version < 4) {
-    delete (settings as Record<string, unknown>).providerFilter
-  }
-
-  // v4 -> v5: the shipped list is built to a 50 kW floor, so a stored minimum
-  // below it is a filter that can never match anything extra. Lift it rather
-  // than leave a phone showing "Any" against a list that is not.
-  if (settings.minPowerKw < MIN_STATION_POWER_KW) {
-    settings.minPowerKw = MIN_STATION_POWER_KW
-  }
-
-  return {
-    ...state,
-    settings,
-    recentDestinations: state.recentDestinations ?? [],
-    lastDestination: state.lastDestination ?? null,
-  } as AppState
+const INITIAL_PERSISTED = {
+  lastDestination: null as Place | null,
+  recentDestinations: [] as Place[],
+  settings: DEFAULT_SETTINGS,
 }
 
 interface AppState {
@@ -82,9 +47,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      lastDestination: null,
-      recentDestinations: [],
-      settings: DEFAULT_SETTINGS,
+      ...INITIAL_PERSISTED,
 
       setDestination: (place) =>
         set((state) => {
@@ -109,7 +72,12 @@ export const useAppStore = create<AppState>()(
     {
       name: 'charging-routing/v1',
       version: PERSIST_VERSION,
-      migrate: migratePersisted,
+      // Anything written under an older version is thrown away instead of
+      // migrated. There is nothing here worth carrying across a format change:
+      // the destination and the recents are a few taps to re-enter, and the
+      // settings are three fields. Bump PERSIST_VERSION whenever the shape or
+      // the meaning of a persisted field changes and every phone starts clean.
+      migrate: () => INITIAL_PERSISTED,
       partialize: (state) => ({
         lastDestination: state.lastDestination,
         recentDestinations: state.recentDestinations,

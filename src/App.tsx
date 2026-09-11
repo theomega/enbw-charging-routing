@@ -26,7 +26,13 @@ export default function App() {
   const destination = useAppStore((s) => s.lastDestination)
   const setDestination = useAppStore((s) => s.setDestination)
 
-  const { position, error: geoError, loading: geoLoading } = useGeolocation()
+  const {
+    position,
+    error: geoError,
+    blocked: geoBlocked,
+    loading: geoLoading,
+    retry: retryGeo,
+  } = useGeolocation()
   const search = useRouteSearch(position, destination)
   const refreshing = search.refreshingIds.size > 0
 
@@ -123,7 +129,32 @@ export default function App() {
 
       <main className="flex-1">
         {geoError && (
-          <div className="m-4 rounded-xl bg-amber-950 p-4 text-sm text-amber-200">{geoError}</div>
+          <div className="m-4 rounded-xl bg-amber-950 p-4 text-sm text-amber-200">
+            <p>{geoError}</p>
+            {geoBlocked && (
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-amber-200/80">
+                <li>
+                  In Safari auf „a<span className="text-base">A</span>“ in der Adressleiste tippen →
+                  „Website-Einstellungen“ → Standort auf „Fragen“ oder „Erlauben“.
+                </li>
+                <li>
+                  Einstellungen → Apps → Safari → Standort auf „Fragen“ stellen (bei älteren
+                  iOS-Versionen: Einstellungen → Safari).
+                </li>
+                <li>
+                  Einstellungen → Datenschutz &amp; Sicherheit → Ortungsdienste einschalten und für
+                  „Safari-Websites“ „Beim Verwenden der App“ erlauben.
+                </li>
+                <li>Danach „Erneut versuchen“ tippen oder die Seite neu laden.</li>
+              </ol>
+            )}
+            <button
+              onClick={retryGeo}
+              className="mt-3 rounded-lg bg-amber-900 px-3 py-2 font-medium text-amber-100 ring-1 ring-amber-800"
+            >
+              Erneut versuchen
+            </button>
+          </div>
         )}
 
         <RoutePicker

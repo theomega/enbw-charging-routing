@@ -16,14 +16,14 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-950">
       <header className="flex items-center justify-between border-b border-slate-800 p-4">
-        <h1 className="text-lg font-semibold">Settings</h1>
+        <h1 className="text-lg font-semibold">Einstellungen</h1>
         <button onClick={onClose} className="text-sm font-medium text-emerald-400">
-          Done
+          Zurück
         </button>
       </header>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
-        <Section title="Minimum power">
+        <Section title="Ladeleistung ab">
           <Chips
             options={POWER_OPTIONS.map((kw) => ({
               key: String(kw),
@@ -34,22 +34,22 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           />
         </Section>
 
-        <Section title="Maximum detour">
+        <Section title="Maximaler Umweg">
           <Chips
             options={DETOUR_OPTIONS.map((m) => ({
               key: String(m),
-              label: m == null ? 'Any' : `${m} min`,
+              label: m == null ? 'Beliebig' : `${m} min`,
               active: settings.maxDetourMinutes === m,
               onSelect: () => update({ maxDetourMinutes: m }),
             }))}
           />
         </Section>
 
-        <Section title="Navigation app">
+        <Section title="Karten-App">
           <Chips
             options={(
               [
-                ['auto', 'Automatic'],
+                ['auto', 'Automatisch'],
                 ['apple', 'Apple Maps'],
                 ['google', 'Google Maps'],
               ] as [MapsApp, string][]
@@ -66,7 +66,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           onClick={reset}
           className="w-full rounded-lg bg-slate-900 p-3 text-sm text-slate-400 ring-1 ring-slate-800"
         >
-          Reset to defaults
+          Standardeinstellungen wiederherstellen
         </button>
       </div>
     </div>

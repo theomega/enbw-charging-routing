@@ -40,6 +40,11 @@ export function ChargerList({
   refreshNonce,
 }: Props) {
   const settings = useAppStore((s) => s.settings)
+
+  // The detour cap is optional, so naming it in the empty state has to be too:
+  // with "Beliebig" set there is no cap to have removed anything.
+  const detourClause =
+    settings.maxDetourMinutes == null ? '' : ` oder über ${settings.maxDetourMinutes} min Umweg`
   const rows = useRef(new Map<string, HTMLDivElement>())
 
   // A charger can also be opened by tapping its dot on the map, which leaves
@@ -61,7 +66,7 @@ export function ChargerList({
     return (
       <div className="p-4">
         <div className="rounded-xl bg-rose-950 p-4 text-sm text-rose-200">
-          <p className="font-semibold">Could not load chargers</p>
+          <p className="font-semibold">Ladestationen konnten nicht geladen werden</p>
           <p className="mt-1 text-rose-300/80">{error}</p>
         </div>
       </div>
@@ -72,7 +77,7 @@ export function ChargerList({
     return (
       <div className="space-y-3 p-4">
         <p className="text-sm text-slate-500">
-          {status === 'routing' ? 'Calculating route…' : 'Finding chargers along the route…'}
+          {status === 'routing' ? 'Route wird berechnet…' : 'Ladestationen entlang der Route werden gesucht…'}
         </p>
 
         {/*
@@ -83,7 +88,7 @@ export function ChargerList({
         {status === 'placing' && progress != null && (
           <div
             role="progressbar"
-            aria-label="Finding chargers along the route"
+            aria-label="Ladestationen entlang der Route werden gesucht"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
@@ -108,8 +113,8 @@ export function ChargerList({
       {results.length === 0 && status === 'ready' && (
         <p className="p-4 text-center text-sm text-slate-500">
           {unfilteredCount === 0
-            ? `No EnBW chargers within ${DEFAULT_MAX_OFFSET_M / 1000} km of this route.`
-            : `No chargers match your filters — ${unfilteredCount} nearby are below ${settings.minPowerKw} kW or occupied.`}
+            ? `Keine EnBW-Ladestationen im Umkreis von ${DEFAULT_MAX_OFFSET_M / 1000} km um diese Route.`
+            : `Keine Ladestation passt zu deinen Filtern — ${unfilteredCount} in der Nähe liegen unter ${settings.minPowerKw} kW${detourClause}.`}
         </p>
       )}
 

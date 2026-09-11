@@ -71,7 +71,7 @@ export function RoutePicker({
         */}
         <button
           onClick={onExpand}
-          aria-label="Show route full screen"
+          aria-label="Route im Vollbild anzeigen"
           className="absolute right-2 top-2 rounded-lg bg-slate-950/85 p-2 text-slate-200 ring-1 ring-slate-700"
         >
           <ExpandIcon />
@@ -151,7 +151,7 @@ function RouteRow({
       )}
 
       {isSelected && showLegend && (
-        <span className="shrink-0 text-emerald-400" aria-label="Selected">
+        <span className="shrink-0 text-emerald-400" aria-label="Ausgewählt">
           ✓
         </span>
       )}

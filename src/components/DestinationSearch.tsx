@@ -60,7 +60,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Where are you going?"
+          placeholder="Was ist das Ziel der Reise?"
           enterKeyHint="search"
           className="flex-1 rounded-lg bg-slate-900 px-4 py-3 text-base text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-emerald-600"
         />
@@ -68,7 +68,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
           onClick={onClose}
           className="rounded-lg px-3 py-3 text-sm font-medium text-slate-400"
         >
-          Cancel
+          Abbrechen
         </button>
       </div>
 
@@ -77,7 +77,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
 
         {showRecents && (
           <>
-            <h2 className="px-1 pb-2 text-xs uppercase tracking-wide text-slate-500">Recent</h2>
+            <h2 className="px-1 pb-2 text-xs uppercase tracking-wide text-slate-500">Letzte Ziele</h2>
             <ul className="space-y-1">
               {recents.map((place) => (
                 <li key={place.id} className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
                   </button>
                   <button
                     onClick={() => removeRecent(place.id)}
-                    aria-label={`Remove ${place.name}`}
+                    aria-label={`${place.name} aus letzten Zielen entfernen`}
                     className="rounded-lg px-3 py-3 text-slate-600"
                   >
                     ✕
@@ -104,7 +104,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
         )}
 
         {searching && results.length === 0 && (
-          <p className="p-3 text-sm text-slate-500">Searching…</p>
+          <p className="p-3 text-sm text-slate-500">Suche läuft…</p>
         )}
 
         <ul className="space-y-1">
@@ -128,7 +128,7 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
           query.trim().length >= 2 &&
           results.length === 0 &&
           !error && (
-            <p className="p-3 text-sm text-slate-500">Nothing found for “{query.trim()}”.</p>
+            <p className="p-3 text-sm text-slate-500">Keine Ergebnisse für „{query.trim()}“.</p>
           )}
       </div>
     </div>

@@ -283,7 +283,7 @@ export function RouteMap({
         className={`flex items-center justify-center bg-slate-900 px-6 text-center text-sm text-slate-500 ${className ?? ''}`}
       >
         {token
-          ? 'This device could not open a map. The routes are listed below.'
+          ? 'Dieses Gerät konnte keine Karte öffnen.'
           : 'Add a Mapbox token to see the route on a map.'}
       </div>
     )

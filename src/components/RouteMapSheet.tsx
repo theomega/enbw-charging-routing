@@ -42,7 +42,7 @@ export function RouteMapSheet({
           </p>
         </div>
         <button onClick={onClose} className="shrink-0 text-sm font-medium text-emerald-400">
-          Done
+          Zurück
         </button>
       </header>
 
