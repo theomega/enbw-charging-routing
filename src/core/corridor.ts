@@ -113,6 +113,7 @@ export async function placeChargersOnRoute(
           alongDistanceM: projection.alongDistanceM,
           alongDurationS: projection.alongDurationS,
           offsetM: projection.offsetM,
+          routePoint: projection.point,
           // Everything the Matrix pays for starts out unknown; `core/detour.ts`
           // fills these in for the rows that get priced.
           detourS: null,

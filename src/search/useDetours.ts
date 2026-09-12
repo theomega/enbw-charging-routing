@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { DetourCache, priceDetours, routePenaltySeconds, type Pricing } from '../core/detour'
+import { DetourCache, priceDetours, type Pricing } from '../core/detour'
 import type { ChargerOnRoute, LatLon, Place } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { fetchMatrix } from '../services/mapbox/matrix'
@@ -27,7 +27,6 @@ export function useDetours(
   anchor: LatLon | null,
   destination: Place | null,
   selected: RouteOption | null,
-  routes: RouteOption[],
   candidates: ChargerOnRoute[],
   limit: number,
 ): PricedDetours {
@@ -39,14 +38,11 @@ export function useDetours(
     const dest = destination ? { lat: destination.lat, lon: destination.lon } : null
     if (!anchor || !dest || candidates.length === 0) return
 
-    const penaltyS = routePenaltySeconds(
-      selected?.route.totalDurationS ?? 0,
-      routes[0]?.route.totalDurationS ?? 0,
-    )
-
     const wanted = candidates.slice(0, limit)
-    // Detours are re-baselined per route, so the same charger has a different
-    // value on a different alternative — the cache key must say which.
+    // Each candidate carries the route point it was placed against, so the
+    // same charger on a different alternative is a different measurement — the
+    // cache key must say which route produced it. On a stretch two routes share
+    // the two entries now agree to the second, but they are still two entries.
     const keyOf = (chargerId: string) => `${selected?.id ?? ''}|${chargerId}`
 
     const hits: Record<string, Pricing> = {}
@@ -70,7 +66,6 @@ export function useDetours(
         const priced = await priceDetours(anchor, dest, missing, {
           matrix: fetchMatrix,
           limit: missing.length,
-          penaltyS,
           signal: controller.signal,
         })
         if (cancelled) return
@@ -103,7 +98,7 @@ export function useDetours(
       cancelled = true
       controller.abort()
     }
-  }, [anchor, destination, selected, routes, candidates, limit])
+  }, [anchor, destination, selected, candidates, limit])
 
   return { detours, pricing }
 }

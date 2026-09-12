@@ -85,6 +85,15 @@ describe('placeChargersOnRoute', () => {
     expect(first.detourS).toBeNull()
   })
 
+  it('carries the route point the detour will be priced against', async () => {
+    const corridor = buildCorridor(eastwardRoute(), 5_000)
+    // 0.009 degrees north of an east-west route is ~1 km off it.
+    const [first] = await placeChargersOnRoute(corridor, [charger('a', 48.809, 9.02)])
+    expect(first.offsetM).toBeGreaterThan(950)
+    expect(first.routePoint.lat).toBeCloseTo(48.8, 5)
+    expect(first.routePoint.lon).toBeCloseTo(9.02, 5)
+  })
+
   it('reports progress from start to finish so the bar can move', async () => {
     const corridor = buildCorridor(eastwardRoute(), 5_000)
     const chargers = Array.from({ length: 25 }, (_, i) => charger(`c${i}`, 48.8, 9.0 + i * 0.002))

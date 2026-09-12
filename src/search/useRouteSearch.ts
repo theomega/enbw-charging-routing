@@ -31,8 +31,8 @@ export type SearchStatus = 'idle' | 'routing' | 'placing' | 'pricing' | 'ready' 
  * invocation spending one. What is left is a budget question — the free plan
  * allows 100,000 Worker requests a day, and every search and every Refresh
  * spends this many of them — plus not hammering an undocumented upstream.
- * Detour is far cheaper: two Mapbox Matrix requests per 23 rows, so 45 rows
- * cost four.
+ * Detour is far cheaper: two Mapbox Matrix requests per 12 rows, so 45 rows
+ * cost eight.
  *
  * Because the list is in route order, these are exactly the next 45 stations
  * you will reach. That matters more than it sounds: the shipped list is dense
@@ -110,14 +110,7 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
   const enrichedIds = useMemo(() => new Set(enriched.map((c) => c.charger.id)), [enriched])
 
   const { live, fetchedAt, pending } = useAvailability(enriched, nonce)
-  const { detours, pricing } = useDetours(
-    anchor,
-    destination,
-    selected,
-    routes,
-    filtered,
-    ENRICHED_LIMIT,
-  )
+  const { detours, pricing } = useDetours(anchor, destination, selected, filtered, ENRICHED_LIMIT)
 
   const results = useMemo(() => {
     const merged = filtered.map((c) => {

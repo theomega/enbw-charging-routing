@@ -109,6 +109,12 @@ export interface ChargerOnRoute {
   /** Metres from the route to the charger, measured on the ground. */
   offsetM: number
   /**
+   * Where this charger meets the route: the nearest point on the selected
+   * route's geometry. It is what you drive past if you do not stop, and so it
+   * is the baseline the detour is measured against — see core/detour.ts.
+   */
+  routePoint: LatLon
+  /**
    * Extra seconds of driving incurred by stopping here.
    * `null` until priced, or when Mapbox could not route to the point.
    */

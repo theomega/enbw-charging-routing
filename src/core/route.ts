@@ -36,6 +36,12 @@ export interface Projection {
   t: number
   /** Metres from the point to the nearest place on the route. */
   offsetM: number
+  /**
+   * The nearest place on the route itself — where you would drive past if you
+   * did not stop. This is what the detour is priced against (core/detour.ts),
+   * so it has to be a real position and not just a distance.
+   */
+  point: LatLon
   alongDistanceM: number
   alongDurationS: number
 }
@@ -87,6 +93,7 @@ export function buildRouteGeometry(route: Route): RouteGeometry {
           segmentIndex: 0,
           t: 0,
           offsetM: positionDistanceM(route.coordinates[0], [target.lon, target.lat]),
+          point: fromPosition(route.coordinates[0]),
           alongDistanceM: 0,
           alongDurationS: 0,
         }
@@ -116,6 +123,7 @@ export function buildRouteGeometry(route: Route): RouteGeometry {
         segmentIndex,
         t,
         offsetM: snapped.properties.dist ?? 0,
+        point: fromPosition(snapped.geometry.coordinates),
         alongDistanceM: cumDistanceM[segmentIndex] + t * (route.distances[segmentIndex] ?? 0),
         alongDurationS: cumDurationS[segmentIndex] + t * (route.durations[segmentIndex] ?? 0),
       }

@@ -5,10 +5,9 @@ import {
   MATRIX_MAX_COORDS,
   buildChunkQueries,
   chunkCandidates,
-  detourMetres,
-  detourSeconds,
+  detourCost,
   priceDetours,
-  routePenaltySeconds,
+  type DetourStop,
   type MatrixQuery,
   type Pricing,
 } from './detour'
@@ -42,110 +41,82 @@ function candidate(id: string, lat: number, lon: number, alongM: number): Charge
     alongDistanceM: alongM,
     alongDurationS: alongM / 25,
     offsetM: 200,
+    // Due west of the charger, standing in for the road it sits beside.
+    routePoint: { lat, lon: lon - 0.002 },
     detourS: null,
     detourM: null,
     legs: null,
   }
 }
 
-describe('detourSeconds', () => {
-  it('computes the extra driving time', () => {
-    // The worked example from the plan: Stuttgart -> Ulm via Seligweiler.
-    expect(detourSeconds(59 * 60, 6 * 60, 62 * 60)).toBe(3 * 60)
+/** A chunk entry as `buildChunkQueries` wants it. */
+const stop = (lat: number, lon: number): DetourStop => ({
+  charger: { lat, lon },
+  routePoint: { lat, lon: lon - 0.002 },
+})
+
+describe('detourCost', () => {
+  // Every pair is (to the charger, to the route point beside it), so the answer
+  // is what the excursion adds over simply driving past.
+  it('adds up the two margins over driving past', () => {
+    expect(detourCost(59 * 60, 6 * 60, 56 * 60, 6 * 60)).toBe(3 * 60)
   })
 
-  it('is ~zero for a charger sitting on the route', () => {
-    expect(detourSeconds(3000, 720, 3720)).toBe(0)
+  it('is zero for a charger sitting on the route', () => {
+    expect(detourCost(3000, 720, 3000, 720)).toBe(0)
   })
 
   it('clamps a slightly negative detour to zero', () => {
-    expect(detourSeconds(3000, 700, 3720)).toBe(0)
+    // The route point is an arbitrary spot on the carriageway, and Mapbox snaps
+    // it to the network like any other coordinate — occasionally somewhere
+    // marginally more awkward than the charger's own driveway.
+    expect(detourCost(3000, 700, 3020, 700)).toBe(0)
   })
 
-  it('returns null when either leg is unroutable', () => {
-    expect(detourSeconds(null, 600, 3720)).toBeNull()
-    expect(detourSeconds(3000, null, 3720)).toBeNull()
-    expect(detourSeconds(3000, 600, null)).toBeNull()
-    expect(detourSeconds(undefined, 600, 3720)).toBeNull()
-  })
-})
-
-describe('detourMetres', () => {
-  it('computes the extra road distance', () => {
-    expect(detourMetres(60_000, 25_000, 80_000)).toBe(5_000)
+  it('returns null unless all four journeys are routable', () => {
+    expect(detourCost(null, 600, 2900, 580)).toBeNull()
+    expect(detourCost(3000, null, 2900, 580)).toBeNull()
+    expect(detourCost(3000, 600, null, 580)).toBeNull()
+    expect(detourCost(3000, 600, 2900, null)).toBeNull()
+    expect(detourCost(undefined, 600, 2900, 580)).toBeNull()
   })
 
-  it('clamps to zero for a charger sitting on the route', () => {
-    expect(detourMetres(60_000, 20_100, 80_200)).toBe(0)
-  })
-
-  it('returns null when any leg is unmeasured', () => {
-    expect(detourMetres(null, 20_000, 80_000)).toBeNull()
-    expect(detourMetres(60_000, null, 80_000)).toBeNull()
+  it('works the same in metres', () => {
+    expect(detourCost(60_000, 25_000, 57_000, 23_000)).toBe(5_000)
     // Mapbox can answer durations while refusing the distance annotation.
-    expect(detourMetres(60_000, 20_000, null)).toBeNull()
+    expect(detourCost(60_000, 25_000, null, 23_000)).toBeNull()
   })
 
-  it('takes no route penalty', () => {
-    // A longer alternative really is longer for every charger on it, so unlike
-    // the duration there is nothing to re-baseline away.
-    expect(detourMetres.length).toBe(3)
-  })
-})
-
-describe('route penalty re-baselining', () => {
-  it('is zero when the fastest route is selected', () => {
-    expect(routePenaltySeconds(45_000, 45_000)).toBe(0)
+  it('ignores how long the rest of the journey is', () => {
+    // The same five-minute excursion, once on a short trip and once on a long
+    // one. Nothing outside the two brackets can move the answer — which is why
+    // the selected alternative no longer changes a shared stretch's detour.
+    expect(detourCost(7_580, 18_099, 7_400, 17_979)).toBe(300)
+    expect(detourCost(7_580, 28_099, 7_400, 27_979)).toBe(300)
   })
 
-  it('is the gap to the fastest route when a slower one is selected', () => {
-    // Jaufenpass at 12 h 52 against the A22 at 12 h 30.
-    expect(routePenaltySeconds(12 * 3600 + 52 * 60, 12 * 3600 + 30 * 60)).toBe(22 * 60)
-  })
-
-  it('never goes negative if the selected route somehow prices faster', () => {
-    expect(routePenaltySeconds(44_000, 45_000)).toBe(0)
-  })
-
-  it('leaves detours untouched at zero penalty', () => {
-    expect(detourSeconds(3_540, 360, 3_720, 0)).toBe(detourSeconds(3_540, 360, 3_720))
-  })
-
-  it('zeroes out a charger sitting on the selected slower alternative', () => {
-    // Driving the Jaufenpass: reaching this charger costs the route's own
-    // 22 min penalty and nothing more, so the detour is zero, not +22 min.
-    const t1 = 12 * 3600 + 40 * 60
-    const t2 = 12 * 60
-    const tDirect = 12 * 3600 + 30 * 60
-    expect(detourSeconds(t1, t2, tDirect)).toBe(22 * 60)
-    expect(detourSeconds(t1, t2, tDirect, 22 * 60)).toBe(0)
-  })
-
-  it('still reports a genuine detour on top of the route penalty', () => {
-    // 22 min route penalty plus a real 8 min excursion off it.
-    const t1 = 12 * 3600 + 48 * 60
-    const t2 = 12 * 60
-    const tDirect = 12 * 3600 + 30 * 60
-    expect(detourSeconds(t1, t2, tDirect, 22 * 60)).toBe(8 * 60)
-  })
-
-  it('never goes negative once the penalty is applied', () => {
-    expect(detourSeconds(3_000, 600, 3_600, 600)).toBe(0)
+  it('does not charge a charger for the road it sits on', () => {
+    // Driving the Jaufenpass: the charger is on the pass, so its route point is
+    // on the pass too and the pass costs nothing extra here. This is what the
+    // old whole-route penalty constant was trying to approximate.
+    const toCharger = 12 * 3600 + 40 * 60
+    const fromCharger = 12 * 60
+    expect(detourCost(toCharger, fromCharger, toCharger, fromCharger)).toBe(0)
   })
 })
 
 describe('chunkCandidates', () => {
-  it('reserves two coordinate slots for origin and destination', () => {
+  it('reserves a slot for each charger, its route point, and the endpoint', () => {
     // 25 is the documented Mapbox cap on the driving profile.
     expect(MATRIX_MAX_COORDS).toBe(25)
-    expect(CHARGERS_PER_CHUNK).toBe(23)
-    expect(CHARGERS_PER_CHUNK + 2).toBe(MATRIX_MAX_COORDS)
+    expect(CHARGERS_PER_CHUNK).toBe(12)
+    expect(2 * CHARGERS_PER_CHUNK + 1).toBeLessThanOrEqual(MATRIX_MAX_COORDS)
   })
 
   it('splits into full chunks plus a remainder', () => {
     const items = Array.from({ length: 50 }, (_, i) => i)
     const chunks = chunkCandidates(items)
-    expect(chunks.map((c) => c.length)).toEqual([23, 23, 4])
+    expect(chunks.map((c) => c.length)).toEqual([12, 12, 12, 12, 2])
     expect(chunks.flat()).toEqual(items)
   })
 
@@ -156,41 +127,47 @@ describe('chunkCandidates', () => {
 
 describe('buildChunkQueries', () => {
   it('never exceeds the matrix coordinate limit at a full chunk', () => {
-    const chargers = Array.from({ length: CHARGERS_PER_CHUNK }, (_, i) => ({
-      lat: 48.5 + i / 1000,
-      lon: 9.5,
-    }))
-    const { fromOrigin, toDestination } = buildChunkQueries(origin, destination, chargers)
+    const stops = Array.from({ length: CHARGERS_PER_CHUNK }, (_, i) => stop(48.5 + i / 1000, 9.5))
+    const { fromOrigin, toDestination } = buildChunkQueries(origin, destination, stops)
     expect(fromOrigin.coordinates.length).toBeLessThanOrEqual(MATRIX_MAX_COORDS)
     expect(toDestination.coordinates.length).toBeLessThanOrEqual(MATRIX_MAX_COORDS)
   })
 
-  it('puts the destination last so t_direct arrives in the same request', () => {
-    const chargers = [
-      { lat: 48.6, lon: 9.5 },
-      { lat: 48.5, lon: 9.7 },
-    ]
-    const { fromOrigin } = buildChunkQueries(origin, destination, chargers)
+  it('lays chargers and route points out as two parallel runs', () => {
+    const stops = [stop(48.6, 9.5), stop(48.5, 9.7)]
+    const { fromOrigin } = buildChunkQueries(origin, destination, stops)
     expect(fromOrigin.coordinates[0]).toEqual(origin)
-    expect(fromOrigin.coordinates.at(-1)).toEqual(destination)
+    expect(fromOrigin.coordinates.slice(1)).toEqual([
+      stops[0].charger,
+      stops[1].charger,
+      stops[0].routePoint,
+      stops[1].routePoint,
+    ])
     expect(fromOrigin.sources).toEqual([0])
-    // chargers at 1..2, destination at 3
-    expect(fromOrigin.destinations).toEqual([1, 2, 3])
+    expect(fromOrigin.destinations).toEqual([1, 2, 3, 4])
   })
 
-  it('asks for charger -> destination in the second request', () => {
-    const chargers = [
-      { lat: 48.6, lon: 9.5 },
-      { lat: 48.5, lon: 9.7 },
-    ]
-    const { toDestination } = buildChunkQueries(origin, destination, chargers)
+  it('runs every point on to the destination in the second request', () => {
+    const stops = [stop(48.6, 9.5), stop(48.5, 9.7)]
+    const { toDestination } = buildChunkQueries(origin, destination, stops)
     expect(toDestination.coordinates.at(-1)).toEqual(destination)
-    expect(toDestination.sources).toEqual([0, 1])
-    expect(toDestination.destinations).toEqual([2])
+    expect(toDestination.sources).toEqual([0, 1, 2, 3])
+    expect(toDestination.destinations).toEqual([4])
+  })
+
+  it('stays above the two-element matrix minimum at a chunk of one', () => {
+    // A chunk of one used to build a 1x1 matrix, which Mapbox rejects outright
+    // ("minimum number of matrix elements is 2") and which took the whole
+    // pricing pass down with it. The route point is always a second coordinate.
+    const { fromOrigin, toDestination } = buildChunkQueries(origin, destination, [stop(48.6, 9.5)])
+    expect(fromOrigin.sources.length * fromOrigin.destinations.length).toBeGreaterThanOrEqual(2)
+    expect(toDestination.sources.length * toDestination.destinations.length).toBeGreaterThanOrEqual(
+      2,
+    )
   })
 
   it('rejects an oversized chunk', () => {
-    const tooMany = Array.from({ length: CHARGERS_PER_CHUNK + 1 }, () => ({ lat: 48.5, lon: 9.5 }))
+    const tooMany = Array.from({ length: CHARGERS_PER_CHUNK + 1 }, () => stop(48.5, 9.5))
     expect(() => buildChunkQueries(origin, destination, tooMany)).toThrow(/exceeds/)
   })
 
@@ -199,60 +176,96 @@ describe('buildChunkQueries', () => {
   })
 })
 
+/** Per-charger legs; the fake matrix lays the route-point columns in behind. */
+interface FakeLegs {
+  toCharger: number[]
+  fromCharger: number[]
+  toRoutePoint: number[]
+  fromRoutePoint: number[]
+}
+
+const isFromOrigin = (q: MatrixQuery) =>
+  q.sources.length === 1 && q.sources[0] === 0 && q.destinations.length > 1
+
 describe('priceDetours', () => {
-  /** Fake matrix: legs are derived from the query shape, not the network. */
-  function fakeMatrix(
-    toCharger: number[],
-    fromCharger: number[],
-    tDirect: number,
-    metres?: { toCharger: number[]; fromCharger: number[]; dDirect: number },
-  ) {
-    const isFromOrigin = (q: MatrixQuery) =>
-      q.sources.length === 1 && q.sources[0] === 0 && q.destinations.length > 1
+  /** Fake matrix: answers are derived from the query shape, not the network. */
+  function fakeMatrix(seconds: FakeLegs, metres?: FakeLegs) {
+    const answer = (l: FakeLegs, q: MatrixQuery) =>
+      isFromOrigin(q)
+        ? [[...l.toCharger, ...l.toRoutePoint]]
+        : [...l.fromCharger, ...l.fromRoutePoint].map((v) => [v])
     return vi.fn(async (q: MatrixQuery) => {
       expect(q.coordinates.length).toBeLessThanOrEqual(MATRIX_MAX_COORDS)
-      // fromOrigin: one row, chargers then the destination.
-      // toDestination: one row per charger, single column.
-      const durations = isFromOrigin(q) ? [[...toCharger, tDirect]] : fromCharger.map((v) => [v])
-      if (!metres) return { durations, distances: null }
-      const distances = isFromOrigin(q)
-        ? [[...metres.toCharger, metres.dDirect]]
-        : metres.fromCharger.map((v) => [v])
-      return { durations, distances }
+      return { durations: answer(seconds, q), distances: metres ? answer(metres, q) : null }
     })
   }
 
   it('prices each candidate from the two matrix calls', async () => {
     const candidates = [candidate('a', 48.7, 9.3, 10_000), candidate('b', 48.6, 9.6, 40_000)]
-    const matrix = fakeMatrix([1800, 3000], [2000, 800], 3600)
+    const matrix = fakeMatrix({
+      toCharger: [1800, 3000],
+      fromCharger: [2000, 800],
+      toRoutePoint: [1700, 2900],
+      fromRoutePoint: [1950, 700],
+    })
     const out = await priceDetours(origin, destination, candidates, { matrix })
 
     expect(matrix).toHaveBeenCalledTimes(2) // one chunk = two requests
-    expect(out[0].detourS).toBe(1800 + 2000 - 3600)
-    expect(out[1].detourS).toBe(3000 + 800 - 3600)
+    expect(out[0].detourS).toBe(1800 - 1700 + (2000 - 1950))
+    expect(out[1].detourS).toBe(3000 - 2900 + (800 - 700))
   })
 
-  it('reads t_direct from the matrix rather than the traffic route', async () => {
-    // If t_direct were taken from a traffic-profile route it would be larger,
-    // and this on-route charger would price as a negative (clamped) detour.
+  it('measures against the route point rather than the whole journey', async () => {
+    // A charger on the road prices at zero however long the trip is, because
+    // both of its journeys end where driving past would have put you anyway.
     const candidates = [candidate('on-route', 48.6, 9.6, 30_000)]
-    const matrix = fakeMatrix([3000], [700], 3700)
+    const matrix = fakeMatrix({
+      toCharger: [3000],
+      fromCharger: [700],
+      toRoutePoint: [3000],
+      fromRoutePoint: [700],
+    })
     const [out] = await priceDetours(origin, destination, candidates, { matrix })
     expect(out.detourS).toBe(0)
+  })
+
+  it('prices against the route point each candidate carries', async () => {
+    const candidates = [candidate('a', 48.7, 9.3, 10_000)]
+    const matrix = fakeMatrix({
+      toCharger: [3_000],
+      fromCharger: [900],
+      toRoutePoint: [2_700],
+      fromRoutePoint: [900],
+    })
+    const [out] = await priceDetours(origin, destination, candidates, { matrix })
+
+    expect(matrix.mock.calls[0][0].coordinates).toContainEqual(candidates[0].routePoint)
+    expect(out.detourS).toBe(300)
   })
 
   it('marks unroutable chargers as unpriced instead of dropping them', async () => {
     const candidates = [candidate('a', 48.7, 9.3, 10_000), candidate('bad', 48.6, 9.6, 20_000)]
     const matrix = vi.fn(async (q: MatrixQuery) => {
-      if (q.sources.length === 1 && q.destinations.length > 1) {
-        return { durations: [[1800, null, 3600]], distances: null }
-      }
-      return { durations: [[2000], [null]], distances: null }
+      if (isFromOrigin(q)) return { durations: [[1800, null, 1700, 3000]], distances: null }
+      return { durations: [[2000], [null], [1900], [3100]], distances: null }
     })
     const out = await priceDetours(origin, destination, candidates, { matrix })
     expect(out).toHaveLength(2)
     expect(out[0].detourS).toBe(200)
     expect(out[1].detourS).toBeNull()
+  })
+
+  it('is unpriced when only the route point fails to route', async () => {
+    // Half a measurement is not a detour: without the baseline there is nothing
+    // to subtract, so the row reads as unpriced rather than as a huge detour.
+    const candidates = [candidate('a', 48.7, 9.3, 10_000)]
+    const matrix = vi.fn(async (q: MatrixQuery) => {
+      if (isFromOrigin(q)) return { durations: [[1800, null]], distances: null }
+      return { durations: [[2000], [1900]], distances: null }
+    })
+    const [out] = await priceDetours(origin, destination, candidates, { matrix })
+    expect(out.detourS).toBeNull()
+    expect(out.legs?.toChargerS).toBe(1800)
   })
 
   it('splits into multiple chunks without exceeding the coordinate cap', async () => {
@@ -261,18 +274,16 @@ describe('priceDetours', () => {
     )
     const matrix = vi.fn(async (q: MatrixQuery) => {
       expect(q.coordinates.length).toBeLessThanOrEqual(MATRIX_MAX_COORDS)
-      if (q.sources.length === 1 && q.destinations.length > 1) {
-        return {
-          durations: [
-            q.destinations.map((_, i) => (i === q.destinations.length - 1 ? 3600 : 1800)),
-          ],
-          distances: null,
-        }
-      }
-      return { durations: q.sources.map(() => [2000]), distances: null }
+      const k = (q.coordinates.length - 1) / 2
+      const row = (charger: number, routePoint: number) => [
+        ...Array.from({ length: k }, () => charger),
+        ...Array.from({ length: k }, () => routePoint),
+      ]
+      if (isFromOrigin(q)) return { durations: [row(1800, 1700)], distances: null }
+      return { durations: row(2000, 1900).map((v) => [v]), distances: null }
     })
     const out = await priceDetours(origin, destination, candidates, { matrix, limit: 30 })
-    expect(matrix).toHaveBeenCalledTimes(4) // 23 + 7 => two chunks => four requests
+    expect(matrix).toHaveBeenCalledTimes(6) // 12 + 12 + 6 => three chunks => six requests
     expect(out.every((c) => c.detourS === 200)).toBe(true)
   })
 
@@ -280,7 +291,12 @@ describe('priceDetours', () => {
     const candidates = Array.from({ length: 10 }, (_, i) =>
       candidate(`c${i}`, 48.7, 9.2 + i / 100, i * 1000),
     )
-    const matrix = fakeMatrix(Array(3).fill(1800), Array(3).fill(2000), 3600)
+    const matrix = fakeMatrix({
+      toCharger: Array(3).fill(1800),
+      fromCharger: Array(3).fill(2000),
+      toRoutePoint: Array(3).fill(1700),
+      fromRoutePoint: Array(3).fill(1900),
+    })
     const out = await priceDetours(origin, destination, candidates, { matrix, limit: 3 })
     expect(matrix).toHaveBeenCalledTimes(2)
     expect(out.slice(0, 3).every((c) => c.detourS === 200)).toBe(true)
@@ -288,37 +304,37 @@ describe('priceDetours', () => {
     expect(out).toHaveLength(10)
   })
 
-  it('threads the route penalty through to every priced charger', async () => {
-    const candidates = [candidate('a', 48.7, 9.3, 10_000)]
-    const matrix = fakeMatrix([3_000], [900], 3_600)
-    const [out] = await priceDetours(origin, destination, candidates, {
-      matrix,
-      penaltyS: 300,
-    })
-    expect(out.detourS).toBe(3_000 + 900 - 3_600 - 300)
-  })
-
   it('keeps the two driving legs, which cost nothing extra to carry', async () => {
     const candidates = [candidate('a', 48.7, 9.3, 10_000)]
-    const matrix = fakeMatrix([1800], [2000], 3600, {
-      toCharger: [42_000],
-      fromCharger: [51_000],
-      dDirect: 88_000,
-    })
+    const matrix = fakeMatrix(
+      { toCharger: [1800], fromCharger: [2000], toRoutePoint: [1700], fromRoutePoint: [1900] },
+      {
+        toCharger: [42_000],
+        fromCharger: [51_000],
+        toRoutePoint: [40_000],
+        fromRoutePoint: [50_000],
+      },
+    )
     const [out] = await priceDetours(origin, destination, candidates, { matrix })
 
+    // The legs stay absolute — they answer "how far to it", not "how far extra".
     expect(out.legs).toEqual({
       toChargerM: 42_000,
       toChargerS: 1800,
       fromChargerM: 51_000,
       fromChargerS: 2000,
     })
-    expect(out.detourM).toBe(42_000 + 51_000 - 88_000)
+    expect(out.detourM).toBe(42_000 - 40_000 + (51_000 - 50_000))
   })
 
   it('still prices the detour when Mapbox refuses the distance annotation', async () => {
     const candidates = [candidate('a', 48.7, 9.3, 10_000)]
-    const matrix = fakeMatrix([1800], [2000], 3600)
+    const matrix = fakeMatrix({
+      toCharger: [1800],
+      fromCharger: [2000],
+      toRoutePoint: [1700],
+      fromRoutePoint: [1900],
+    })
     const [out] = await priceDetours(origin, destination, candidates, { matrix })
 
     expect(out.detourS).toBe(200)
@@ -333,11 +349,15 @@ describe('priceDetours', () => {
 
   it('leaves rows past the limit with no legs at all', async () => {
     const candidates = [candidate('a', 48.7, 9.3, 10_000), candidate('b', 48.6, 9.6, 40_000)]
-    const matrix = fakeMatrix([1800], [2000], 3600, {
-      toCharger: [42_000],
-      fromCharger: [51_000],
-      dDirect: 88_000,
-    })
+    const matrix = fakeMatrix(
+      { toCharger: [1800], fromCharger: [2000], toRoutePoint: [1700], fromRoutePoint: [1900] },
+      {
+        toCharger: [42_000],
+        fromCharger: [51_000],
+        toRoutePoint: [40_000],
+        fromRoutePoint: [50_000],
+      },
+    )
     const out = await priceDetours(origin, destination, candidates, { matrix, limit: 1 })
 
     expect(out[0].legs).not.toBeNull()

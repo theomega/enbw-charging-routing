@@ -33,6 +33,7 @@ const onRoute = (c: Charger, alongM: number): ChargerOnRoute => ({
   alongDistanceM: alongM,
   alongDurationS: alongM / 25,
   offsetM: 100,
+  routePoint: { lat: c.lat, lon: c.lon - 0.001 },
   detourS: null,
   detourM: null,
   legs: null,

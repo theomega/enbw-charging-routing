@@ -55,6 +55,29 @@ describe('RouteGeometry.project', () => {
     expect(p.alongDistanceM).toBeCloseTo(expected, 0)
   })
 
+  it('reports the point on the route, which is what the detour is priced against', () => {
+    const geometry = buildRouteGeometry(eastwardRoute())
+    // 0.009 degrees of latitude north is almost exactly 1 km off an east-west
+    // route, so the nearest point on the road is due south of the charger.
+    const p = geometry.project({ lat: 48.809, lon: 9.05 })
+    expect(p.point.lat).toBeCloseTo(48.8, 5)
+    expect(p.point.lon).toBeCloseTo(9.05, 5)
+  })
+
+  it('falls back to the only vertex on a degenerate one-point route', () => {
+    const single: Route = {
+      coordinates: [[9.0, 48.8]],
+      distances: [],
+      durations: [],
+      totalDistanceM: 0,
+      totalDurationS: 0,
+    }
+    expect(buildRouteGeometry(single).project({ lat: 48.81, lon: 9.0 }).point).toEqual({
+      lat: 48.8,
+      lon: 9.0,
+    })
+  })
+
   it('measures ground offset for a charger beside the route', () => {
     const geometry = buildRouteGeometry(eastwardRoute())
     // 0.009 degrees of latitude north is almost exactly 1 km.

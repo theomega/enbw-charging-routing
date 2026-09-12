@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_MAX_OFFSET_M, buildCorridor, placeChargersOnRoute } from '../core/corridor'
-import { priceDetours, routePenaltySeconds } from '../core/detour'
+import { priceDetours } from '../core/detour'
 import type { Charger, ChargerOnRoute, LatLon } from '../core/types'
 import { fetchAvailability, type LiveStationRecord } from '../services/enbw/availability'
 import { parseStationList, type StationList } from '../services/enbw/stations'
@@ -168,27 +168,28 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
       expect(r.route.coordinates.length).toBeGreaterThan(1)
     }
 
-    // Detour, priced by the real Matrix API against the slower alternative.
+    // Detour, priced by the real Matrix API on two alternatives at once.
     const list = await loadList()
+    const fastest = routes[0]
     const slower = routes[routes.length - 1]
-    const penaltyS = routePenaltySeconds(
-      slower.route.totalDurationS,
-      routes[0].route.totalDurationS,
-    )
-    const candidates = (await placeAlong(slower, list.chargers))
-      .filter((c) => (c.charger.maxPowerKw ?? 0) >= 100)
-      .slice(0, 8)
-    expect(candidates.length).toBeGreaterThan(0)
 
-    const priced = await priceDetours(BERLIN, DORF_TIROL, candidates, {
-      matrix: fetchMatrix,
-      penaltyS,
-    })
-    const known = priced.filter((c) => c.detourS != null)
+    const shortlist = async (route: RouteOption) =>
+      (await placeAlong(route, list.chargers))
+        .filter((c) => (c.charger.maxPowerKw ?? 0) >= 100)
+        .slice(0, 8)
+
+    const [onFastest, onSlower] = await Promise.all([shortlist(fastest), shortlist(slower)])
+    expect(onFastest.length).toBeGreaterThan(0)
+
+    const price = (candidates: ChargerOnRoute[]) =>
+      priceDetours(BERLIN, DORF_TIROL, candidates, { matrix: fetchMatrix })
+
+    const [pricedFastest, pricedSlower] = await Promise.all([price(onFastest), price(onSlower)])
+    const known = pricedFastest.filter((c) => c.detourS != null)
 
     // eslint-disable-next-line no-console
     console.log(
-      `\n  detour on the slower alternative (penalty ${Math.round(penaltyS / 60)} min):\n` +
+      `\n  detour on the fastest alternative:\n` +
         known
           .slice(0, 6)
           .map(
@@ -202,9 +203,24 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
     expect(known.length).toBeGreaterThan(0)
     for (const c of known) {
       expect(c.detourS).toBeGreaterThanOrEqual(0)
-      // A charger on the route should not read as an hour off it. Anything
-      // larger means the re-baselining or t_direct is wrong.
+      // A charger on the route should not read as an hour off it.
       expect(c.detourS!).toBeLessThan(45 * 60)
+    }
+
+    // The regression this whole formulation exists for: on the stretch the two
+    // alternatives share, a charger has the same route point on both, so it has
+    // to price the same on both. It used to differ by the whole-route penalty —
+    // which is how a station on the shared motorway could pass the "maximaler
+    // Umweg" filter on one alternative and vanish on the other.
+    const bySlower = new Map(pricedSlower.map((c) => [c.charger.id, c]))
+    const shared = pricedFastest.filter((c) => {
+      const other = bySlower.get(c.charger.id)
+      return other != null && other.routePoint.lat === c.routePoint.lat
+    })
+    expect(shared.length).toBeGreaterThan(0)
+    for (const c of shared) {
+      // Same coordinates into the same API: same seconds out, not merely close.
+      expect(c.detourS).toBe(bySlower.get(c.charger.id)!.detourS)
     }
   }, 180_000)
 

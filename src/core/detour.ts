@@ -3,14 +3,33 @@ import type { ChargerLegs, ChargerOnRoute, LatLon } from './types'
 /**
  * Detour pricing.
  *
- *   detour = T(origin -> charger) + T(charger -> destination)
- *            - T(origin -> destination)
+ *   detour = [ T(origin -> charger) - T(origin -> routePoint) ]
+ *          + [ T(charger -> dest)   - T(routePoint -> dest)   ]
  *
- * The subtraction is only valid if all three durations come from the same
- * routing profile. The headline route uses `driving-traffic` while the matrix
- * uses `driving`, so reusing the route's duration as t_direct would mix
- * profiles and produce nonsense (routinely negative). Instead t_direct is read
- * out of the same matrix call, by appending the destination as an extra target.
+ * `routePoint` is where the charger meets the selected route — the spot you
+ * drive past if you do not stop (core/route.ts). So each bracket is the same
+ * journey asked twice, once ending at the charger and once at the point on the
+ * road beside it, and the detour is what the excursion costs on top.
+ *
+ * It used to be measured against the whole journey instead:
+ *
+ *   detour = T(origin -> charger) + T(charger -> dest) - T(origin -> dest)
+ *
+ * which does not survive route alternatives. Both legs are *unconstrained* —
+ * Mapbox routes them however it likes — so they are the same numbers whichever
+ * alternative you have selected, while `T(origin -> dest)` is one fixed
+ * baseline. A charger on the stretch two alternatives share therefore priced
+ * differently depending on which one was selected, and a re-baselining fudge
+ * (`routePenaltySeconds`, a whole-route constant) made that worse rather than
+ * better: at the shared stretch you are on the same metre of road either way,
+ * so no per-route constant can be right there.
+ *
+ * Anchoring on `routePoint` removes the question. Both terms now move together
+ * with the selected route, and for a charger on a shared stretch the route
+ * point is literally the same coordinate on both alternatives — so the detour
+ * is identical, by construction rather than by cancellation. It also drops the
+ * profile-mixing worry: all four durations come from the same matrix, and the
+ * `driving-traffic` route never enters the arithmetic.
  *
  * Nothing here touches the network. The matrix is a parameter, so the whole
  * module is testable — and so the arithmetic stays readable next to the API
@@ -50,8 +69,28 @@ export type MatrixFn = (query: MatrixQuery, signal?: AbortSignal) => Promise<Mat
  */
 export const MATRIX_MAX_COORDS = 25
 
-/** Origin + destination occupy two of the coordinate slots. */
-export const CHARGERS_PER_CHUNK = MATRIX_MAX_COORDS - 2
+/**
+ * Each charger costs two coordinate slots — itself and its route point — and
+ * one slot goes to the journey endpoint, so a chunk holds twelve.
+ *
+ * That is half what it was when only the charger needed a slot, so both costs
+ * roughly double: 45 rows take eight requests instead of four, and `4k`
+ * elements for `k` chargers instead of `~2k` — 180 against 92. That is the
+ * price of the fix. The route point has to be measured by the same engine, on
+ * the same profile, in the same call, or the subtraction is comparing two
+ * different things again.
+ */
+export const CHARGERS_PER_CHUNK = Math.floor((MATRIX_MAX_COORDS - 1) / 2)
+
+/**
+ * A charger and the point on the route it is measured against. `priceDetours`
+ * needs both for every candidate; the pairing is what keeps the two halves of
+ * each matrix row aligned.
+ */
+export interface DetourStop {
+  charger: LatLon
+  routePoint: LatLon
+}
 
 /** Split candidates into chunks that fit inside one matrix request. */
 export function chunkCandidates<T>(items: T[], size = CHARGERS_PER_CHUNK): T[][] {
@@ -64,31 +103,39 @@ export function chunkCandidates<T>(items: T[], size = CHARGERS_PER_CHUNK): T[][]
 /**
  * Build the two matrix requests for one chunk.
  *
- * A: [origin, ...chargers, destination], sources=[0] -> origin->charger_i, and
- *    origin->destination in the final column (that is t_direct).
- * B: [...chargers, destination], destinations=[last] -> charger_i->destination.
+ * Each request carries the chargers and their route points in two parallel
+ * runs, chargers first, so column `i` and column `k + i` are the two endings of
+ * the same journey and the subtraction is a pair of adjacent lookups.
+ *
+ * A: [origin, ...chargers, ...routePoints], sources=[0]
+ *      -> origin->charger_i at i, origin->routePoint_i at k + i
+ * B: [...chargers, ...routePoints, destination], destinations=[last]
+ *      -> charger_i->dest at i, routePoint_i->dest at k + i
  */
 export function buildChunkQueries(
   origin: LatLon,
   destination: LatLon,
-  chargers: LatLon[],
+  stops: DetourStop[],
 ): { fromOrigin: MatrixQuery; toDestination: MatrixQuery } {
-  if (chargers.length === 0) throw new Error('chunk must contain at least one charger')
-  if (chargers.length > CHARGERS_PER_CHUNK) {
-    throw new Error(`chunk of ${chargers.length} exceeds ${CHARGERS_PER_CHUNK}`)
+  if (stops.length === 0) throw new Error('chunk must contain at least one charger')
+  if (stops.length > CHARGERS_PER_CHUNK) {
+    throw new Error(`chunk of ${stops.length} exceeds ${CHARGERS_PER_CHUNK}`)
   }
-  const k = chargers.length
+  const k = stops.length
+  const chargers = stops.map((s) => s.charger)
+  const routePoints = stops.map((s) => s.routePoint)
+
   return {
     fromOrigin: {
-      coordinates: [origin, ...chargers, destination],
+      coordinates: [origin, ...chargers, ...routePoints],
       sources: [0],
-      // chargers at 1..k, destination at k+1
-      destinations: Array.from({ length: k + 1 }, (_, i) => i + 1),
+      // chargers at 1..k, route points at k+1..2k
+      destinations: Array.from({ length: 2 * k }, (_, i) => i + 1),
     },
     toDestination: {
-      coordinates: [...chargers, destination],
-      sources: Array.from({ length: k }, (_, i) => i),
-      destinations: [k],
+      coordinates: [...chargers, ...routePoints, destination],
+      sources: Array.from({ length: 2 * k }, (_, i) => i),
+      destinations: [2 * k],
     },
   }
 }
@@ -96,68 +143,36 @@ export function buildChunkQueries(
 /**
  * The arithmetic, isolated so it can be tested without a network.
  *
- * Returns null when either leg is unroutable; clamps at zero because a charger
- * sitting on a marginally faster alternative can price out slightly negative.
+ * One function for both units: the four numbers are seconds or metres, and the
+ * subtraction is the same either way. They used to differ — the duration
+ * carried a whole-route penalty term and the distance had no analogue for it —
+ * but anchoring on the route point removed the term, and with it the reason to
+ * write the subtraction twice.
  *
- * `penaltyS` re-baselines onto the route the user actually chose. `tDirect` is
- * the *fastest* path, so without it every charger on a slower alternative
- * inherits that alternative's whole penalty — pick the Jaufenpass route and a
- * charger sitting directly on the road you are driving would read "+22 min".
- * See `routePenaltySeconds`.
+ * Returns null when any of the four is unroutable, since a detour is only
+ * meaningful once both endings of both journeys are known. Clamps at zero:
+ * routing to the charger can come out marginally *cheaper* than routing to the
+ * point on the road beside it — the route point is an arbitrary spot on the
+ * carriageway and Mapbox snaps it to the network like any other coordinate —
+ * and a detour of "-40 seconds" is noise reported as a discount.
  */
-export function detourSeconds(
+export function detourCost(
   toCharger: number | null | undefined,
   fromCharger: number | null | undefined,
-  tDirect: number | null | undefined,
-  penaltyS = 0,
+  toRoutePoint: number | null | undefined,
+  fromRoutePoint: number | null | undefined,
 ): number | null {
-  if (toCharger == null || fromCharger == null || tDirect == null) return null
-  const detour = toCharger + fromCharger - tDirect - penaltyS
+  if (toCharger == null || fromCharger == null) return null
+  if (toRoutePoint == null || fromRoutePoint == null) return null
+  const detour = toCharger - toRoutePoint + (fromCharger - fromRoutePoint)
   return detour < 0 ? 0 : detour
-}
-
-/**
- * The same subtraction in metres.
- *
- * No `penaltyS` equivalent: re-baselining corrects for one route being slower
- * than another in *time*, which is a traffic effect. There is no distance
- * analogue — a longer alternative is longer for every charger on it, and that
- * is a true statement rather than an artefact to subtract away.
- */
-export function detourMetres(
-  toCharger: number | null | undefined,
-  fromCharger: number | null | undefined,
-  dDirect: number | null | undefined,
-): number | null {
-  if (toCharger == null || fromCharger == null || dDirect == null) return null
-  const detour = toCharger + fromCharger - dDirect
-  return detour < 0 ? 0 : detour
-}
-
-/**
- * How much slower the selected route is than the fastest one, in seconds.
- *
- * Approximate by construction: this is a `driving-traffic` delta applied to a
- * `driving` baseline in `detourSeconds`. Mixing profiles in an absolute value
- * produces nonsense (see the t_direct note above), but applying the difference
- * between two same-profile routes as a correction is far better behaved — and
- * it is exactly zero in the default case, where the fastest route is selected.
- */
-export function routePenaltySeconds(selectedDurationS: number, fastestDurationS: number): number {
-  const penalty = selectedDurationS - fastestDurationS
-  return penalty > 0 ? penalty : 0
 }
 
 export interface DetourOptions {
   /** Answers the matrix queries. Injected, so this module never fetches. */
   matrix: MatrixFn
-  /** How many of the nearest candidates to price. Each 23 costs 2 requests. */
+  /** How many of the nearest candidates to price. Each 12 costs 2 requests. */
   limit?: number
-  /**
-   * Seconds by which the selected route is slower than the fastest one, from
-   * `routePenaltySeconds`. Zero when the fastest route is selected.
-   */
-  penaltyS?: number
   signal?: AbortSignal
 }
 
@@ -188,7 +203,6 @@ export async function priceDetours(
 ): Promise<ChargerOnRoute[]> {
   const { matrix, signal } = options
   const limit = options.limit ?? 20
-  const penaltyS = options.penaltyS ?? 0
 
   const priced = candidates.slice(0, limit)
   if (priced.length === 0) return candidates
@@ -196,33 +210,37 @@ export async function priceDetours(
   const chunks = chunkCandidates(priced)
   const pricings = new Map<string, Pricing>()
 
-  // t_direct is the same journey for every chunk; take it from the first chunk
-  // that returns a usable value and reuse it, so chunk boundaries cannot make
-  // two otherwise-identical chargers disagree. The same argument applies to the
-  // direct distance.
-  let tDirect: number | null = null
-  let dDirect: number | null = null
-
   for (const chunk of chunks) {
-    const points = chunk.map((c) => ({ lat: c.charger.lat, lon: c.charger.lon }))
-    const { fromOrigin, toDestination } = buildChunkQueries(origin, destination, points)
+    const stops: DetourStop[] = chunk.map((c) => ({
+      charger: { lat: c.charger.lat, lon: c.charger.lon },
+      routePoint: c.routePoint,
+    }))
+    const { fromOrigin, toDestination } = buildChunkQueries(origin, destination, stops)
 
     const [a, b] = await Promise.all([matrix(fromOrigin, signal), matrix(toDestination, signal)])
 
+    const k = chunk.length
     const durationsA = a.durations[0] ?? []
     const distancesA = a.distances?.[0] ?? []
-    if (tDirect == null) tDirect = durationsA[chunk.length] ?? null
-    if (dDirect == null) dDirect = distancesA[chunk.length] ?? null
 
     chunk.forEach((c, i) => {
+      // Column i is the charger, column k + i the route point beside it.
       const toChargerS = durationsA[i] ?? null
+      const toRoutePointS = durationsA[k + i] ?? null
       const fromChargerS = b.durations[i]?.[0] ?? null
+      const fromRoutePointS = b.durations[k + i]?.[0] ?? null
+
       const toChargerM = distancesA[i] ?? null
+      const toRoutePointM = distancesA[k + i] ?? null
       const fromChargerM = b.distances?.[i]?.[0] ?? null
+      const fromRoutePointM = b.distances?.[k + i]?.[0] ?? null
 
       pricings.set(c.charger.id, {
-        detourS: detourSeconds(toChargerS, fromChargerS, tDirect, penaltyS),
-        detourM: detourMetres(toChargerM, fromChargerM, dDirect),
+        detourS: detourCost(toChargerS, fromChargerS, toRoutePointS, fromRoutePointS),
+        detourM: detourCost(toChargerM, fromChargerM, toRoutePointM, fromRoutePointM),
+        // The legs stay absolute: the detail panel asks "how far to it" and
+        // "how far still to go", which are the journeys themselves, not the
+        // margin over driving past.
         legs: { toChargerM, toChargerS, fromChargerM, fromChargerS },
       })
     })
