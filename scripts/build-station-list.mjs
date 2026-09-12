@@ -6,15 +6,13 @@
  * every EnBW-tariff station and asks the API only about the occupancy of the
  * handful it displays. This script produces that list.
  *
- * Strategy: adaptive quadtree. EnBW returns cluster placeholders instead of
- * stations when a bounding box is too large, which is normally a nuisance — here
- * it is the search heuristic. A box that reports clusters contains stations and
- * is worth splitting; a box that reports none is done. Empty countryside falls
- * out of the search almost immediately.
+ * Strategy: ask once. `v1/mapsearch` returns the whole region in a single
+ * response — see `MAX_RESULTS`, which is the parameter that makes that true.
  *
  * Then one `/chargestations/{id}` request per surviving station, for the
- * location line — the heading the app shows — which the bounding-box query does
- * not return at all. See `fetchLocations`.
+ * location line — the heading the app shows — which the bulk query does not
+ * return at all. See `fetchLocations`. That phase is now the entire cost of
+ * the build.
  *
  *   pnpm build:stations                    # default root: DE + AT + northern IT
  *   pnpm build:stations -- --bbox 48.3,49.3,8.7,9.7   # a small region, for testing
@@ -23,34 +21,60 @@
  * Requires ENBW_SUBSCRIPTION_KEY, from .dev.vars or the environment.
  */
 
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
+/** Detail lookups only — the one endpoint that returns `additionalInfo`. */
 const API = 'https://api.emp.emob-enbw.com/emobility-public-api/api/v1/chargestations'
 /** The only Origin the upstream accepts; see README. */
 const REQUIRED_ORIGIN = 'https://www.enbw.com'
 
-/** EnBW's own tariff. Includes ITSMA / ATSMA / DEODR / DESMA, not just DEEBW. */
-const ENBW_PRICE_GROUP = 'ENBW_GROUP'
+/**
+ * The bulk query, and a different service from the detail endpoint above.
+ *
+ * `emobility-public-api` is what EnBW's public web map talks to, and it offers
+ * only the bounding-box query and `/chargestations/{id}`. `emobility-complete`
+ * is what the Android app talks to, and it answers the same question in one
+ * request instead of tens of thousands.
+ *
+ * Both speak the same `stationId` namespace, which is the only reason this
+ * swap is a local change: verified against the previously shipped list, 2392
+ * of its 2404 ids came back identical, the rest being two days of real drift
+ * (15 stations added, 12 retired). Addresses, operator names and point counts
+ * matched field for field.
+ *
+ * Taken from the EnBW mobility+ Android app (8.18.2), along with the two keys
+ * below. Both are baked into the APK and neither is tied to an account — no
+ * login or bearer token is involved, and the request works unauthenticated.
+ */
+const MAPSEARCH = 'https://api.emp.emob-enbw.com/emobility-complete/api/v1/mapsearch'
+const MAPSEARCH_SUBSCRIPTION_KEY =
+  process.env.ENBW_MAPSEARCH_SUBSCRIPTION_KEY ?? 'c7097f4712dd4c20aae95ff6ad95d171'
+const MAPSEARCH_API_KEY = process.env.ENBW_MAPSEARCH_API_KEY ?? 'k385hjj5456rlqsnhjkhsh4dih'
 
 /**
- * The undocumented parameter that makes this script cheap.
+ * The parameter that removes the search.
  *
- * There is no listing endpoint. The API exposes only the bounding-box query and
- * `/chargestations/{id}` — confirmed by reading EnBW's own map client, which
- * uses exactly those two and nothing else. But `priceGroups` filters
- * server-side, and that changes everything: the response then contains only
- * EnBW stations, so the clustering that forced a deep blind descent mostly
- * stops happening.
+ * This script used to run an adaptive quadtree over the map, because a
+ * bounding box that holds too many stations comes back as cluster
+ * placeholders instead of stations — so the box had to be split, and split
+ * again, tens of thousands of times.
  *
- * Measured over the same 0.3° x 0.4° region:
- *   unfiltered  646 requests -> 201 stations, 4 clusters never resolved
- *   filtered     69 requests -> 202 stations, fully converged
+ * The splitting was never necessary. Clustering is not a function of how
+ * large the box is; it is a function of how many rows the answer would have.
+ * `maxResults` caps that number explicitly, and a capped query does not
+ * cluster at all. The whole of DE + AT + northern Italy then answers in one
+ * request:
  *
- * Cheaper *and* more complete — the unfiltered scan's own clustering had been
- * hiding a station from us.
+ *   quadtree (priceGroups + minPower)   ~30 min, tens of thousands of requests
+ *   maxResults                          1.0 s, 1 request, 1.9 MB -> 2407 stations
+ *
+ * Set far above the real count, because the cap does not report itself. Ask
+ * for 2000 when 2407 exist and the response is 2000 stations, no clusters, no
+ * error, no flag — a silently half-built list. `assertNotTruncated` is what
+ * stands between that and a shipped file.
  */
-const PRICE_GROUP_FILTER = 'ENBW_GROUP'
+const MAX_RESULTS = 20_000
 
 /**
  * Minimum charging power, in kW, for a station to be worth shipping.
@@ -61,73 +85,21 @@ const PRICE_GROUP_FILTER = 'ENBW_GROUP'
  * line, so dropping it halves the file the phone downloads and halves the
  * geometry the corridor has to run.
  *
- * It is sent to the API as `minPower`, which is undocumented but filters
- * server-side — and, exactly like `priceGroups`, that is worth far more than
- * the bandwidth it saves. See the note on `minPower` below.
- *
- * Applied a second time after the scan, because a silent change in the
- * parameter's behaviour must not put slow chargers back into the file. Unknown
- * power is dropped too: "might be fast" is not good enough to put in front of a
- * driver, and the count is reported so a future run that starts seeing nulls is
- * not silent about it.
+ * Sent as `minPowerInKw` in the filter body, which the server applies. Applied
+ * a second time after the query, because a silent change in the parameter's
+ * behaviour must not put slow chargers back into the file. Unknown power is
+ * dropped too: "might be fast" is not good enough to put in front of a driver,
+ * and the count is reported so a future run that starts seeing nulls is not
+ * silent about it.
  */
 const MIN_POWER_KW = 50
 
 /**
- * The second undocumented parameter that makes this script cheap.
- *
- * `minPower=N` is an inclusive `maxPowerInKw >= N` filter, applied server-side
- * *before* the grouping grid runs. Verified by sweep: 50 keeps the 50 kW
- * stations, 51 drops them, and there is no bucketing in between.
- *
- * That ordering is the whole point. Half the network is below 50 kW, so
- * filtering it away upstream means far fewer stations left to collide in any
- * one grid cell, and the clustering that forces a deep blind descent mostly
- * stops happening — the same mechanism that makes `priceGroups` pay.
- *
- * Measured over 48.3..49.3 x 8.7..9.7:
- *   priceGroups only              301 requests, 7.6 s -> 123 stations at >= 50 kW
- *   priceGroups + minPower=50      97 requests, 2.9 s -> 123 stations
- *
- * And over 47.2..48.4 x 10.8..12.2:
- *   priceGroups only              121 requests, 3.7 s -> 77 stations
- *   priceGroups + minPower=50      93 requests, 2.5 s -> 77 stations
- *
- * Identical station sets both times, so this is purely cheaper.
- */
-
-/**
- * Grouping grid. The API divides the requested box into an N x N grid and
- * collapses every cell holding more than one station into a placeholder.
- *
- * Swept 1..200: values above 20 are silently ignored and fall back to the
- * coarse default, so 20 is the finest grid on offer and therefore the fewest
- * placeholders per request.
- */
-const GROUPING_DIVISOR = 20
-
-/**
- * Floor for the blind quadtree. Below it, any remaining cluster is probed
- * directly at the centroid the API reports.
- *
- * With the price-group filter the tree converges well before this on real data
- * (0 stuck boxes across a dense test region), so this is a backstop rather than
- * the main mechanism.
- */
-const MIN_SPAN_DEG = 0.0005
-/** Box size for the first targeted probe around a cluster centroid. */
-const PROBE_SPAN_DEG = 0.004
-/**
- * Give up probing below this. Measured: a cluster of 58 charge points resolved
- * completely at 0.0008°, so this is an order of magnitude of headroom.
- */
-const PROBE_FLOOR_DEG = 0.0002
-/**
- * Concurrency. The filtered scan is an order of magnitude smaller than the
- * blind one that earned an HTTP 429, but there is no reason to rush it.
+ * Concurrency, for the detail lookups. Nothing to rush: one 429 mid-run costs
+ * more than the parallelism saves.
  */
 const CONCURRENCY = 4
-/** 429s are transient, so be patient rather than failing a 30-minute job. */
+/** 429s are transient, so be patient rather than failing the job. */
 const MAX_RETRIES = 8
 /** Floor for the pause after a 429, when the server sends no Retry-After. */
 const RATE_LIMIT_BACKOFF_MS = 5_000
@@ -136,10 +108,9 @@ const RATE_LIMIT_BACKOFF_MS = 5_000
 const DEFAULT_ROOT = { fromLat: 45.7, toLat: 55.1, fromLon: 5.8, toLon: 17.2 }
 
 function parseArgs(argv) {
-  const args = { out: 'public/stations.enbw.json', root: DEFAULT_ROOT, resume: false }
+  const args = { out: 'public/stations.enbw.json', root: DEFAULT_ROOT }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--out') args.out = argv[++i]
-    else if (argv[i] === '--resume') args.resume = true
     else if (argv[i] === '--bbox') {
       const [fromLat, toLat, fromLon, toLon] = argv[++i].split(',').map(Number)
       if ([fromLat, toLat, fromLon, toLon].some((n) => !Number.isFinite(n))) {
@@ -195,21 +166,21 @@ const isTransient = (status) => status === 429 || status >= 500
 /**
  * One request, with the throttle gate and the retry ladder around it.
  *
- * Shared by both phases: the bounding-box scan and the per-station detail
- * lookups hit the same rate limit on the same account, so they have to share
- * the same cooldown.
+ * Shared by both phases: the bulk query and the detail lookups go to different
+ * services, but a run that is being throttled should slow down as a whole.
  */
-async function requestJson(url, key) {
+async function requestJson(url, { headers, body } = {}) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     await waitForThrottle()
     try {
       const res = await fetch(url, {
+        method: body === undefined ? 'GET' : 'POST',
         headers: {
-          'Ocp-Apim-Subscription-Key': key,
-          Origin: REQUIRED_ORIGIN,
-          Referer: `${REQUIRED_ORIGIN}/`,
           Accept: 'application/json',
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          ...headers,
         },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       })
       requestCount++
 
@@ -224,7 +195,10 @@ async function requestJson(url, key) {
         throw new Error('HTTP 429')
       }
       if (!res.ok && !isTransient(res.status)) {
-        const hint = res.status === 403 ? ' (the Origin gate or the key may have changed)' : ''
+        const hint =
+          res.status === 403 || res.status === 401
+            ? ' (a key or the Origin gate may have changed)'
+            : ''
         // Permanent: reported by the caller, never retried.
         throw Object.assign(new Error(`HTTP ${res.status}${hint}`), { permanent: true })
       }
@@ -239,40 +213,110 @@ async function requestJson(url, key) {
   return null
 }
 
-async function fetchBox(box, key) {
-  const url = new URL(API)
+/**
+ * The filter body.
+ *
+ * `includeOtherOperators: false` is the server-side stand-in for the old
+ * `priceGroups=ENBW_GROUP` query parameter, and it selects the same set:
+ * every one of the 2407 stations it returned came back
+ * `shouldBeTreatedLikeEnBW`, across the same seven operator codes the old
+ * filter produced, and all 185 of the CZPRE and DEEDH rows — the two codes
+ * this file used not to name — were already in the previously shipped list.
+ *
+ * The remaining fields are sent because the endpoint expects the whole filter
+ * object, not because this build wants to narrow on them.
+ */
+const filterBody = () => ({
+  plugTypes: null,
+  minPowerInKw: MIN_POWER_KW,
+  maxPowerInKw: null,
+  currentlyAvailable: null,
+  alwaysOpen: null,
+  operators: null,
+  authenticationMethods: null,
+  presetSelected: 0,
+  presetPlugTypes: {},
+  freeCharging: null,
+  handicappedAccessible: null,
+  minimumNumberOfChargingPoints: 0,
+  priceLimit: null,
+  includeOtherOperators: false,
+  pointOfInterestCategories: null,
+})
+
+/**
+ * Phase 1: the whole region, in one request.
+ *
+ * `grouping=false` is sent for good measure, but `maxResults` is what actually
+ * suppresses the cluster placeholders — the unfiltered call returns 15
+ * clusters and zero stations for this same box.
+ */
+async function fetchAll(box) {
+  const url = new URL(MAPSEARCH)
   url.searchParams.set('fromLat', String(box.fromLat))
   url.searchParams.set('toLat', String(box.toLat))
   url.searchParams.set('fromLon', String(box.fromLon))
   url.searchParams.set('toLon', String(box.toLon))
   url.searchParams.set('grouping', 'false')
-  url.searchParams.set('groupingDivisor', String(GROUPING_DIVISOR))
-  url.searchParams.set('priceGroups', PRICE_GROUP_FILTER)
-  url.searchParams.set('minPower', String(MIN_POWER_KW))
+  url.searchParams.set('useFilter', 'true')
+  url.searchParams.set('maxResults', String(MAX_RESULTS))
 
-  const body = await requestJson(url, key)
-  if (!Array.isArray(body)) throw new Error('unexpected payload')
+  const body = await requestJson(url, {
+    headers: {
+      'Ocp-Apim-Subscription-Key': MAPSEARCH_SUBSCRIPTION_KEY,
+      apiKey: MAPSEARCH_API_KEY,
+    },
+    body: filterBody(),
+  })
+  if (!body || !Array.isArray(body.pins)) throw new Error('unexpected payload')
   return body
 }
 
 /**
- * The detail record for one station.
+ * Refuse to build on an answer that may have been cut short.
  *
- * The only endpoint that returns `additionalInfo`, which is why phase 3 exists
- * at all. Also the only one that can 404: the box query occasionally reports an
- * id the detail endpoint no longer serves.
+ * Two ways this query can under-report, both silent. `maxResults` truncates to
+ * exactly the cap with no flag of any kind, and a query that ignored the cap
+ * falls back to returning clusters — placeholders standing in for stations
+ * this build would otherwise simply never see.
  */
-const fetchStation = (stationId, key) => requestJson(new URL(`${API}/${stationId}`), key)
+function assertNotTruncated(body) {
+  const clusters = body.clusters?.length ?? 0
+  if (clusters > 0) {
+    throw new Error(
+      `The query came back with ${clusters} cluster placeholder(s), which means ` +
+        `maxResults was ignored and an unknown number of stations are hidden ` +
+        `behind them. Refusing to write a partial list.`,
+    )
+  }
+  if (body.pins.length >= MAX_RESULTS) {
+    throw new Error(
+      `Got exactly maxResults (${MAX_RESULTS}) stations, so the answer was almost ` +
+        `certainly truncated. Raise MAX_RESULTS and re-run.`,
+    )
+  }
+}
 
-const quarters = (b) => {
-  const midLat = (b.fromLat + b.toLat) / 2
-  const midLon = (b.fromLon + b.toLon) / 2
-  return [
-    { fromLat: b.fromLat, toLat: midLat, fromLon: b.fromLon, toLon: midLon },
-    { fromLat: b.fromLat, toLat: midLat, fromLon: midLon, toLon: b.toLon },
-    { fromLat: midLat, toLat: b.toLat, fromLon: b.fromLon, toLon: midLon },
-    { fromLat: midLat, toLat: b.toLat, fromLon: midLon, toLon: b.toLon },
-  ]
+/**
+ * One pin, flattened to the shape the rest of this script expects.
+ *
+ * The bulk query nests station identity under `locationPreview` and keeps the
+ * occupancy counts at the top level; everything below is the same data the
+ * bounding-box query used to return under different names.
+ */
+function unpackPin(pin) {
+  const p = pin.locationPreview ?? {}
+  return {
+    stationId: p.stationId,
+    lat: p.location?.latitude,
+    lon: p.location?.longitude,
+    shortAddress: p.address ?? null,
+    operator: p.operatorName ?? null,
+    maxPowerInKw: p.maxPowerInKw ?? null,
+    numberOfChargePoints: pin.allChargePointCount ?? 0,
+    // The bulk query has no `priceGroup`; this is the field that replaces it.
+    onEnbwTariff: pin.shouldBeTreatedLikeEnBW === true,
+  }
 }
 
 /** Run `task` over `items` with a fixed worker pool, preserving order. */
@@ -291,145 +335,21 @@ async function mapPool(items, limit, task) {
   return out
 }
 
-const boxAround = (lat, lon, span) => ({
-  fromLat: Number((lat - span / 2).toFixed(7)),
-  toLat: Number((lat + span / 2).toFixed(7)),
-  fromLon: Number((lon - span / 2).toFixed(7)),
-  toLon: Number((lon + span / 2).toFixed(7)),
-})
-
-const clusterKey = (c, span) => `${c.lat.toFixed(6)},${c.lon.toFixed(6)},${span}`
-
 /**
- * Phase 2: resolve the clusters the quadtree left behind.
+ * The detail record for one station.
  *
- * A cluster placeholder carries its own centroid, so there is no need to guess
- * where to look — query a small box centred on it, and halve the box for any
- * cluster that comes back. This converges in a handful of requests per cluster,
- * where blind quadtree splitting would spend most of its calls on empty space.
+ * The only endpoint that returns `additionalInfo`, which is why phase 2 exists
+ * at all. Also the only one that can 404: the bulk query occasionally reports
+ * an id the detail endpoint no longer serves.
  */
-async function resolveClusters(initial, stations, key) {
-  let pending = initial.map((c) => ({ lat: c.lat, lon: c.lon, span: PROBE_SPAN_DEG }))
-  const seen = new Set()
-  let probes = 0
-  /** Clusters that never resolved, kept whole so the warning can be specific. */
-  const abandoned = []
-
-  while (pending.length > 0) {
-    const batch = pending.filter((c) => {
-      const k = clusterKey(c, c.span)
-      if (seen.has(k)) return false
-      seen.add(k)
-      return true
-    })
-    if (batch.length === 0) break
-
-    const results = await mapPool(batch, CONCURRENCY, (c) =>
-      fetchBox(boxAround(c.lat, c.lon, c.span), key),
-    )
-    probes += batch.length
-
-    const next = []
-    for (let i = 0; i < batch.length; i++) {
-      for (const s of results[i]) {
-        if (!s.grouped) {
-          if (s.stationId != null) stations.set(s.stationId, s)
-        } else if (batch[i].span / 2 >= PROBE_FLOOR_DEG) {
-          next.push({ lat: s.lat, lon: s.lon, span: batch[i].span / 2 })
-        } else {
-          abandoned.push(s)
-        }
-      }
-    }
-    pending = next
-  }
-
-  return { probes, abandoned }
-}
-
-/**
- * Checkpoint after every depth level.
- *
- * A full scan is tens of thousands of requests over half an hour. Losing all of
- * it to one unlucky 429 at depth 8 is not acceptable, and the level-by-level
- * structure makes the state trivial to serialise.
- */
-async function saveCheckpoint(path, state) {
-  await writeFile(path, JSON.stringify(state))
-}
-
-async function loadCheckpoint(path) {
-  try {
-    return JSON.parse(await readFile(path, 'utf8'))
-  } catch {
-    return null
-  }
-}
-
-async function scan(root, key, checkpointPath, resume) {
-  const stations = new Map()
-  const leftoverClusters = []
-  let level = [root]
-  let depth = 0
-
-  if (resume) {
-    const saved = await loadCheckpoint(checkpointPath)
-    if (saved) {
-      for (const s of saved.stations) stations.set(s.stationId, s)
-      leftoverClusters.push(...(saved.leftoverClusters ?? []))
-      level = saved.level
-      depth = saved.depth
-      console.log(
-        `  resuming from depth ${depth}: ${stations.size} stations, ${level.length} boxes pending`,
-      )
-    }
-  }
-
-  while (level.length > 0) {
-    const results = await mapPool(level, CONCURRENCY, (box) => fetchBox(box, key))
-    const next = []
-
-    for (let i = 0; i < level.length; i++) {
-      const box = level[i]
-      const clusters = []
-      for (const s of results[i]) {
-        if (s.grouped) clusters.push(s)
-        else if (s.stationId != null) stations.set(s.stationId, s)
-      }
-      if (clusters.length === 0) continue
-      if (box.toLat - box.fromLat <= MIN_SPAN_DEG) {
-        leftoverClusters.push(...clusters)
-        continue
-      }
-      next.push(...quarters(box))
-    }
-
-    depth++
-    process.stdout.write(
-      `  depth ${String(depth).padStart(2)}: ${String(level.length).padStart(5)} boxes ` +
-        `-> ${String(stations.size).padStart(6)} stations, ${next.length} to split` +
-        (rateLimitHits > 0 ? `  (${rateLimitHits} rate-limit pauses)` : '') +
-        '\n',
-    )
-    level = next
-    await saveCheckpoint(checkpointPath, {
-      depth,
-      level,
-      leftoverClusters,
-      stations: [...stations.values()],
-    })
-  }
-
-  const before = stations.size
-  const { probes, abandoned } = await resolveClusters(leftoverClusters, stations, key)
-  process.stdout.write(
-    `  probes  : ${String(probes).padStart(5)} targeted ` +
-      `-> ${String(stations.size).padStart(6)} stations ` +
-      `(+${stations.size - before} from ${leftoverClusters.length} leftover clusters)\n`,
-  )
-
-  return { stations: [...stations.values()], depth, abandoned }
-}
+const fetchStation = (stationId, key) =>
+  requestJson(new URL(`${API}/${stationId}`), {
+    headers: {
+      'Ocp-Apim-Subscription-Key': key,
+      Origin: REQUIRED_ORIGIN,
+      Referer: `${REQUIRED_ORIGIN}/`,
+    },
+  })
 
 /**
  * Location text that is not a location.
@@ -460,15 +380,15 @@ const isNotice = (text) =>
 const firstLine = (text) => text?.split(/\r?\n/)[0]?.trim() || null
 
 /**
- * Phase 3: fill in the location line, one request per station.
+ * Phase 2: fill in the location line, one request per station.
  *
- * This is the expensive phase and it buys the one thing the scan cannot get.
- * `additionalInfo` is returned only by `/chargestations/{id}` — the
- * bounding-box query does not carry it at all — and it is what every row in
- * the app is headed with, because the name on the sign you are looking for is
- * more use than the street it stands on. Fetching it here rather than on the
- * phone is what keeps that heading from changing under the driver a second
- * after the list appears.
+ * This is now the whole cost of the build, and it buys the one thing the bulk
+ * query cannot get. `additionalInfo` is returned only by
+ * `/chargestations/{id}` — the bulk query does not carry it at all — and it is
+ * what every row in the app is headed with, because the name on the sign you
+ * are looking for is more use than the street it stands on. Fetching it here
+ * rather than on the phone is what keeps that heading from changing under the
+ * driver a second after the list appears.
  */
 async function fetchLocations(stations, key) {
   let done = 0
@@ -486,9 +406,9 @@ async function fetchLocations(stations, key) {
         if (!line) unnamed++
       }
     } catch {
-      // A 404 here is an id the box query reported and the detail endpoint no
+      // A 404 here is an id the bulk query reported and the detail endpoint no
       // longer serves. The station keeps its street label; one missing heading
-      // is not worth failing a half-hour build over.
+      // is not worth failing the build over.
       gone++
     }
     done++
@@ -506,19 +426,18 @@ async function fetchLocations(stations, key) {
 }
 
 async function main() {
-  const { out, root, resume } = parseArgs(process.argv.slice(2))
+  const { out, root } = parseArgs(process.argv.slice(2))
   const key = await readKey()
-  const checkpointPath = `${out}.checkpoint.json`
 
-  console.log(
-    `Scanning ${root.fromLat},${root.toLat} x ${root.fromLon},${root.toLon} ` +
-      `(floor ${MIN_SPAN_DEG}°, concurrency ${CONCURRENCY})`,
-  )
+  console.log(`Querying ${root.fromLat},${root.toLat} x ${root.fromLon},${root.toLon}`)
   const started = Date.now()
-  const { stations, abandoned } = await scan(root, key, checkpointPath, resume)
+  const body = await fetchAll(root)
+  assertNotTruncated(body)
+  const stations = body.pins.map(unpackPin)
   const seconds = (Date.now() - started) / 1000
+  console.log(`  ${stations.length} stations in one request, ${seconds.toFixed(1)}s`)
 
-  const onTariff = stations.filter((s) => s.priceGroup === ENBW_PRICE_GROUP)
+  const onTariff = stations.filter((s) => s.onEnbwTariff)
   const enbw = onTariff.filter((s) => (s.maxPowerInKw ?? 0) >= MIN_POWER_KW)
 
   const tooSlow = onTariff.filter((s) => (s.maxPowerInKw ?? 0) < MIN_POWER_KW)
@@ -528,35 +447,20 @@ async function main() {
       `(dropped ${tooSlow.length}, of which ${unknownPower.length} had unknown power)`,
   )
 
-  // A silently under-scanned build would ship a permanently incomplete app, so
-  // make an incomplete descent loud. Only EnBW-tariff clusters actually matter
-  // to this list, so separate them from the noise: a dense non-EnBW site that
-  // refuses to resolve costs us nothing.
-  const missedEnbw = abandoned.filter((c) => c.priceGroup === ENBW_PRICE_GROUP)
-  if (abandoned.length > 0) {
+  // The server-side filter should already have excluded these, so a non-zero
+  // count means `includeOtherOperators` has changed meaning and the list may
+  // now be a different set of stations than the app's tariff covers.
+  const offTariff = stations.length - onTariff.length
+  if (offTariff > 0) {
     console.warn(
-      `\n  ${abandoned.length} cluster(s) never resolved even at ${PROBE_FLOOR_DEG}° ` +
-        `(likely several stations sharing one coordinate).`,
+      `\n  ${offTariff} station(s) came back without shouldBeTreatedLikeEnBW and were ` +
+        `dropped. The server-side filter should have excluded them upstream.`,
     )
-    for (const c of abandoned.slice(0, 10)) {
-      console.warn(
-        `    ${c.priceGroup === ENBW_PRICE_GROUP ? 'ENBW ' : 'other'} ` +
-          `${c.lat.toFixed(5)},${c.lon.toFixed(5)} ` +
-          `${c.numberOfChargePoints ?? '?'} points, ${c.operatorCode ?? '?'}`,
-      )
-    }
   }
-  if (missedEnbw.length > 0) {
-    console.warn(
-      `\n  WARNING: ${missedEnbw.length} of those are on the EnBW tariff and are ` +
-        `MISSING from this list.`,
-    )
-  } else if (abandoned.length > 0) {
-    console.warn(`  None are on the EnBW tariff, so this list is unaffected.`)
-  }
+
   if (enbw.length === 0) {
     throw new Error(
-      `Scan produced no EnBW stations at >= ${MIN_POWER_KW} kW — refusing to write an empty list.`,
+      `Query produced no EnBW stations at >= ${MIN_POWER_KW} kW — refusing to write an empty list.`,
     )
   }
 
@@ -576,7 +480,7 @@ async function main() {
     )
   }
 
-  // Phase 3 runs on the filtered set, so the requests are spent only on
+  // Phase 2 runs on the filtered set, so the requests are spent only on
   // stations that will actually be in the file.
   const { locations, gone, notices, unnamed } = await fetchLocations(enbw, key)
   const named = locations.filter(Boolean).length
@@ -593,6 +497,9 @@ async function main() {
     // 4: carries the location line too, which is the heading the app shows. It
     //    costs one detail request per station to build and is the reason a row
     //    can name itself before any network call.
+    //
+    // Still 4 after the move to the bulk query: same ids, same fields, same
+    // meanings, so a client that reads a version 4 file reads this one.
     version: 4,
     generatedAt: new Date().toISOString(),
     bbox: root,
@@ -632,20 +539,15 @@ async function main() {
   await mkdir(dirname(out), { recursive: true })
   await writeFile(out, JSON.stringify(payload))
 
-  await rm(checkpointPath, { force: true })
-
   const bytes = Buffer.byteLength(JSON.stringify(payload))
   console.log(
-    `\n  ${requestCount} requests in ${seconds.toFixed(1)}s\n` +
-      `  ${stations.length} stations scanned, ${enbw.length} on the EnBW tariff\n` +
+    `\n  ${requestCount} requests in ${((Date.now() - started) / 1000).toFixed(1)}s\n` +
+      `  ${stations.length} stations queried, ${enbw.length} on the EnBW tariff\n` +
       `  wrote ${out} (${(bytes / 1024).toFixed(0)} KB raw, ${(bytes / enbw.length).toFixed(0)} B/station)`,
   )
 }
 
 main().catch((err) => {
-  console.error(
-    `\nBuild failed: ${err.message}\n` +
-      `Progress was checkpointed — re-run with --resume to continue.`,
-  )
+  console.error(`\nBuild failed: ${err.message}`)
   process.exit(1)
 })

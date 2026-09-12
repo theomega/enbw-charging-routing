@@ -69,18 +69,17 @@ occupancy. Generate it once:
 ```bash
 pnpm build:stations                                   # DE + AT + northern Italy
 pnpm build:stations -- --bbox 48.55,48.85,9.0,9.4     # a small region, for a quick check
-pnpm build:stations -- --resume                       # continue an interrupted run
 ```
 
 It asks the API for EnBW-tariff stations at 50 kW and above, and both filters are applied
 server-side — see [Is there a listing endpoint?](#is-there-a-listing-endpoint). Measured for
-the default area: **4,285 requests in 33 seconds, 2,404 stations, 283 KB (96 KB gzipped)**
-written to `public/stations.enbw.json` — 1,881 box requests for the scan itself, then one
-detail request per station for the location line. The scan alone was 3,578 requests and 2.8
-minutes before the `minPower` filter.
+the default area: **2,433 requests in 84 seconds, 2,407 stations, 284 KB (96 KB gzipped)**
+written to `public/stations.enbw.json`. Of those requests exactly **one** is the station
+scan; the other 2,432 are the per-station detail lookup for the location line, which is now
+the entire cost of the build. The scan used to be 1,881 requests on its own.
 
 The file carries station _identity_ — location, address, power, point count, operator —
-which is why it is 283 KB rather than 74 KB, and why every row on screen is fully described
+which is why it is 284 KB rather than 74 KB, and why every row on screen is fully described
 before any network call. See [What the list carries](#what-the-list-carries). Re-run it every
 month or so, and after any run of stale rows — see [Known limitations](#known-limitations).
 
@@ -442,61 +441,59 @@ right. Before this change the same event blanked the row.
 A position-based fallback (adopt a same-position, same-power record under a new id) was
 considered and rejected: it would have restored the badge, at the price of keeping the
 grouping and fuzzy-matching machinery alive to serve 3% of rows. Rebuilding the list takes
-41 seconds.
+84 seconds.
 
 ### Is there a listing endpoint?
 
-No. The API exposes only the bounding-box query and `/chargestations/{id}` — confirmed by reading
-EnBW's own map client, which uses exactly those two and nothing else. `?stationIds=`, `?ids=`,
-`/batch`, `/status`, `/availability`, comma-joined ids and `POST` are all rejected.
+Effectively yes, on a different service. This was answered "no" for a long time, and the
+answer was wrong in an expensive way.
 
-But there is something almost as good, and undocumented: **`priceGroups` filters server-side.**
-That matters far more than saving bandwidth. The API groups results by dividing the requested box
-into an N×N grid and collapsing any cell with more than one station into a placeholder that carries
-no station data. Filter to EnBW first and there is far less left to collide, so the grouping mostly
-stops happening and the scan converges quickly instead of grinding down through empty space.
+`emobility-public-api` — the service behind EnBW's public web map — really does expose only
+the bounding-box query and `/chargestations/{id}`. `?stationIds=`, `?ids=`, `/batch`,
+`/status`, `/availability`, comma-joined ids and `POST` are all rejected. But the public web
+map is not EnBW's only client. The Android app talks to **`emobility-complete`**, and its
+`POST v1/mapsearch` answers the whole region at once:
 
-Measured over the same 0.3°×0.4° region:
+```
+POST .../emobility-complete/api/v1/mapsearch
+     ?fromLat=45.7&toLat=55.1&fromLon=5.8&toLon=17.2
+     &grouping=false&useFilter=true&maxResults=20000
+```
 
-|                              | Requests | Time      | Stations | Converged        |
-| ---------------------------- | -------- | --------- | -------- | ---------------- |
-| Unfiltered descent           | 646      | 9.8 s     | 201      | 4 clusters stuck |
-| **`priceGroups=ENBW_GROUP`** | **69**   | **2.6 s** | **202**  | **fully**        |
+with the filter in the JSON body. Both endpoints speak the same `stationId` namespace, so
+this was a change to the build script and nothing else.
 
-Cheaper _and_ more complete — the unfiltered scan's own clustering had been hiding a station. Across
-the full area this took the build from a projected ~100,000 requests and several hours down to
-3,578 requests and under three minutes.
+**`maxResults` is the parameter that matters.** The bounding-box query clusters — it divides
+the box into an N×N grid and collapses any cell holding more than one station into a
+placeholder carrying no station data — and the whole quadtree existed to split boxes until
+the clustering stopped. It never needed to. Clustering is not a function of how large the box
+is, it is a function of how many rows the answer would have, and `maxResults` caps that
+number directly. A capped query does not cluster at all:
 
-### And a second one: `minPower`
+| Full area (DE + AT + northern Italy) | Requests | Time      | Stations              |
+| ------------------------------------ | -------- | --------- | --------------------- |
+| Quadtree, `priceGroups` + `minPower` | ~1,881   | ~2.8 min  | 2,404                 |
+| No `maxResults`                      | 1        | 1.0 s     | 0 — 15 clusters       |
+| **`maxResults=20000`**               | **1**    | **1.0 s** | **2,407, 0 clusters** |
 
-The same trick pays twice. `minPower=N` is an inclusive `maxPowerInKw >= N` filter, also
-undocumented, and it is applied **before** the grouping grid. Since half the network is
-below 50 kW, filtering it away upstream leaves far less to collide in any one cell, so the
-clustering that forces a deep descent mostly stops happening.
+Verified equivalent rather than assumed: of the 2,404 stations in the previously shipped
+list, 2,392 came back identical, the remaining difference being two days of real drift (15
+added, 12 retired). Addresses, operator names, point counts and coordinates matched field
+for field.
 
-Measured on two regions, against a scan that filters power afterwards instead:
+The body's `includeOtherOperators: false` replaces the old `priceGroups=ENBW_GROUP` query
+parameter and selects the same set, and `minPowerInKw` replaces `minPower`. Both still
+filter server-side, and the power floor is still applied a second time afterwards.
 
-| Region                | `priceGroups` only  | `+ minPower=50`        | Stations       |
-| --------------------- | ------------------- | ---------------------- | -------------- |
-| 48.3–49.3 × 8.7–9.7   | 301 requests, 7.6 s | **97 requests, 2.9 s** | 123 either way |
-| 47.2–48.4 × 10.8–12.2 | 121 requests, 3.7 s | **93 requests, 2.5 s** | 77 either way  |
+**The cap does not report itself.** Ask for 2,000 when 2,407 exist and the response is 2,000
+stations with no clusters, no error and no flag — a silently half-built list, which for this
+app means stations that simply never appear on a route. `assertNotTruncated` refuses to write
+a file when the count reaches the cap, or when any cluster placeholder comes back at all.
+That is why `MAX_RESULTS` sits at 20,000 against a real count of ~2,400.
 
-The station sets come out identical, so this is purely cheaper — roughly **3x fewer
-requests** on the first region.
-
-Verified inclusive by sweep, which matters: `minPower=50` keeps the 50 kW stations and
-`minPower=51` drops them, with no bucketing in between. A parameter that silently snapped
-to the next preset would have quietly deleted the whole 50–99 kW band from the list. The
-script applies the floor a second time after the scan for exactly that reason.
-
-`groupingDivisor` is capped at **20**: swept 1–200, anything above 20 is silently ignored and falls
-back to the coarse default, so 20 is the finest grid available and gives the fewest placeholders per
-request.
-
-The script keeps a targeted fallback for any cluster that survives to the size floor — it probes the
-centroid the API reports rather than splitting blindly. On the filtered scan it never fires, but it
-earns its place: on the _unfiltered_ scan it recovered 190 stations, 5 of them EnBW, that the floor
-was silently dropping.
+Two phases became one request; the remaining cost is the per-station detail lookup for the
+location line, which `mapsearch` does not carry. See
+[What the list carries](#what-the-list-carries).
 
 ## Route alternatives
 
@@ -611,15 +608,15 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
 - **The station list goes stale.** New or decommissioned stations are invisible until
   `pnpm build:stations` is re-run. This is the real cost of the whole approach. A station that has
   disappeared shows as `?/n` rather than a wrong number, but a _new_ one simply will not appear.
-- **Coverage depends on one offline run.** A build that silently under-scans would ship a
-  permanently incomplete app, so the script prints its station count and warns loudly about any
-  cluster it could not resolve — distinguishing EnBW-tariff clusters, which matter, from other
-  operators' clusters, which do not.
+- **Coverage depends on one offline run** — now literally one request, which makes silent
+  truncation the failure mode to worry about. `maxResults` caps the answer without saying so,
+  so the script refuses to write a file whose station count reached the cap, or that came back
+  with any cluster placeholder at all. It prints its station count either way.
 - **Only the EnBW network, and only its fast half** — 2,400 stations at 50 kW or above.
   The roaming network your card also works at is
-  roughly 311,000 charge points in Germany alone, far too large to ship, and `priceGroups` is what
-  makes the EnBW slice cheap to enumerate in the first place. There is no widen-search escape hatch
-  on routes where EnBW is thin.
+  roughly 311,000 charge points in Germany alone, far too large to ship, and the tariff filter is
+  what makes the EnBW slice cheap to enumerate in the first place. There is no widen-search escape
+  hatch on routes where EnBW is thin.
 - **The EnBW endpoint is undocumented.** It can change, the key can rotate, and the `Origin` gate
   could tighten. A 403 from the Worker almost always means one of those.
 - **Finding the chargers takes a moment.** Every shipped station is measured against the route
@@ -653,6 +650,7 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
   matrix requests at 10 coordinates instead of 25. The headline route ETA is traffic-aware; the
   detour delta is not.
 - **Building the list** is a heavier one-off use of an undocumented API than per-route scanning
-  was, though the `priceGroups` filter reduced it by ~28x. The script runs at concurrency 4, honours
-  `Retry-After` on HTTP 429 with a shared cooldown across all workers, and checkpoints after every
-  depth so an interrupted run resumes with `--resume` instead of starting over.
+  was, though the station scan itself is now a single request. What remains is the per-station
+  detail lookup: the script runs it at concurrency 4 and honours `Retry-After` on HTTP 429 with a
+  shared cooldown across all workers. A full run trips the rate limit around the 2,200th station
+  and waits it out; there is no resume, because a failed run now costs 84 seconds.
