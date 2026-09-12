@@ -67,21 +67,29 @@ The app ships with a list of every EnBW-tariff station and only asks the API abo
 occupancy. Generate it once:
 
 ```bash
-pnpm build:stations                                   # DE + AT + northern Italy
+pnpm build:stations                                   # DE + AT + CZ + northern Italy
 pnpm build:stations -- --bbox 48.55,48.85,9.0,9.4     # a small region, for a quick check
 ```
 
 It asks the API for EnBW-tariff stations at 50 kW and above, and both filters are applied
 server-side — see [Is there a listing endpoint?](#is-there-a-listing-endpoint). Measured for
-the default area: **2,433 requests in 84 seconds, 2,407 stations, 284 KB (96 KB gzipped)**
+the default area: **2,439 requests in 51 seconds, 2,438 stations, 445 KB (104 KB gzipped)**
 written to `public/stations.enbw.json`. Of those requests exactly **one** is the station
-scan; the other 2,432 are the per-station detail lookup for the location line, which is now
-the entire cost of the build. The scan used to be 1,881 requests on its own.
+scan; the other 2,438 are the per-station detail lookup for the location line, which is now
+the entire cost of the build. The scan used to be 1,881 requests on its own. Wall time
+depends on whether the run trips the rate limiter — 53 s clean, 84 s on a run that did.
 
 The file carries station _identity_ — location, address, power, point count, operator —
-which is why it is 284 KB rather than 74 KB, and why every row on screen is fully described
+which is why it is 445 KB rather than 74 KB, and why every row on screen is fully described
 before any network call. See [What the list carries](#what-the-list-carries). Re-run it every
 month or so, and after any run of stale rows — see [Known limitations](#known-limitations).
+
+It is written **indented and sorted by station id**, because it is committed and a rebuild
+has to be reviewable. Minified it was a single 300 KB line, so every rebuild diffed as "the
+one line changed" and there was no way to see that a station had moved, lost a charge point
+or disappeared. The sort is what makes that work: without a fixed row order the API's own
+ordering leaks into the file and a rebuild looks like a reshuffle. Indenting costs 294 KB →
+445 KB on disk but only **97 KB → 104 KB gzipped**, which is what phones actually download.
 
 ## Running
 
@@ -178,12 +186,18 @@ gate it on `Origin` or put Cloudflare Access in front.
    points and their plugs, because **the response already contained them** — see
    [What the live call keeps](#what-the-live-call-keeps).
 
-5. **Detour** (`src/core/detour.ts`) — `T(origin→charger) + T(charger→dest) − T(origin→dest)`,
-   from two Mapbox Matrix calls per 23 chargers.
+5. **Detour** (`src/core/detour.ts`) — what stopping costs over driving past:
 
-   `t_direct` is deliberately read from the _same_ matrix call (by appending the destination as an
-   extra target) rather than reused from step 1: the route uses `driving-traffic` and the matrix
-   uses `driving`, and subtracting across profiles yields nonsense, routinely negative.
+   ```
+   [ T(origin→charger) − T(origin→routePoint) ] + [ T(charger→dest) − T(routePoint→dest) ]
+   ```
+
+   `routePoint` is where the charger meets the selected route, from step 3. Two Mapbox Matrix
+   calls per 12 chargers carry all four numbers, so the whole subtraction happens inside one
+   profile and the `driving-traffic` route never enters the arithmetic.
+
+   See [Detour is measured against the route point](#detour-is-measured-against-the-route-point)
+   for why it is not the simpler `T(origin→charger) + T(charger→dest) − T(origin→dest)`.
 
 6. **Hand off** — the list is always in **route order**, the order you drive past them. There is
    no sort control: `placeChargersOnRoute` orders by along-route distance and nothing downstream
@@ -470,11 +484,11 @@ the clustering stopped. It never needed to. Clustering is not a function of how 
 is, it is a function of how many rows the answer would have, and `maxResults` caps that
 number directly. A capped query does not cluster at all:
 
-| Full area (DE + AT + northern Italy) | Requests | Time      | Stations              |
-| ------------------------------------ | -------- | --------- | --------------------- |
-| Quadtree, `priceGroups` + `minPower` | ~1,881   | ~2.8 min  | 2,404                 |
-| No `maxResults`                      | 1        | 1.0 s     | 0 — 15 clusters       |
-| **`maxResults=20000`**               | **1**    | **1.0 s** | **2,407, 0 clusters** |
+| Full area (DE + AT + CZ + northern IT) | Requests | Time      | Stations              |
+| -------------------------------------- | -------- | --------- | --------------------- |
+| Quadtree, `priceGroups` + `minPower`   | ~1,881   | ~2.8 min  | 2,404                 |
+| No `maxResults`                        | 1        | 1.0 s     | 0 — 15 clusters       |
+| **`maxResults=20000`**                 | **1**    | **1.0 s** | **2,438, 0 clusters** |
 
 Verified equivalent rather than assumed: of the 2,404 stations in the previously shipped
 list, 2,392 came back identical, the remaining difference being two days of real drift (15
@@ -485,7 +499,7 @@ The body's `includeOtherOperators: false` replaces the old `priceGroups=ENBW_GRO
 parameter and selects the same set, and `minPowerInKw` replaces `minPower`. Both still
 filter server-side, and the power floor is still applied a second time afterwards.
 
-**The cap does not report itself.** Ask for 2,000 when 2,407 exist and the response is 2,000
+**The cap does not report itself.** Ask for 2,000 when 2,438 exist and the response is 2,000
 stations with no clusters, no error and no flag — a silently half-built list, which for this
 app means stations that simply never appear on a route. `assertNotTruncated` refuses to write
 a file when the count reaches the cap, or when any cluster placeholder comes back at all.
@@ -494,6 +508,25 @@ That is why `MAX_RESULTS` sits at 20,000 against a real count of ~2,400.
 Two phases became one request; the remaining cost is the per-station detail lookup for the
 location line, which `mapsearch` does not carry. See
 [What the list carries](#what-the-list-carries).
+
+### How wide the scan has to be
+
+One request also makes the question answerable, so it is worth recording the answer.
+Querying the whole planet — `-90..90 x -180..180`, still one request — returns **2,438**
+stations on this tariff at 50 kW and above, in Germany (1,952), Austria (301), Czechia (181)
+and Italy (4), and nowhere else. They span **45.6035–54.8756°N, 6.0129–18.6677°E**.
+
+The old scan box was 45.7–55.1 x 5.8–17.2, labelled "Germany + Austria + northern Italy",
+and it silently dropped 31 of them: 30 across eastern Czechia — Ostrava, Olomouc, Zlín,
+Havířov, out to 18.67°E — and the 400 kW, 16-point hub at Trezzo sull'Adda near Milan, at
+45.60°N, a tenth of a degree below the southern edge. Czechia was not an oversight of scope;
+151 Czech stations were already in the shipped list. The box just stopped partway through the
+country, and nothing in the build could notice, because a bounding box has no idea what lies
+outside it.
+
+`DEFAULT_ROOT` is now 45.0–55.6 x 5.0–19.5, clearing the real network by 0.6°–1.0° on every
+side. Widening costs one detail lookup per newly found station and nothing else — the scan is
+a single request whatever the box is — so there is no reason to run it close to the edge.
 
 ## Route alternatives
 
@@ -536,12 +569,29 @@ The geometry goes to the map exactly as Mapbox returned it. The previous static-
 to be Douglas–Peucker-simplified until the URL fit a character budget; a GL map has no such budget,
 so there is no display simplification left to reason about.
 
-**Detour is re-baselined onto the selected route.** `t_direct` from the Matrix is the _fastest_
-path, so without correction every charger on a slower alternative inherits that route's whole
-penalty — pick the Jaufenpass and a charger sitting on the road you are driving would read
-`+22 min`. `routePenaltySeconds` subtracts it. This is approximate: it applies a `driving-traffic`
-delta to a `driving` baseline. It is exactly zero in the default case, where the fastest route is
-selected.
+### Detour is measured against the route point
+
+Each charger is priced against **the spot on the selected route it sits beside**, not against the
+whole journey. Both halves of the formula are the same trip asked twice — once ending at the
+charger, once at the road beside it — so what is left is the excursion.
+
+It used to be `T(origin→charger) + T(charger→dest) − T(origin→dest)`, which does not survive route
+alternatives. Both legs are _unconstrained_: Mapbox routes them however it likes, so they are the
+same numbers whichever alternative is selected, while `t_direct` is one fixed baseline. A charger
+on the stretch two alternatives **share** therefore priced differently depending on which one was
+selected — and since `maxDetourMinutes` hides rows above the cap, the same motorway station could
+appear on one alternative and vanish on the other.
+
+A re-baselining fudge (`routePenaltySeconds`, a whole-route constant subtracted when a slower
+alternative was selected) made that worse rather than better: on the shared stretch you are on the
+same metre of road either way, so no per-route constant can be right there. Anchoring on the route
+point removes the question — for a shared stretch the route point is literally the same coordinate
+on both alternatives, so the detour is identical by construction. The Jaufenpass case the constant
+was there to fix works too: a charger on the pass has its route point on the pass, so the pass
+costs it nothing.
+
+It doubles the Matrix cost, because each charger now spends a coordinate slot on its route point:
+12 chargers per request instead of 23, and `4k` elements for `k` chargers instead of `~2k`.
 
 ## Filters
 
@@ -612,7 +662,7 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
   truncation the failure mode to worry about. `maxResults` caps the answer without saying so,
   so the script refuses to write a file whose station count reached the cap, or that came back
   with any cluster placeholder at all. It prints its station count either way.
-- **Only the EnBW network, and only its fast half** — 2,400 stations at 50 kW or above.
+- **Only the EnBW network, and only its fast half** — 2,438 stations at 50 kW or above.
   The roaming network your card also works at is
   roughly 311,000 charge points in Germany alone, far too large to ship, and the tariff filter is
   what makes the EnBW slice cheap to enumerate in the first place. There is no widen-search escape
@@ -642,9 +692,10 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
   geometry estimate answers the same question closely enough to judge a stop by.
 
   Because the list is in route order, those 20 are exactly the next 20 you will reach. Raising
-  `ENRICHED_LIMIT` in `src/search/useRouteSearch.ts` is cheap: Mapbox bills per
-  _element_ and the chunking sends `2k+1` elements for `k` chargers, so 20 chargers is 41 elements
-  per search — roughly 2,400 searches inside the 100,000-element monthly free tier.
+  `ENRICHED_LIMIT` in `src/search/useRouteSearch.ts` is cheap: Mapbox bills per _element_ and the
+  chunking sends `4k` elements for `k` chargers — the charger and its route point, each measured
+  from the origin and on to the destination. At today's limit of 45 that is 180 elements per
+  search, roughly 550 searches inside the 100,000-element monthly free tier.
 
 - **Detour uses the `driving` profile**, not `driving-traffic`, because the traffic profile caps
   matrix requests at 10 coordinates instead of 25. The headline route ETA is traffic-aware; the

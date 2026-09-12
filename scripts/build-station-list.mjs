@@ -104,8 +104,29 @@ const MAX_RETRIES = 8
 /** Floor for the pause after a 429, when the server sends no Retry-After. */
 const RATE_LIMIT_BACKOFF_MS = 5_000
 
-/** Germany + Austria + northern Italy. */
-const DEFAULT_ROOT = { fromLat: 45.7, toLat: 55.1, fromLon: 5.8, toLon: 17.2 }
+/**
+ * The area to ask about: Germany, Austria, Czechia and northern Italy, with
+ * room to spare on every edge.
+ *
+ * The margin is the point. This box used to be 45.7–55.1 x 5.8–17.2, described
+ * as "Germany + Austria + northern Italy", and it silently cut 31 stations off
+ * the list: 30 in eastern Czechia — Ostrava, Olomouc, Zlín, Havířov — which sit
+ * out to 18.67°E, and the 400 kW, 16-point hub at Trezzo sull'Adda, which sits
+ * at 45.60°N, just below the old southern edge. Czechia was never a stretch
+ * goal that got clipped; 151 Czech stations were already in the shipped list.
+ * The box simply stopped partway through the country.
+ *
+ * Measured against a query for the whole planet, which is the only way to know
+ * what "outside" even contains: 2,438 stations exist on this tariff at
+ * >= 50 kW, in DE (1,952), AT (301), CZ (181) and IT (4), and nowhere else.
+ * They span 45.6035–54.8756°N and 6.0129–18.6677°E. The bounds below clear
+ * that on all four sides by 0.6°–1.0°, roughly 60–110 km.
+ *
+ * Widening costs one thing only: a detail lookup for each station it newly
+ * finds. The scan itself is a single request whatever the box is, so there is
+ * no reason to run this close to the edge of the network.
+ */
+const DEFAULT_ROOT = { fromLat: 45.0, toLat: 55.6, fromLon: 5.0, toLon: 19.5 }
 
 function parseArgs(argv) {
   const args = { out: 'public/stations.enbw.json', root: DEFAULT_ROOT }
@@ -522,6 +543,8 @@ async function main() {
       'operator',
       'location',
     ],
+    // Sorted by id, so the row order is the same on every rebuild and a diff
+    // shows what actually changed rather than a reshuffle.
     stations: enbw
       .map((s, i) => [
         s.stationId,
@@ -536,10 +559,17 @@ async function main() {
       .sort((a, b) => a[0] - b[0]),
   }
 
+  // Indented rather than minified: this file is committed, so a rebuild has to
+  // be reviewable in a diff rather than landing as one changed line 300 KB
+  // long. Measured cost at 2,438 stations: 294 KB -> 445 KB on disk, but only
+  // 97 KB -> 104 KB gzipped, which is what the phone actually downloads.
+  //
+  // Row order is the other half of this; see the sort above.
+  const text = JSON.stringify(payload, null, 2)
   await mkdir(dirname(out), { recursive: true })
-  await writeFile(out, JSON.stringify(payload))
+  await writeFile(out, text)
 
-  const bytes = Buffer.byteLength(JSON.stringify(payload))
+  const bytes = Buffer.byteLength(text)
   console.log(
     `\n  ${requestCount} requests in ${((Date.now() - started) / 1000).toFixed(1)}s\n` +
       `  ${stations.length} stations queried, ${enbw.length} on the EnBW tariff\n` +
