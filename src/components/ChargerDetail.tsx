@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { Charger, ChargerOnRoute } from '../core/types'
 import { navigationUrl, type MapsApp } from '../nav/deepLinks'
 import type { RouteOption } from '../services/mapbox/directions'
+import { TEXT_TONE, availabilityState } from './availability'
 import { describeGroup, groupChargePoints } from './chargePointGroups'
 import { Fact } from './Fact'
 import { distanceOrEstimate, formatDuration, formatPower } from './format'
@@ -119,6 +120,5 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Pr
   )
 }
 
-/** Same three states the station badge colours by: unknown, none, some. */
-const freeTone = (free: number | null): string =>
-  free == null ? 'text-slate-500' : free === 0 ? 'text-rose-400' : 'text-emerald-400'
+/** The same states the station's badge and its map dot colour by. */
+const freeTone = (free: number | null): string => TEXT_TONE[availabilityState(free)]

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Charger, ChargerOnRoute } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
+import { DOT_COLOUR } from './availability'
 import { chargerFeatures, framingKey, routeFeatures } from './mapFeatures'
-import { CHARGER_BUSY, CHARGER_FREE, CHARGER_UNKNOWN, SELECTED_STROKE } from './routeColours'
+import { SELECTED_STROKE } from './routeColours'
 
 const option = (id: string, coordinates: [number, number][]): RouteOption => {
   const distances = Array(Math.max(0, coordinates.length - 1)).fill(1_000)
@@ -94,10 +95,13 @@ describe('chargerFeatures', () => {
   })
 
   it('keeps "no live data" visually distinct from "none free"', () => {
-    const colours = chargerFeatures([onRoute(2), onRoute(0), onRoute(null)]).features.map(
-      (f) => f.properties!.colour,
-    )
-    expect(colours).toEqual([CHARGER_FREE, CHARGER_BUSY, CHARGER_UNKNOWN])
+    const colours = chargerFeatures([
+      onRoute(2),
+      onRoute(1),
+      onRoute(0),
+      onRoute(null),
+    ]).features.map((f) => f.properties!.colour)
+    expect(colours).toEqual([DOT_COLOUR.free, DOT_COLOUR.low, DOT_COLOUR.none, DOT_COLOUR.unknown])
   })
 
   it('carries the charger id, so a tap on a dot can name its row', () => {

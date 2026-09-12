@@ -2,6 +2,7 @@ import type { ChargerOnRoute } from '../core/types'
 import type { MapsApp } from '../nav/deepLinks'
 import { useChargerDetail } from '../search/useChargerDetail'
 import type { RouteOption } from '../services/mapbox/directions'
+import { BADGE_TONE, availabilityState } from './availability'
 import { ChargerDetail } from './ChargerDetail'
 import { Fact } from './Fact'
 import {
@@ -192,14 +193,7 @@ export function AvailabilityBadge({
   total: number
   refreshing?: boolean
 }) {
-  const tone =
-    available == null
-      ? 'bg-slate-800 text-slate-400'
-      : available === 0
-        ? 'bg-rose-950 text-rose-300 font-semibold'
-        : available <= 1
-          ? 'bg-amber-950 text-amber-300 font-semibold'
-          : 'bg-emerald-950 text-emerald-300 font-semibold'
+  const tone = BADGE_TONE[availabilityState(available)]
   return (
     <span
       className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm ${tone}`}

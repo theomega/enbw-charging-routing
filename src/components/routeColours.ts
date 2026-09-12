@@ -28,12 +28,3 @@ export function strokeColours(layers: readonly { selected: boolean }[]): string[
       : ALTERNATIVE_STROKES[alternative++ % ALTERNATIVE_STROKES.length],
   )
 }
-
-/**
- * Charger dots carry the same three states as the list's availability badge.
- * `null` means the provider has no live data at all, which is a different
- * statement from "zero free" — never render the two the same way.
- */
-export const CHARGER_FREE = '#34d399'
-export const CHARGER_BUSY = '#fbbf24'
-export const CHARGER_UNKNOWN = '#94a3b8'

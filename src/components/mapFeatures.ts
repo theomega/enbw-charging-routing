@@ -1,7 +1,8 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson'
 import type { ChargerOnRoute } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
-import { CHARGER_BUSY, CHARGER_FREE, CHARGER_UNKNOWN, strokeColours } from './routeColours'
+import { DOT_COLOUR, availabilityState } from './availability'
+import { strokeColours } from './routeColours'
 
 /**
  * What the map is asked to draw, as plain GeoJSON.
@@ -58,13 +59,9 @@ export function chargerFeatures(chargers: ChargerOnRoute[]): FeatureCollection<P
   }
 }
 
-/** The same three states as the list's availability badge, in colour. */
+/** The same states as the list's availability badge, in the shared palette. */
 const dotColour = ({ charger }: ChargerOnRoute): string =>
-  charger.availablePoints == null
-    ? CHARGER_UNKNOWN
-    : charger.availablePoints > 0
-      ? CHARGER_FREE
-      : CHARGER_BUSY
+  DOT_COLOUR[availabilityState(charger.availablePoints)]
 
 /**
  * Identifies the set of routes on screen, so the view is framed once per set.
