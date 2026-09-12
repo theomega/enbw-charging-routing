@@ -2,13 +2,19 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <meta name="theme-color" content="#0b1220" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!--
+      Deliberately not `black-translucent` together with `viewport-fit=cover`.
+      That pair lets the web view draw under the notch, and iOS lays `fixed` and
+      `sticky` elements out against the viewport rather than against the padded
+      body — so every pinned header ended up under the status bar once the app
+      was installed to the home screen, including the one carrying "Zurück".
+      Letting iOS reserve the status bar itself keeps the safe-area insets at
+      zero and no layout code has to know about notches.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Ladestopp" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Ladestopp — ENBW</title>
