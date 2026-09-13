@@ -1,13 +1,13 @@
 {
   "version": 4,
-  "generatedAt": "2026-09-12T13:27:29.660Z",
+  "generatedAt": "2026-09-13T13:28:10.035Z",
   "bbox": {
     "fromLat": 45,
     "toLat": 55.6,
     "fromLon": 5,
     "toLon": 19.5
   },
-  "count": 2438,
+  "count": 2436,
   "minPowerKw": 50,
   "fields": [
     "stationId",
@@ -81,16 +81,6 @@
       "Hub BILLA Wiener Neustadt Gerasdorfergasse"
     ],
     [
-      89180,
-      48.16651,
-      16.41134,
-      400,
-      "Swatoschgasse 3, 1110 Wien, AT",
-      10,
-      "SMATRICS",
-      "BILLA PLUS Wien Swatoschgasse"
-    ],
-    [
       89187,
       48.09402,
       16.28242,
@@ -112,8 +102,8 @@
     ],
     [
       89523,
-      48.20574,
-      8.62076,
+      48.20584,
+      8.6208,
       150,
       "A81, Raststätte Neckarburg West, 78661 Dietingen, DE",
       4,
@@ -5712,7 +5702,7 @@
     ],
     [
       1156472,
-      51.47616,
+      51.47617,
       7.15331,
       300,
       "Vietingstr. 50, 44866 Bochum, DE",
@@ -8942,8 +8932,8 @@
     ],
     [
       1157003,
-      47.59862,
-      7.60336,
+      47.59874,
+      7.60327,
       100,
       "BAB5, Lustgartenstr. 5, 79576 Weil am Rhein, DE",
       4,
@@ -23391,16 +23381,6 @@
       "METRO Brandenburg an der Havel, Caasmannstraße"
     ],
     [
-      3057329,
-      48.01093,
-      13.92335,
-      50,
-      "Asamerstraße 1, 4655 Vorchdorf, AT",
-      2,
-      "SMATRICS",
-      "McDonald's Vorchdorf"
-    ],
-    [
       3057334,
       47.41027,
       13.21726,
@@ -23726,7 +23706,7 @@
       11.69783,
       300,
       "An der Leiten 13, 6134 Vomp, AT",
-      4,
+      5,
       "SMATRICS",
       "BILLA Vomp"
     ],
@@ -23822,8 +23802,8 @@
     ],
     [
       3067735,
-      48.18017,
-      14.06361,
+      48.18019,
+      14.0636,
       300,
       "Ginzkeystraße 27, 4600 Wels, AT",
       5,
@@ -24006,7 +23986,7 @@
       16.23931,
       300,
       "Flugfeldstraße 53, 2540 Bad Vöslau, AT",
-      4,
+      5,
       "SMATRICS",
       "BILLA Bad Vöslau"
     ],
@@ -24181,16 +24161,6 @@
       "Turmstrom Wien Breitenfurterstraße"
     ],
     [
-      3074866,
-      46.61181,
-      13.83974,
-      50,
-      "Völkendorfer Straße 1, 9500 Villach, AT",
-      2,
-      "SMATRICS",
-      "Villach"
-    ],
-    [
       3075505,
       47.08257,
       16.31078,
@@ -24351,26 +24321,6 @@
       "ENI Bergland"
     ],
     [
-      3090805,
-      47.29876,
-      12.79609,
-      400,
-      "Kitzsteinhornstraße 49, 5700 Zell am See, AT",
-      8,
-      "SMATRICS",
-      "Hub FMZ Zell am See"
-    ],
-    [
-      3091142,
-      46.83688,
-      14.83941,
-      50,
-      "Spanheimerstraße 32, 9400 Wolfsberg, AT",
-      2,
-      "SMATRICS",
-      "BILLA PLUS Wolfsberg"
-    ],
-    [
       3091164,
       48.21407,
       16.42134,
@@ -24391,7 +24341,27 @@
       "Turmstrom Linz Unionstraße 55"
     ],
     [
-      3093124,
+      3094118,
+      46.61181,
+      13.83974,
+      50,
+      "Völkendorfer Straße 1, 9500 Villach, AT",
+      2,
+      "SMATRICS",
+      "Villach"
+    ],
+    [
+      3097436,
+      47.29876,
+      12.79609,
+      400,
+      "Kitzsteinhornstraße 49, 5700 Zell am See, AT",
+      8,
+      "SMATRICS",
+      "Hub FMZ Zell am See"
+    ],
+    [
+      3099165,
       48.24197,
       14.29193,
       50,
@@ -24399,6 +24369,16 @@
       2,
       "SMATRICS",
       "ENI Linz Dallingerstraße"
+    ],
+    [
+      3099668,
+      48.01093,
+      13.92335,
+      50,
+      "Asamerstraße 1, 4655 Vorchdorf, AT",
+      2,
+      "SMATRICS",
+      "McDonald's Vorchdorf"
     ]
   ]
 }
