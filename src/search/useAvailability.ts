@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChargerOnRoute } from '../core/types'
 import { fetchAvailability, type LiveStation } from '../services/enbw/availability'
 
@@ -31,13 +31,27 @@ export interface LiveAvailability {
  * a driver pressing Refresh gets no evidence that anything happened at all.
  * Per-station arrival is what `pending` is for: each row can say it is being
  * re-read and stop saying so on its own answer, not on the slowest of 45.
+ *
+ * The lookup is keyed on *which* stations are wanted, not on the array holding
+ * them. That distinction is load-bearing: the candidate list is rebuilt on
+ * every GPS tick — its along-route figures count down as the driver approaches
+ * — and on every settings change, so an array-identity dependency would fan
+ * out 45 requests every fifty metres, and again for switching maps app. Only a
+ * change of membership is a reason to ask EnBW anything.
  */
 export function useAvailability(candidates: ChargerOnRoute[], nonce: number): LiveAvailability {
   const [live, setLive] = useState<Map<string, LiveStation>>(new Map())
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null)
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set())
 
+  // The effect's real input. Read through a ref so that rebuilding the array
+  // around the same stations is not a reason to re-fetch them.
+  const wanted = candidates.map((c) => c.charger.id).join(',')
+  const candidatesRef = useRef(candidates)
+  candidatesRef.current = candidates
+
   useEffect(() => {
+    const candidates = candidatesRef.current
     if (candidates.length === 0) return
 
     const controller = new AbortController()
@@ -90,7 +104,7 @@ export function useAvailability(candidates: ChargerOnRoute[], nonce: number): Li
       cancelled = true
       controller.abort()
     }
-  }, [candidates, nonce])
+  }, [wanted, nonce])
 
   return { live, fetchedAt, pending }
 }

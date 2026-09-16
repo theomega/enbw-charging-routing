@@ -10,6 +10,8 @@ const option = (id: string, coordinates: [number, number][]): RouteOption => {
   return {
     id,
     summary: `A${id}`,
+    uuid: null,
+    routeIndex: 0,
     route: {
       coordinates,
       distances,

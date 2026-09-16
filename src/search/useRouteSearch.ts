@@ -1,22 +1,31 @@
 import { useCallback, useMemo, useState } from 'react'
 import { DEFAULT_MAX_OFFSET_M } from '../core/corridor'
 import { applyLiveFilters, applyStaticFilters } from '../core/filters'
+import { aheadOfDriver, isOffRoute, remainingRoute, type RouteProgress } from '../core/progress'
 import type { ChargerOnRoute, LatLon, Place } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { useAppStore } from '../state/store'
 import { useAvailability } from './useAvailability'
 import { useCorridor } from './useCorridor'
 import { useDetours } from './useDetours'
+import { useRouteProgress } from './useRouteProgress'
 import { useRoutes } from './useRoutes'
+import { useSteppedOrigin } from './useSteppedOrigin'
 
 /**
  * The whole search, in one place and in reading order:
  *
- *   route  ->  place the shipped stations on it  ->  filter
- *          ->  enrich the visible rows (occupancy, detour)  ->  filter again
+ *   route  ->  place the shipped stations on it  ->  drop what is behind you
+ *          ->  filter  ->  enrich the visible rows  ->  filter again
  *
  * Each step is its own hook, so the expensive ones can be read, tested and
  * reasoned about separately; this file is the pipeline and nothing else.
+ *
+ * The route is fetched once per journey and never re-fetched as the driver
+ * moves (`useRoutes`). "Drop what is behind you" is therefore where the drive
+ * enters the pipeline: `useRouteProgress` projects the live position onto the
+ * fixed route, and `aheadOfDriver` both removes the stations already passed and
+ * re-measures the rest from the driver instead of from the route's start.
  */
 
 export type SearchStatus = 'idle' | 'routing' | 'placing' | 'pricing' | 'ready' | 'error'
@@ -34,10 +43,11 @@ export type SearchStatus = 'idle' | 'routing' | 'placing' | 'pricing' | 'ready' 
  * Detour is far cheaper: two Mapbox Matrix requests per 12 rows, so 45 rows
  * cost eight.
  *
- * Because the list is in route order, these are exactly the next 45 stations
- * you will reach. That matters more than it sounds: the shipped list is dense
- * around cities, so a smaller limit is spent entirely on the town you are
- * leaving and never reaches the motorway you will actually charge on.
+ * Because the list is in route order and starts at the driver, these are
+ * exactly the next 45 stations they will reach. That matters more than it
+ * sounds: the shipped list is dense around cities, so a smaller limit is spent
+ * entirely on the town being left and never reaches the motorway the driver
+ * will actually charge on.
  */
 export const ENRICHED_LIMIT = 45
 
@@ -47,13 +57,26 @@ export interface RouteSearch {
   /** Every way Mapbox will get you there; often just one. */
   routes: RouteOption[]
   selected: RouteOption | null
-  /**
-   * The origin the routes and every along-route figure were actually measured
-   * from. It lags live GPS by up to `ROUTE_REFRESH_DISTANCE_M`, so anything
-   * rendered as "from you" must say which of the two it means.
-   */
-  anchor: LatLon | null
   selectRoute: (id: string) => void
+  /**
+   * Where the driver is on the selected route. Null before the first fix or
+   * before a route exists.
+   */
+  progress: RouteProgress | null
+  /**
+   * What is left of the journey from the driver's position — not the route's
+   * totals, which are measured from wherever it was built.
+   */
+  remaining: { distanceM: number; durationS: number } | null
+  /**
+   * The driver is far enough off the line that the route no longer describes
+   * the drive. Never acted on automatically: driving to a charger is a
+   * deviation too, and re-routing under a driver standing at one would empty
+   * the list they are reading.
+   */
+  offRoute: boolean
+  /** Route again from the live position. What the deviation offer calls. */
+  reroute: () => void
   results: ChargerOnRoute[]
   /**
    * The rows the pipeline looks up live data for — the first `ENRICHED_LIMIT`.
@@ -62,10 +85,10 @@ export interface RouteSearch {
    * spend a second request on the station already in flight.
    */
   enrichedIds: ReadonlySet<string>
-  /** Corridor chargers before the power filter, for the "widen" hint. */
+  /** Stations ahead before the power filter, for the "widen" hint. */
   unfilteredCount: number
   /** 0..1 while the corridor is being placed, null otherwise. */
-  progress: number | null
+  progressFraction: number | null
   fetchedAt: Date | null
   /**
    * Rows whose occupancy lookup is in flight. They still carry their last
@@ -73,7 +96,12 @@ export interface RouteSearch {
    * as unknown.
    */
   refreshingIds: ReadonlySet<string>
-  /** Re-fetch occupancy only. Never re-routes and never reloads the list. */
+  /**
+   * Re-read what changes with time: occupancy, and the route's traffic. Never
+   * re-routes — `directionsRefresh` replaces the annotations on the route we
+   * already have — so the driver's chosen alternative and the station list both
+   * survive it.
+   */
   refresh: () => void
   /**
    * Bumped by `refresh`. Rows outside `enrichedIds` hold their own live record
@@ -83,7 +111,7 @@ export interface RouteSearch {
   refreshNonce: number
 }
 
-export function useRouteSearch(origin: LatLon | null, destination: Place | null): RouteSearch {
+export function useRouteSearch(position: LatLon | null, destination: Place | null): RouteSearch {
   const settings = useAppStore((s) => s.settings)
   const [nonce, setNonce] = useState(0)
 
@@ -91,26 +119,41 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
     routes,
     selected,
     selectRoute,
-    anchor,
     loading: routing,
     error: routeError,
-  } = useRoutes(origin, destination)
+    reroute,
+    refreshTraffic,
+  } = useRoutes(position, destination)
 
+  const progress = useRouteProgress(selected, position)
   const corridor = useCorridor(selected, DEFAULT_MAX_OFFSET_M)
 
-  // Filtering is derived, so toggling a setting is instant and free.
-  const filtered = useMemo(
-    () => applyStaticFilters(corridor.placed, settings),
-    [corridor.placed, settings],
+  // Where the drive enters the pipeline. Before the power filter, so the
+  // "widen your filters" hint counts stations that are actually still ahead.
+  const ahead = useMemo(
+    () =>
+      progress && position ? aheadOfDriver(corridor.placed, progress, position) : corridor.placed,
+    [corridor.placed, progress, position],
   )
 
-  // Memoised, not sliced inline: these arrays are effect inputs, and a fresh
-  // identity every render would re-fetch occupancy forever.
+  // Filtering is derived, so toggling a setting is instant and free.
+  const filtered = useMemo(() => applyStaticFilters(ahead, settings), [ahead, settings])
+
   const enriched = useMemo(() => filtered.slice(0, ENRICHED_LIMIT), [filtered])
   const enrichedIds = useMemo(() => new Set(enriched.map((c) => c.charger.id)), [enriched])
 
   const { live, fetchedAt, pending } = useAvailability(enriched, nonce)
-  const { detours, pricing } = useDetours(anchor, destination, selected, filtered, ENRICHED_LIMIT)
+
+  // Stepped, not live: `detourCacheKey` rounds an origin to ~111 m, so pricing
+  // from the live position would miss the cache every hundred metres.
+  const matrixOrigin = useSteppedOrigin(position)
+  const { detours, pricing } = useDetours(
+    matrixOrigin,
+    destination,
+    selected,
+    filtered,
+    ENRICHED_LIMIT,
+  )
 
   const results = useMemo(() => {
     const merged = filtered.map((c) => {
@@ -133,14 +176,15 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
     return applyLiveFilters(merged, settings)
   }, [filtered, live, detours, settings])
 
-  // Only occupancy is refreshed. The route and the station list are unchanged,
-  // and re-fetching either would spend Mapbox quota for nothing.
-  const refresh = useCallback(() => setNonce((n) => n + 1), [])
+  const refresh = useCallback(() => {
+    setNonce((n) => n + 1)
+    refreshTraffic()
+  }, [refreshTraffic])
 
   const error = routeError ?? corridor.error
   const status: SearchStatus = error
     ? 'error'
-    : !origin || !destination
+    : !position || !destination
       ? 'idle'
       : routing
         ? 'routing'
@@ -156,11 +200,15 @@ export function useRouteSearch(origin: LatLon | null, destination: Place | null)
     routes,
     selected,
     selectRoute,
-    anchor,
+    progress,
+    remaining: selected && progress ? remainingRoute(selected.route, progress) : null,
+    // Only meaningful once a route exists and is not being replaced.
+    offRoute: !!progress && !routing && !!selected && isOffRoute(progress),
+    reroute,
     results,
     enrichedIds,
-    unfilteredCount: corridor.placed.length,
-    progress: corridor.progress,
+    unfilteredCount: ahead.length,
+    progressFraction: corridor.progress,
     fetchedAt,
     refreshingIds: pending,
     refresh,

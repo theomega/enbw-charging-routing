@@ -22,9 +22,16 @@ export interface PricedDetours {
  *
  * As with availability, a failure is logged rather than surfaced — the list is
  * still useful with "—" in the detour column.
+ *
+ * Keyed on *which* stations are wanted rather than on the array holding them,
+ * for the reason `useAvailability` is: the candidate list is rebuilt on every
+ * GPS tick as its along-route figures count down, and re-running this per tick
+ * would churn through the cache and `setDetours` several times a minute for
+ * numbers that never changed. The origin is `useSteppedOrigin`, which is what
+ * actually decides when a re-price is due.
  */
 export function useDetours(
-  anchor: LatLon | null,
+  origin: LatLon | null,
   destination: Place | null,
   selected: RouteOption | null,
   candidates: ChargerOnRoute[],
@@ -34,9 +41,18 @@ export function useDetours(
   const [pricing, setPricing] = useState(false)
   const cache = useRef(new DetourCache())
 
+  // The effect's real inputs; see the note above.
+  const membership = candidates
+    .slice(0, limit)
+    .map((c) => c.charger.id)
+    .join(',')
+  const candidatesRef = useRef(candidates)
+  candidatesRef.current = candidates
+
   useEffect(() => {
+    const candidates = candidatesRef.current
     const dest = destination ? { lat: destination.lat, lon: destination.lon } : null
-    if (!anchor || !dest || candidates.length === 0) return
+    if (!origin || !dest || candidates.length === 0) return
 
     const wanted = candidates.slice(0, limit)
     // Each candidate carries the route point it was placed against, so the
@@ -48,7 +64,7 @@ export function useDetours(
     const hits: Record<string, Pricing> = {}
     const missing = wanted.filter((c) => {
       const key = keyOf(c.charger.id)
-      const cached = cache.current.get(anchor, dest, key)
+      const cached = cache.current.get(origin, dest, key)
       if (!cached) return true
       hits[c.charger.id] = cached
       return false
@@ -63,7 +79,7 @@ export function useDetours(
     void (async () => {
       try {
         setPricing(true)
-        const priced = await priceDetours(anchor, dest, missing, {
+        const priced = await priceDetours(origin, dest, missing, {
           matrix: fetchMatrix,
           limit: missing.length,
           signal: controller.signal,
@@ -82,7 +98,7 @@ export function useDetours(
               fromChargerS: null,
             },
           }
-          cache.current.set(anchor, dest, keyOf(p.charger.id), entry)
+          cache.current.set(origin, dest, keyOf(p.charger.id), entry)
           next[p.charger.id] = entry
         }
         setDetours((d) => ({ ...d, ...next }))
@@ -98,7 +114,7 @@ export function useDetours(
       cancelled = true
       controller.abort()
     }
-  }, [anchor, destination, selected, candidates, limit])
+  }, [origin, destination, selected, membership, limit])
 
   return { detours, pricing }
 }

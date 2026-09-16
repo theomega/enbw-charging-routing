@@ -15,6 +15,17 @@ interface Props {
   /** Tapping a charger dot opens that charger's row in the list below. */
   onSelectCharger?: (chargerId: string) => void
   position: LatLon | null
+  /**
+   * How far the driver has already come along the selected route, subtracted
+   * from every alternative's total so the rows read as what is left rather than
+   * as what the whole journey was.
+   *
+   * One figure for all of them, which is both simpler and right: the
+   * alternatives share the trunk the driver is on, and subtracting a constant
+   * leaves the deltas between them exact.
+   */
+  drivenM?: number
+  drivenS?: number
 }
 
 /**
@@ -42,6 +53,8 @@ export function RoutePicker({
   chargers,
   onSelectCharger,
   position,
+  drivenM = 0,
+  drivenS = 0,
 }: Props) {
   if (routes.length === 0 || !selected) return null
 
@@ -89,6 +102,8 @@ export function RoutePicker({
               // With a single route there is nothing to choose, so the row is a
               // caption rather than a picker pretending otherwise.
               showLegend={routes.length > 1}
+              drivenM={drivenM}
+              drivenS={drivenS}
               onSelect={() => onSelect(option.id)}
             />
           </li>
@@ -104,6 +119,8 @@ function RouteRow({
   colour,
   isSelected,
   showLegend,
+  drivenM,
+  drivenS,
   onSelect,
 }: {
   option: RouteOption
@@ -112,8 +129,12 @@ function RouteRow({
   colour: string
   isSelected: boolean
   showLegend: boolean
+  drivenM: number
+  drivenS: number
   onSelect: () => void
 }) {
+  // Off the full totals, not the remaining ones: the gap between two
+  // alternatives is what this reports, and a shared constant cancels out of it.
   const delta = option.route.totalDurationS - fastest.route.totalDurationS
 
   return (
@@ -139,8 +160,8 @@ function RouteRow({
           {option.summary ? `via ${option.summary}` : 'Route'}
         </span>
         <span className="block text-xs text-slate-400">
-          {formatDuration(option.route.totalDurationS)} ·{' '}
-          {formatDistance(option.route.totalDistanceM)}
+          {formatDuration(Math.max(0, option.route.totalDurationS - drivenS))} ·{' '}
+          {formatDistance(Math.max(0, option.route.totalDistanceM - drivenM))}
         </span>
       </span>
 

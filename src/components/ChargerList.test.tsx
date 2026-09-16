@@ -71,6 +71,8 @@ const listProps = (over: Record<string, unknown> = {}) => ({
   expandedId: null,
   onToggle: () => {},
   route: null,
+  remainingDistanceM: 400_000,
+  drivenM: 0,
   // Row 46 is outside the pipeline's reach, exactly like the real case.
   enrichedIds: new Set(['enbw:1']),
   refreshingIds: new Set<string>(),
@@ -151,5 +153,112 @@ describe('ChargerList refresh of a row past ENRICHED_LIMIT', () => {
 
     await act(async () => release())
     await waitFor(() => expect(screen.getByText('2/4 frei')).toBeTruthy())
+  })
+})
+
+/**
+ * jsdom implements no layout, so the anchor has to be given one. Every row div
+ * — a classless direct child of the list container — is placed on a fake
+ * `ROW_H` grid in render order and offset by the stubbed scroll position,
+ * which is exactly the geometry the correction reasons about.
+ */
+const ROW_H = 200
+
+const isRow = (el: Element): boolean =>
+  el.tagName === 'DIV' && el.className === '' && !!el.parentElement?.className.includes('space-y-3')
+
+function fakeLayout(scrollY: number) {
+  Object.defineProperty(window, 'scrollY', { value: scrollY, configurable: true, writable: true })
+  Element.prototype.getBoundingClientRect = function (this: Element) {
+    if (!isRow(this)) return { top: 0, bottom: 0, height: 0 } as DOMRect
+    const index = Array.prototype.indexOf.call(this.parentElement!.children, this)
+    const top = index * ROW_H - scrollY
+    return { top, bottom: top + ROW_H, height: ROW_H } as DOMRect
+  }
+}
+
+describe('ChargerList while the list is rebuilt', () => {
+  const original = Element.prototype.getBoundingClientRect
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = original
+  })
+
+  it('keeps the rows it has instead of replacing them with skeletons', () => {
+    render(<ChargerList {...listProps({ status: 'placing', progress: 0.4 })} />)
+    expect(screen.getByText('Station 1')).toBeTruthy()
+    expect(screen.queryByRole('progressbar')).toBeNull()
+  })
+
+  it('still shows skeletons on the first load, where there is nothing to keep', () => {
+    render(<ChargerList {...listProps({ status: 'placing', progress: 0.4, results: [] })} />)
+    expect(screen.getByRole('progressbar')).toBeTruthy()
+    expect(screen.queryByText('Station 1')).toBeNull()
+  })
+
+  /**
+   * The reported bug. Two stations drop off the front because the car passed
+   * them, and the station the driver was reading must stay where it is on
+   * screen rather than sliding up by their combined height.
+   */
+  it('holds the station being read when passed ones drop off the front', () => {
+    const scrollBy = vi.fn()
+    vi.stubGlobal('scrollBy', scrollBy)
+    fakeLayout(450)
+
+    const all = [row(1), row(2), row(3), row(4), row(5)]
+    const { rerender } = render(<ChargerList {...listProps({ results: all, drivenM: 0 })} />)
+
+    // Station 3 is the topmost row still visible, sitting 50 px above the fold.
+    rerender(<ChargerList {...listProps({ results: all.slice(2), drivenM: 2_000 })} />)
+
+    // It is now the first row, so the page must scroll up by the two rows that
+    // left — anything else moves it under the driver's eye.
+    expect(scrollBy).toHaveBeenCalledWith(0, -2 * ROW_H)
+  })
+
+  it('does not correct when the list changed for a reason other than driving', () => {
+    const scrollBy = vi.fn()
+    vi.stubGlobal('scrollBy', scrollBy)
+    fakeLayout(450)
+
+    const all = [row(1), row(2), row(3), row(4), row(5)]
+    const { rerender } = render(<ChargerList {...listProps({ results: all, drivenM: 0 })} />)
+
+    // A tightened power filter: same driver position, fewer rows. The driver
+    // just changed what the list is and is looking for it from the top.
+    rerender(<ChargerList {...listProps({ results: all.slice(2), drivenM: 0 })} />)
+
+    expect(scrollBy).not.toHaveBeenCalled()
+  })
+
+  it('goes to the top when the station being read is gone', () => {
+    const scrollTo = vi.fn()
+    vi.stubGlobal('scrollTo', scrollTo)
+    vi.stubGlobal('scrollBy', vi.fn())
+    fakeLayout(450)
+
+    const all = [row(1), row(2), row(3), row(4), row(5)]
+    const { rerender } = render(<ChargerList {...listProps({ results: all, drivenM: 0 })} />)
+
+    // Station 3 was the anchor; the driver is now past it and out of its grace.
+    rerender(<ChargerList {...listProps({ results: all.slice(3), drivenM: 4_000 })} />)
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('leaves a list already at the top alone', () => {
+    const scrollBy = vi.fn()
+    const scrollTo = vi.fn()
+    vi.stubGlobal('scrollBy', scrollBy)
+    vi.stubGlobal('scrollTo', scrollTo)
+    fakeLayout(0)
+
+    const all = [row(1), row(2), row(3)]
+    const { rerender } = render(<ChargerList {...listProps({ results: all, drivenM: 0 })} />)
+    rerender(<ChargerList {...listProps({ results: all.slice(1), drivenM: 2_000 })} />)
+
+    expect(scrollBy).not.toHaveBeenCalled()
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 })

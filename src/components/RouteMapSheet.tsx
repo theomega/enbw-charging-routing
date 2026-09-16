@@ -20,6 +20,8 @@ export function RouteMapSheet({
   chargers,
   onSelectCharger,
   position,
+  drivenM = 0,
+  drivenS = 0,
   onClose,
 }: {
   option: RouteOption
@@ -27,6 +29,9 @@ export function RouteMapSheet({
   /** Tapping a charger dot closes this sheet and opens that charger's row. */
   onSelectCharger?: (chargerId: string) => void
   position: LatLon | null
+  /** Already driven along this route, so the caption reads as what is left. */
+  drivenM?: number
+  drivenS?: number
   onClose: () => void
 }) {
   return (
@@ -37,8 +42,8 @@ export function RouteMapSheet({
             {option.summary ? `via ${option.summary}` : 'Route'}
           </h1>
           <p className="text-sm text-slate-400">
-            {formatDuration(option.route.totalDurationS)} ·{' '}
-            {formatDistance(option.route.totalDistanceM)}
+            {formatDuration(Math.max(0, option.route.totalDurationS - drivenS))} ·{' '}
+            {formatDistance(Math.max(0, option.route.totalDistanceM - drivenM))}
           </p>
         </div>
         <button onClick={onClose} className="shrink-0 text-sm font-medium text-emerald-400">

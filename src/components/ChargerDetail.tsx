@@ -18,6 +18,8 @@ interface Props {
   /** True while the card's own lookup for this station is in flight. */
   loading: boolean
   route: RouteOption | null
+  /** What is left of the journey from the driver; see core/progress.ts. */
+  remainingDistanceM: number
   mapsApp: MapsApp
   /** DOM id the card's disclosure button points at. */
   id: string
@@ -26,7 +28,16 @@ interface Props {
 }
 
 /** One charger, in full: only what the card's header and summary row cannot show. */
-export function ChargerDetail({ item, charger, loading, route, mapsApp, id, minPowerKw }: Props) {
+export function ChargerDetail({
+  item,
+  charger,
+  loading,
+  route,
+  remainingDistanceM,
+  mapsApp,
+  id,
+  minPowerKw,
+}: Props) {
   // Effect inputs inside RouteMap: a fresh array each render would push the
   // whole route geometry back into the GL source every time.
   const mapRoutes = useMemo(() => (route ? [route] : []), [route])
@@ -59,11 +70,10 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id, minP
     .reduce((n, { group }) => n + group.count, 0)
 
   const legs = item.legs
-  const total = route?.route.totalDistanceM ?? 0
 
   const remaining = distanceOrEstimate(
     legs?.fromChargerM,
-    total > 0 ? Math.max(0, total - item.alongDistanceM) : null,
+    remainingDistanceM > 0 ? Math.max(0, remainingDistanceM - item.alongDistanceM) : null,
   )
 
   // No route means no estimate either, and the note would caption an em dash.

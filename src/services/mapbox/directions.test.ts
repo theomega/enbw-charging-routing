@@ -13,6 +13,11 @@ describe('buildDirectionsUrl', () => {
     expect(url.searchParams.get('geometries')).toBe('geojson')
   })
 
+  it('opts the response into being refreshable later', () => {
+    const url = new URL(buildDirectionsUrl(origin, destination, 'pk.test'))
+    expect(url.searchParams.get('enable_refresh')).toBe('true')
+  })
+
   it('uses the traffic profile and lon,lat ordering', () => {
     const url = buildDirectionsUrl(origin, destination, 'pk.test')
     expect(url).toContain('/mapbox/driving-traffic/')
@@ -75,6 +80,32 @@ describe('mapDirectionsRoutes', () => {
       routes: [route(1_150_000, 45_000, 'A22'), route(1_121_000, 46_320, 'SS44')],
     })
     expect(again.map((r) => r.id)).toEqual(out.map((r) => r.id))
+  })
+
+  it('identifies a route by response uuid and index, which survives a refresh', () => {
+    const body = {
+      uuid: '9d0e',
+      routes: [route(1_150_000, 45_000, 'A22'), route(1_121_000, 46_320, 'SS44')],
+    }
+    const out = mapDirectionsRoutes(body)
+    expect(out.map((r) => r.id)).toEqual(['9d0e-0', '9d0e-1'])
+    expect(out.map((r) => r.uuid)).toEqual(['9d0e', '9d0e'])
+    expect(out.map((r) => r.routeIndex)).toEqual([0, 1])
+  })
+
+  it('does not fold the duration into the id, which a traffic refresh changes', () => {
+    const [before] = mapDirectionsRoutes({
+      uuid: '9d0e',
+      routes: [route(1_150_000, 45_000, 'A22')],
+    })
+    const [after] = mapDirectionsRoutes({ uuid: '9d0e', routes: [route(1_150_000, 61_000, 'A22')] })
+    expect(after.id).toBe(before.id)
+  })
+
+  it('falls back to a content-derived id when Mapbox returns no uuid', () => {
+    const [option] = mapDirectionsRoutes({ routes: [route(73_000, 3_600, 'A8')] })
+    expect(option.uuid).toBeNull()
+    expect(option.id).toBe('0-73000-3600')
   })
 
   it('tolerates a missing summary rather than rendering "undefined"', () => {

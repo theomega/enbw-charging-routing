@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ChargerList } from './components/ChargerList'
 import { DestinationSearch } from './components/DestinationSearch'
 import { RouteMapSheet } from './components/RouteMapSheet'
@@ -35,6 +35,25 @@ export default function App() {
   } = useGeolocation()
   const search = useRouteSearch(position, destination)
   const refreshing = search.refreshingIds.size > 0
+
+  /**
+   * Dismissal of the deviation offer, so it can be waved away without
+   * re-routing. Reset whenever the driver is back on the line, so a later
+   * deviation is offered again rather than silently suppressed for the journey.
+   */
+  const [offRouteDismissed, setOffRouteDismissed] = useState(false)
+  useEffect(() => {
+    if (!search.offRoute) setOffRouteDismissed(false)
+  }, [search.offRoute])
+
+  // The open panel's station can leave the list — passed and out of its grace,
+  // or filtered out. Without this the panel simply disappears, taking the map
+  // and the navigate button with it and leaving no trace of why.
+  useEffect(() => {
+    if (!expandedId) return
+    if (search.results.some((item) => item.charger.id === expandedId)) return
+    setExpandedId(null)
+  }, [expandedId, search.results])
 
   const toggleCharger = useCallback(
     (chargerId: string) => setExpandedId((open) => (open === chargerId ? null : chargerId)),
@@ -93,10 +112,20 @@ export default function App() {
               onClick={() => setShowRouteMap(true)}
               className="flex min-w-0 items-center gap-1.5 text-left text-slate-400"
             >
+              {/*
+                What is left from here, not the route's own totals: the route is
+                built once per journey, so its totals are measured from wherever
+                the driver set off. See core/progress.ts.
+              */}
               <span className="truncate">
                 {search.selected.summary ? `via ${search.selected.summary} · ` : ''}
-                {formatDistance(search.selected.route.totalDistanceM)} ·{' '}
-                {formatDuration(search.selected.route.totalDurationS)}
+                {formatDistance(
+                  search.remaining?.distanceM ?? search.selected.route.totalDistanceM,
+                )}{' '}
+                ·{' '}
+                {formatDuration(
+                  search.remaining?.durationS ?? search.selected.route.totalDurationS,
+                )}
               </span>
               <ExpandIcon className="h-3.5 w-3.5 shrink-0" />
             </button>
@@ -131,6 +160,31 @@ export default function App() {
                 {refreshing ? <SpinnerIcon className="text-lg" /> : <RefreshIcon />}
               </button>
             </div>
+          </div>
+        )}
+
+        {/*
+          Offered, never taken automatically. Driving to a charger *is* leaving
+          the route, and recomputing under a driver standing at one would empty
+          the list they came to read. In the header rather than above the list
+          because an offer that scrolls out of sight is not an offer.
+        */}
+        {search.offRoute && !offRouteDismissed && (
+          <div className="flex items-center gap-2 border-t border-amber-900/50 bg-amber-950/60 px-4 py-2 text-xs">
+            <p className="min-w-0 flex-1 text-amber-200">Du fährst nicht mehr auf der Route.</p>
+            <button
+              onClick={search.reroute}
+              className="shrink-0 rounded-lg bg-amber-900 px-2.5 py-1.5 font-medium text-amber-100 ring-1 ring-amber-800"
+            >
+              Neu berechnen
+            </button>
+            <button
+              onClick={() => setOffRouteDismissed(true)}
+              aria-label="Hinweis ausblenden"
+              className="shrink-0 px-1.5 py-1.5 text-amber-400/80"
+            >
+              ✕
+            </button>
           </div>
         )}
       </header>
@@ -173,6 +227,8 @@ export default function App() {
           chargers={search.results}
           onSelectCharger={openCharger}
           position={position}
+          drivenM={search.progress?.alongDistanceM ?? 0}
+          drivenS={search.progress?.alongDurationS ?? 0}
         />
 
         {!destination && (
@@ -196,11 +252,15 @@ export default function App() {
             status={search.status}
             results={search.results}
             unfilteredCount={search.unfilteredCount}
-            progress={search.progress}
+            progress={search.progressFraction}
             error={search.error}
             expandedId={expandedId}
             onToggle={toggleCharger}
             route={search.selected}
+            remainingDistanceM={
+              search.remaining?.distanceM ?? search.selected?.route.totalDistanceM ?? 0
+            }
+            drivenM={search.progress?.alongDistanceM ?? 0}
             enrichedIds={search.enrichedIds}
             refreshingIds={search.refreshingIds}
             refreshNonce={search.refreshNonce}
@@ -225,6 +285,8 @@ export default function App() {
           chargers={search.results}
           onSelectCharger={openCharger}
           position={position}
+          drivenM={search.progress?.alongDistanceM ?? 0}
+          drivenS={search.progress?.alongDurationS ?? 0}
           onClose={() => setShowRouteMap(false)}
         />
       )}

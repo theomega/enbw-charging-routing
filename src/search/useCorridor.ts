@@ -21,8 +21,12 @@ export interface CorridorPlacement {
  * against 4,600 stations is a few hundred milliseconds on a phone — so it
  * reports progress and hands the main thread back as it goes.
  *
- * Results are cached per route id, so flipping between alternatives after the
- * first look is free.
+ * Results are cached per route *object*, so flipping between alternatives after
+ * the first look is free. Keyed on identity rather than on the route id, which
+ * is what makes a traffic refresh re-place: `directionsRefresh` hands back the
+ * same id with new per-segment times, and the along-route minutes baked into
+ * `placed` are computed from exactly those. An id-keyed cache would report the
+ * traffic of an hour ago for every station on the list.
  */
 export function useCorridor(
   selected: RouteOption | null,
@@ -33,7 +37,7 @@ export function useCorridor(
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const cache = useRef(new Map<string, ChargerOnRoute[]>())
+  const cache = useRef(new WeakMap<RouteOption, ChargerOnRoute[]>())
 
   useEffect(() => {
     if (!selected) {
@@ -43,7 +47,7 @@ export function useCorridor(
       return
     }
 
-    const cached = cache.current.get(selected.id)
+    const cached = cache.current.get(selected)
     if (cached) {
       setPlaced(cached)
       setProgress(null)
@@ -72,7 +76,7 @@ export function useCorridor(
         })
         if (cancelled) return
 
-        cache.current.set(selected.id, next)
+        cache.current.set(selected, next)
         setPlaced(next)
       } catch (err) {
         if (cancelled || controller.signal.aborted) return
