@@ -394,7 +394,7 @@ const fetchStation = (stationId, key) =>
  * becomes the heading. Measured over 250 stations, every occurrence *was* the
  * first line, so there is no good name to be saved by being narrower.
  */
-const LOCATION_BLACKLIST = ['Parkplatzverordnung', 'kostenlos', 'Öffnungszeiten']
+const LOCATION_BLACKLIST = ['Parkplatzverordnung', 'kostenlos', 'Öffnungszeiten', 'Bitte beachten']
 
 const isNotice = (text) =>
   !!text && LOCATION_BLACKLIST.some((word) => text.toLowerCase().includes(word.toLowerCase()))
