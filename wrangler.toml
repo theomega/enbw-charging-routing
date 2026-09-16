@@ -12,14 +12,22 @@ compatibility_date = "2026-09-10"
 # without a configured base URL (src/services/enbw/availability.ts).
 #
 # Routing is asset-first: Cloudflare matches a file in ./dist and only invokes
-# the Worker when there is none. `single-page-application` turns that miss into
-# index.html, which would swallow the API route -- hence `run_worker_first`,
-# which sends /api/* straight to the Worker and leaves every other path to the
-# asset router. Assets served this way never enter the Worker, so the station
-# list and the bundle cost no invocations.
+# the Worker when there is none. Assets served this way never enter the Worker,
+# so the bundle and the station list cost no invocations.
+#
+# There is deliberately no SPA fallback. The app has no client-side routing --
+# no history, no path or query state, every view is React state at `/` -- so
+# nothing ever requests a path that is not a file, and answering misses with
+# index.html only made them lie: a dead asset URL left over from an earlier
+# deploy came back as 200 HTML, which the browser then cached for a year under
+# the immutable rule meant for real assets. `404-page` serves ./dist/404.html
+# with a 404 instead, and the asset router answers it without waking the Worker.
+#
+# That makes `run_worker_first` load-bearing rather than a workaround: /api/* is
+# no file, so without it the API would be answered by the 404 page.
 [assets]
 directory = "./dist"
-not_found_handling = "single-page-application"
+not_found_handling = "404-page"
 run_worker_first = ["/api/*"]
 
 [observability]
