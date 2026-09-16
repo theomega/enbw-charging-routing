@@ -10,6 +10,11 @@
 - Do not document the layout in the code, it changes to often and is obvious.
   Document only things that are not obvious.
 - Never do changes to the code base if not explicitly asked to do so.
+- User feedback lives in `feedback/`, one file per item. `feedback/README.md` is
+  the process; read it before working an item or filing one.
+- Never reference a feedback file, folder or item from code - not in a comment,
+  not in a test name. Changing code an item describes means updating that item in
+  the same change.
 
 Wording:
 
