@@ -8,6 +8,7 @@ import { toPoint } from '../core/geo'
 import type { ChargerOnRoute, LatLon } from '../core/types'
 import { optionalToken } from '../services/mapbox/client'
 import type { RouteOption } from '../services/mapbox/directions'
+import { useAppStore } from '../state/store'
 import { chargerFeatures, framingKey, routeFeatures } from './mapFeatures'
 
 /**
@@ -116,6 +117,11 @@ export function RouteMap({
   // the map down and rebuilding it for that would be a disaster.
   const handlers = useRef({ onSelectRoute, onSelectCharger })
   handlers.current = { onSelectRoute, onSelectCharger }
+
+  // Read here rather than threaded through three call sites: the dots colour by
+  // the same free count the list's badges show, and that count is filtered by
+  // the setting. See chargerFeatures.
+  const minPowerKw = useAppStore((s) => s.settings.minPowerKw)
 
   const token = optionalToken()
 
@@ -260,8 +266,8 @@ export function RouteMap({
   useEffect(() => {
     const instance = map.current
     if (!ready || !instance) return
-    source(instance, CHARGER_SOURCE)?.setData(chargerFeatures(chargers))
-  }, [ready, chargers])
+    source(instance, CHARGER_SOURCE)?.setData(chargerFeatures(chargers, minPowerKw))
+  }, [ready, chargers, minPowerKw])
 
   useEffect(() => {
     const instance = map.current

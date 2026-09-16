@@ -1,4 +1,5 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson'
+import { matchingPoints } from '../core/points'
 import type { ChargerOnRoute } from '../core/types'
 import type { RouteOption } from '../services/mapbox/directions'
 import { DOT_COLOUR, availabilityState } from './availability'
@@ -45,23 +46,29 @@ export interface ChargerProperties {
   colour: string
 }
 
-export function chargerFeatures(chargers: ChargerOnRoute[]): FeatureCollection<Point> {
+/**
+ * `minPowerKw` is the Ladeleistung setting, and it is here for the same reason
+ * the badge takes it: the dot must colour by the free count the row displays.
+ * A station with one free 22 kW post and four busy 300 kW stalls is amber on the
+ * map and "0/4" in the list otherwise, and a driver reading both takes the
+ * difference for a change in the data.
+ */
+export function chargerFeatures(
+  chargers: ChargerOnRoute[],
+  minPowerKw: number,
+): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: chargers.map<Feature<Point>>((item) => ({
       type: 'Feature',
       properties: {
         id: item.charger.id,
-        colour: dotColour(item),
+        colour: DOT_COLOUR[availabilityState(matchingPoints(item.charger, minPowerKw).free)],
       } satisfies ChargerProperties,
       geometry: { type: 'Point', coordinates: [item.charger.lon, item.charger.lat] },
     })),
   }
 }
-
-/** The same states as the list's availability badge, in the shared palette. */
-const dotColour = ({ charger }: ChargerOnRoute): string =>
-  DOT_COLOUR[availabilityState(charger.availablePoints)]
 
 /**
  * Identifies the set of routes on screen, so the view is framed once per set.

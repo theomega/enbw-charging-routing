@@ -19,7 +19,6 @@ const row = (n: number): ChargerOnRoute =>
       lat: 48,
       lon: 11,
       maxPowerKw: 150,
-      totalPoints: 4,
       availablePoints: null,
       chargePoints: null,
     },
@@ -30,6 +29,15 @@ const row = (n: number): ChargerOnRoute =>
     detourM: null,
   }) as ChargerOnRoute
 
+/** Four 300 kW points, `free` of them reported free and the rest in use. */
+const points = (free: number) =>
+  Array.from({ length: 4 }, (_, i) => ({
+    id: `DE*ENB*E1*${i}`,
+    plugs: ['CCS (Typ 2)'],
+    maxPowerKw: 300,
+    status: i < free ? 'AVAILABLE' : 'OCCUPIED',
+  }))
+
 const stubFetch = () => {
   const spy = vi.fn(async (input: RequestInfo | URL) => {
     const id = Number(String(input).split('/').pop())
@@ -37,11 +45,10 @@ const stubFetch = () => {
       JSON.stringify({
         stationId: id,
         availablePoints: 3,
-        totalPoints: 4,
         unknownPoints: 0,
         operatorCode: null,
         alwaysOpen: true,
-        chargePoints: [],
+        chargePoints: points(3),
       }),
       { status: 200 },
     )
@@ -71,6 +78,35 @@ const listProps = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
+/**
+ * The reported bug, at the level the tester saw it: a hub listed for its fast
+ * stalls counting the 22 kW AC posts beside them.
+ */
+describe('ChargerList point count', () => {
+  const hub = (): ChargerOnRoute => {
+    const base = row(1)
+    return {
+      ...base,
+      charger: {
+        ...base.charger,
+        availablePoints: 3,
+        chargePoints: [
+          { id: null, plugs: ['CCS (Typ 2)'], maxPowerKw: 300, status: 'AVAILABLE' },
+          { id: null, plugs: ['CCS (Typ 2)'], maxPowerKw: 300, status: 'OCCUPIED' },
+          { id: null, plugs: ['Typ 2'], maxPowerKw: 22, status: 'AVAILABLE' },
+          { id: null, plugs: ['Typ 2'], maxPowerKw: 22, status: 'AVAILABLE' },
+        ],
+      },
+    }
+  }
+
+  it('counts only the Ladesäulen above the setting', () => {
+    render(<ChargerList {...listProps({ results: [hub()], enrichedIds: new Set(['enbw:1']) })} />)
+    expect(screen.getByText('1/2 frei')).toBeTruthy()
+    expect(screen.queryByText('3/4 frei')).toBeNull()
+  })
+})
+
 describe('ChargerList refresh of a row past ENRICHED_LIMIT', () => {
   it('re-fetches the opened non-enriched row when the nonce is bumped', async () => {
     const spy = stubFetch()
@@ -98,9 +134,10 @@ describe('ChargerList refresh of a row past ENRICHED_LIMIT', () => {
         new Promise((resolve) => {
           release = () =>
             resolve(
-              new Response(JSON.stringify({ stationId: 46, availablePoints: 2, totalPoints: 4 }), {
-                status: 200,
-              }),
+              new Response(
+                JSON.stringify({ stationId: 46, availablePoints: 2, chargePoints: points(2) }),
+                { status: 200 },
+              ),
             )
         }),
     )

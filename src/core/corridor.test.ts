@@ -11,7 +11,6 @@ function charger(id: string, lat: number, lon: number): Charger {
     address: null,
     lat,
     lon,
-    totalPoints: 4,
     availablePoints: 2,
     unknownPoints: 0,
     maxPowerKw: 150,
@@ -20,6 +19,7 @@ function charger(id: string, lat: number, lon: number): Charger {
     priceGroup: 'ENBW_GROUP',
     alwaysOpen: true,
     chargePoints: null,
+    pointPowers: null,
     notes: null,
   }
 }

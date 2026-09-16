@@ -119,9 +119,10 @@ async function fetchStation(stationId: number, env: Env): Promise<LiveStationRec
     stationId: station.stationId,
     availablePoints: station.availableChargePoints ?? 0,
     unknownPoints: station.unknownStateChargePoints ?? 0,
-    // Omitted rather than zeroed: the client's list knows the real total, and
-    // "0 points" would render as a nonsense denominator.
-    ...(station.numberOfChargePoints != null ? { totalPoints: station.numberOfChargePoints } : {}),
+    // `numberOfChargePoints` is deliberately dropped. It counts every point at
+    // the station, 22 kW AC posts included, so it cannot be a denominator for a
+    // driver who has set a minimum charging power — and the client counts the
+    // points it does want out of `chargePoints` below.
     operatorCode: station.operatorCode ?? null,
     alwaysOpen: station.alwaysOpen ?? null,
     // `additionalInfo` is deliberately dropped: the shipped station list

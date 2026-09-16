@@ -13,7 +13,6 @@ const row = (n: number): ChargerOnRoute =>
       lat: 48,
       lon: 11,
       maxPowerKw: 150,
-      totalPoints: 4,
       availablePoints: null,
       chargePoints: null,
     },
@@ -28,9 +27,7 @@ const stubFetch = () => {
   const spy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const id = Number(String(input).split('/').pop())
     if (init?.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-    return new Response(JSON.stringify({ stationId: id, availablePoints: 3, totalPoints: 4 }), {
-      status: 200,
-    })
+    return new Response(JSON.stringify({ stationId: id, availablePoints: 3 }), { status: 200 })
   })
   vi.stubGlobal('fetch', spy)
   return spy

@@ -1,3 +1,4 @@
+import { matchingPoints } from '../core/points'
 import type { ChargerOnRoute } from '../core/types'
 import type { MapsApp } from '../nav/deepLinks'
 import { useChargerDetail } from '../search/useChargerDetail'
@@ -18,6 +19,8 @@ import { ChevronIcon, SpinnerIcon } from './icons'
 interface Props {
   item: ChargerOnRoute
   mapsApp: MapsApp
+  /** The Ladeleistung setting, which the displayed point count is filtered by. */
+  minPowerKw: number
   route: RouteOption | null
   expanded: boolean
   onToggle: () => void
@@ -57,6 +60,7 @@ interface Props {
 export function ChargerCard({
   item,
   mapsApp,
+  minPowerKw,
   route,
   expanded,
   onToggle,
@@ -67,7 +71,10 @@ export function ChargerCard({
   const { charger, loading } = useChargerDetail(item.charger, enriched, expanded, refreshNonce)
   if (!charger) return null
 
-  const available = charger.availablePoints
+  // Counted from the station's own points rather than from EnBW's station-level
+  // figures, which include the 22 kW AC posts a fast hub keeps beside its
+  // stalls. See core/points.ts.
+  const points = matchingPoints(charger, minPowerKw)
   const panelId = `charger-detail-${charger.id}`
 
   const legs = item.legs
@@ -107,8 +114,8 @@ export function ChargerCard({
               and on every Refresh after it.
             */}
             <AvailabilityBadge
-              available={available}
-              total={charger.totalPoints}
+              available={points.free}
+              total={points.total}
               refreshing={refreshing || loading}
             />
             <ChevronIcon
@@ -167,6 +174,7 @@ export function ChargerCard({
           loading={loading}
           route={route}
           mapsApp={mapsApp}
+          minPowerKw={minPowerKw}
         />
       )}
     </div>
@@ -174,8 +182,10 @@ export function ChargerCard({
 }
 
 /**
- * `null` means the provider has no live data at all, which is a different
- * statement from "zero free" — never render the two the same way.
+ * `available: null` means the provider has no live data at all, which is a
+ * different statement from "zero free" — never render the two the same way.
+ * `total: null` is the same distinction one level up: nothing is known about
+ * this station's points, so there is no denominator to put a "?" over.
  *
  * `refreshing` adds a spinner *beside* the numbers rather than replacing them.
  * The last measurement is still the best answer a driver has until the next one
@@ -190,7 +200,7 @@ export function AvailabilityBadge({
   refreshing = false,
 }: {
   available: number | null
-  total: number
+  total: number | null
   refreshing?: boolean
 }) {
   const tone = BADGE_TONE[availabilityState(available)]
@@ -199,7 +209,7 @@ export function AvailabilityBadge({
       className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm ${tone}`}
       aria-busy={refreshing || undefined}
     >
-      {available == null ? `?/${total}` : `${available}/${total} frei`}
+      {total == null ? '?' : available == null ? `?/${total}` : `${available}/${total} frei`}
       {refreshing && <SpinnerIcon />}
     </span>
   )

@@ -14,11 +14,9 @@
  * grouping entirely.
  */
 
+import { POINT_AVAILABLE } from '../core/points'
 import type { ChargePoint } from '../core/types'
 import { formatPointStatus } from './format'
-
-/** EnBW's word for a free point. Every other state is reported as it comes. */
-const AVAILABLE = 'AVAILABLE'
 
 /**
  * EnBW's word for a point someone is charging at.
@@ -95,7 +93,7 @@ export function groupChargePoints(points: ChargePoint[]): ChargePointGroup[] {
     }
 
     bucket.count += 1
-    if (point.status === AVAILABLE) {
+    if (point.status === POINT_AVAILABLE) {
       bucket.reported = true
       bucket.free += 1
     } else {

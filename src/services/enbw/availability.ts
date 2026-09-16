@@ -10,9 +10,9 @@ import { stationIdOf } from './wire'
  * station and throwing that part of the answer away.
  * Widening what it keeps costs no extra upstream request and no extra latency.
  *
- * Station *identity* is still not in here. Location, address, power and point
- * count come from the shipped list, so a failed lookup costs the extras and
- * never the row itself. The location line is the newest member of that rule:
+ * Station *identity* is still not in here. Location, address, power and the
+ * points by power come from the shipped list, so a failed lookup costs the
+ * extras and never the row itself. The location line is the newest member of that rule:
  * `additionalInfo` does come back on this request, but it is the raw
  * multi-line blob — site name, then access and parking prose — and the list
  * already carries the first line of it. Taking the live copy would rewrite a
@@ -27,7 +27,16 @@ import { stationIdOf } from './wire'
  * same request count, the same latency, and no grouping at all.
  */
 
-/** The fields a live lookup can add to a `Charger`, named to spread straight on. */
+/**
+ * The fields a live lookup can add to a `Charger`, named to spread straight on.
+ *
+ * EnBW's `numberOfChargePoints` is deliberately not among them. It is the
+ * station's whole size, every 22 kW AC post included, so as a denominator it
+ * answers a question nobody asked — and it used to overwrite the list's own
+ * count the moment a lookup landed, which is how a badge got from "4" to "8"
+ * without the station changing. The size that matters is counted from
+ * `chargePoints`; see core/points.ts.
+ */
 export type LiveStation = Pick<
   Charger,
   'unknownPoints' | 'operatorCode' | 'alwaysOpen' | 'chargePoints'
@@ -38,8 +47,6 @@ export type LiveStation = Pick<
    * shipped list cannot know it.
    */
   availablePoints: number
-  /** Omitted when upstream does not report it, so the list's count survives. */
-  totalPoints?: number
 }
 
 /** Wire shape of the Worker's reply: one record per station id. */
@@ -195,13 +202,13 @@ export async function fetchAvailability(
  * The wire record as the fields that spread onto a `Charger`.
  *
  * Rebuilt field by field rather than spread: `stationId` must not survive into
- * something that gets spread over a `Charger`, and a Worker running older code
- * may answer without the newer fields at all.
+ * something that gets spread over a `Charger`, a Worker running older code may
+ * answer without the newer fields at all, and one running *newer* code may
+ * answer with fields this app has stopped wanting.
  */
 function toLiveStation(record: LiveStationRecord): LiveStation {
   return {
     availablePoints: record.availablePoints,
-    ...(record.totalPoints != null ? { totalPoints: record.totalPoints } : {}),
     unknownPoints: record.unknownPoints ?? 0,
     operatorCode: record.operatorCode ?? null,
     alwaysOpen: record.alwaysOpen ?? null,

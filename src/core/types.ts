@@ -37,14 +37,40 @@ export interface ChargePoint {
   status: string | null
 }
 
+/**
+ * How many charge points a station has at each power figure.
+ *
+ * The shipped list's answer to the same question the live record answers point
+ * by point. It exists because the power of a point and the power of a *station*
+ * are different numbers: a motorway hub is listed at 300 kW and keeps 22 kW AC
+ * posts beside the fast stalls, so its point count says nothing about how many
+ * points the driver's Ladeleistung setting actually leaves.
+ *
+ * Built offline by `scripts/build-station-list.mjs`, which already fetches each
+ * station's detail record for its location line — the powers come out of the
+ * same response, so the list carries them for no extra request. Deliberately
+ * not statuses: those change minute to minute and belong to the live lookup.
+ *
+ * This is also the station's *size*: the counts sum to how many points it has.
+ * There is deliberately no separate total beside it. The one the list used to
+ * carry came from the bulk query's `allChargePointCount`, which — measured
+ * against both endpoints — silently counts only the points matching the
+ * `minPowerInKw` the query was made with, so a field named "total" held a
+ * 50 kW-filtered figure that the live record then overwrote with the real one.
+ * A number whose meaning changed when a lookup landed is worse than no number.
+ */
+export interface PointPowerGroup {
+  /** Null when the provider reports no power for these points. */
+  maxPowerKw: number | null
+  count: number
+}
+
 export interface Charger extends LatLon {
   /** Stable id, namespaced by provider, e.g. "enbw:436595". */
   id: string
   providerId: 'enbw'
   name: string
   address: string | null
-  /** Total charge points at this station. */
-  totalPoints: number
   /**
    * Points reported free right now. `null` when the provider has no live data
    * at all — distinct from 0, which means "known, and all busy".
@@ -74,6 +100,15 @@ export interface Charger extends LatLon {
    * whose detail panel has been opened, ever carry this.
    */
   chargePoints: ChargePoint[] | null
+  /**
+   * The station's points by power, from the shipped list — so this is known for
+   * every row, enriched or not, and is what the point count is filtered by.
+   *
+   * Null means the list file predates the field (a phone still serving a cached
+   * copy), not that the station has no points. A row in that state falls back
+   * to the station-level count; see `core/points.ts`.
+   */
+  pointPowers: PointPowerGroup[] | null
   /** Free-text location hint from the provider, e.g. "ENI Schottwien". */
   notes: string | null
 }

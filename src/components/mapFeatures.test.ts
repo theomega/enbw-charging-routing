@@ -39,7 +39,6 @@ const onRoute = (availablePoints: number | null, lon = 11.4): ChargerOnRoute => 
     address: null,
     lat: 47,
     lon,
-    totalPoints: 4,
     availablePoints,
     unknownPoints: 0,
     maxPowerKw: 150,
@@ -48,6 +47,9 @@ const onRoute = (availablePoints: number | null, lon = 11.4): ChargerOnRoute => 
     priceGroup: null,
     alwaysOpen: true,
     chargePoints: null,
+    // Four points, none of them below any setting, so the dot colours by the
+    // station's own free count — which is what these cases are about.
+    pointPowers: [{ maxPowerKw: 150, count: 4 }],
     notes: null,
   } satisfies Charger,
   alongDistanceM: 1_000,
@@ -91,22 +93,35 @@ describe('routeFeatures', () => {
 
 describe('chargerFeatures', () => {
   it('places dots at the charger, in lon/lat order', () => {
-    const [feature] = chargerFeatures([onRoute(2, 11.42)]).features
+    const [feature] = chargerFeatures([onRoute(2, 11.42)], 50).features
     expect(feature.geometry.coordinates).toEqual([11.42, 47])
   })
 
   it('keeps "no live data" visually distinct from "none free"', () => {
-    const colours = chargerFeatures([
-      onRoute(2),
-      onRoute(1),
-      onRoute(0),
-      onRoute(null),
-    ]).features.map((f) => f.properties!.colour)
+    const colours = chargerFeatures(
+      [onRoute(2), onRoute(1), onRoute(0), onRoute(null)],
+      50,
+    ).features.map((f) => f.properties!.colour)
     expect(colours).toEqual([DOT_COLOUR.free, DOT_COLOUR.low, DOT_COLOUR.none, DOT_COLOUR.unknown])
   })
 
+  /**
+   * The dot and the row's badge are one fact in two places: a green dot over a
+   * "0/4 frei" badge reads as the data having changed between the two.
+   */
+  it('colours by the free count the list shows, not the station-level one', () => {
+    const item = onRoute(1)
+    const points = [
+      { id: null, plugs: ['CCS (Typ 2)'], maxPowerKw: 300, status: 'OCCUPIED' },
+      { id: null, plugs: ['Typ 2'], maxPowerKw: 22, status: 'AVAILABLE' },
+    ]
+    const hub = { ...item, charger: { ...item.charger, chargePoints: points } }
+    expect(chargerFeatures([hub], 50).features[0].properties!.colour).toBe(DOT_COLOUR.none)
+    expect(chargerFeatures([hub], 11).features[0].properties!.colour).toBe(DOT_COLOUR.low)
+  })
+
   it('carries the charger id, so a tap on a dot can name its row', () => {
-    const [feature] = chargerFeatures([onRoute(2, 11.4)]).features
+    const [feature] = chargerFeatures([onRoute(2, 11.4)], 50).features
     expect(feature.properties!.id).toBe('enbw:11.4')
   })
 })

@@ -25,7 +25,6 @@ function candidate(id: string, lat: number, lon: number, alongM: number): Charge
     address: null,
     lat,
     lon,
-    totalPoints: 6,
     availablePoints: 3,
     unknownPoints: 0,
     maxPowerKw: 300,
@@ -34,6 +33,7 @@ function candidate(id: string, lat: number, lon: number, alongM: number): Charge
     priceGroup: 'ENBW_GROUP',
     alwaysOpen: true,
     chargePoints: null,
+    pointPowers: null,
     notes: null,
   }
   return {

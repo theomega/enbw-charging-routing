@@ -14,7 +14,6 @@ function charger(over: Partial<Charger> & { id: string }): Charger {
     address: null,
     lat: 48.8,
     lon: 9.1,
-    totalPoints: 4,
     availablePoints: 2,
     unknownPoints: 0,
     maxPowerKw: 150,
@@ -23,6 +22,7 @@ function charger(over: Partial<Charger> & { id: string }): Charger {
     priceGroup: 'ENBW_GROUP',
     alwaysOpen: true,
     chargePoints: null,
+    pointPowers: null,
     notes: null,
     ...over,
   }

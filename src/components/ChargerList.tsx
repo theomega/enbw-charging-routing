@@ -131,6 +131,7 @@ export function ChargerList({
           <ChargerCard
             item={item}
             mapsApp={settings.mapsApp}
+            minPowerKw={settings.minPowerKw}
             route={route}
             expanded={expandedId === item.charger.id}
             onToggle={() => onToggle(item.charger.id)}

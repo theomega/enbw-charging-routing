@@ -8,7 +8,6 @@ import {
 
 const record = (over: Partial<LiveStationRecord> & { stationId: number }): LiveStationRecord => ({
   availablePoints: 2,
-  totalPoints: 4,
   unknownPoints: 0,
   operatorCode: null,
   alwaysOpen: null,
@@ -27,8 +26,8 @@ describe('fetchAvailability', () => {
 
   it('maps occupancy back onto the requested chargers', async () => {
     const fetcher = vi.fn(async () => [
-      record({ stationId: 1, availablePoints: 3, totalPoints: 4 }),
-      record({ stationId: 2, availablePoints: 0, totalPoints: 2 }),
+      record({ stationId: 1, availablePoints: 3 }),
+      record({ stationId: 2, availablePoints: 0 }),
     ])
     const { live, missing } = await fetchAvailability([charger(1), charger(2)], { fetcher })
 
@@ -40,8 +39,8 @@ describe('fetchAvailability', () => {
 
   /**
    * EnBW re-issues station ids in bulk — 71 of 124 shipped Austrian ids went
-   * 404 within four days. The row keeps its address and point count from the
-   * list; only the badge is unknown.
+   * 404 within four days. The row keeps its address and its points from the
+   * list; only the free count is unknown.
    */
   it('reports a station the upstream no longer knows, rather than reporting zero free', async () => {
     const fetcher = vi.fn(async () => [record({ stationId: 1 })])
@@ -60,17 +59,26 @@ describe('fetchAvailability', () => {
   })
 
   /**
-   * The Worker omits totalPoints when upstream does not report it, so the
-   * count the shipped list already knows is not overwritten with a zero.
+   * A bare record is what a Worker running older code answers with, and what a
+   * 60 s cache entry written before a deploy still holds, so this is the check
+   * that the newer fields degrade to null rather than arriving as undefined and
+   * spreading `undefined` over a real charger.
    *
-   * The bare record here is also what a Worker running older code answers with,
-   * and what a 60 s cache entry written before a deploy still holds — so this
-   * doubles as the check that the newer fields degrade to null rather than
-   * arriving as undefined and spreading `undefined` over a real charger.
+   * `totalPoints` is the other direction: a deployed Worker still sends EnBW's
+   * station total, and it must not reach a `Charger`. It counts every point at
+   * the station, so as a denominator it ignores the driver's setting — the very
+   * number core/points.ts exists to stop displaying.
    */
-  it('omits totalPoints when the upstream did not report one', async () => {
+  it('degrades a bare record to null, and drops a station total it is sent', async () => {
     const fetcher = vi.fn(async () => [
-      { stationId: 1, availablePoints: 2, unknownPoints: 0 } as LiveStationRecord,
+      {
+        stationId: 1,
+        availablePoints: 2,
+        unknownPoints: 0,
+        totalPoints: 8,
+      } as LiveStationRecord & {
+        totalPoints: number
+      },
     ])
     const { live } = await fetchAvailability([charger(1)], { fetcher })
     const entry = live.get('enbw:1')!

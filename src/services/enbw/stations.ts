@@ -1,4 +1,4 @@
-import type { Charger } from '../../core/types'
+import type { Charger, PointPowerGroup } from '../../core/types'
 import { ENBW_PRICE_GROUP, chargerId } from './wire'
 
 /**
@@ -11,9 +11,10 @@ import { ENBW_PRICE_GROUP, chargerId } from './wire'
  * The station set barely changes, so it is generated offline by
  * `scripts/build-station-list.mjs` and shipped as data.
  *
- * The list carries identity: location, address, power, point count, operator.
- * It does *not* carry occupancy, which is the one thing that changes minute to
- * minute and is fetched live per station (see availability.ts).
+ * The list carries identity: location, address, power, the points at their own
+ * powers, operator. It does *not* carry occupancy, which is the one thing that
+ * changes minute to minute and is fetched live per station (see
+ * availability.ts).
  *
  * That split is deliberate and was learned the hard way. Identity used to come
  * from the live call too, joined by station id, so any hiccup in that call —
@@ -30,6 +31,21 @@ import { ENBW_PRICE_GROUP, chargerId } from './wire'
 export const STATION_LIST_URL = '/stations.enbw.json'
 
 /**
+ * The oldest file format this app can read.
+ *
+ * Version 5 replaced a column rather than appending one, so a version 4 file
+ * does not degrade — it mis-parses, silently, reading the old point count as
+ * the operator name and shifting everything after it along. There is no
+ * migration on purpose: the app is in testing, the file is committed alongside
+ * the code that reads it, and the only cost of refusing it is a rebuild.
+ *
+ * Worth being strict about because the file has no content hash in its name, so
+ * a phone can be holding an older copy in its HTTP cache. A hard error names
+ * the fix; a shifted row would put a number where a station's operator goes.
+ */
+export const MIN_LIST_VERSION = 5
+
+/**
  * The floor the list is built to. `scripts/build-station-list.mjs` applies it,
  * and `parseStationList` applies it again so the invariant holds whatever file
  * is actually served.
@@ -43,11 +59,25 @@ export interface StationListMeta {
 }
 
 /**
+ * The points of one station by power, packed as [maxPowerKw, count] pairs —
+ * [[300, 4], [22, 4]] for a hub with four fast stalls and four AC posts. A null
+ * power is a point the provider reports none for.
+ */
+export type PackedPointPowers = [number | null, number][]
+
+/**
  * Packed on the wire:
- * [stationId, lat, lon, maxPowerKw, address, totalPoints, operator, location].
+ * [stationId, lat, lon, maxPowerKw, address, operator, location, points].
  *
- * `location` is trailing and optional because it arrived in file version 4. A
- * version 3 file still parses; those rows simply fall back to the street label.
+ * `points` replaced a `totalPoints` column in file version 5, and the two are
+ * not interchangeable: the old column came from the bulk query, which counts
+ * only the points matching the `minPowerInKw` it was asked with, so it was a
+ * 50 kW-filtered figure sitting under the name "total". `points` sums to the
+ * station's real size and can be filtered to any setting.
+ *
+ * The trailing two are optional, so a row that stops short still parses: a
+ * station whose detail lookup failed during the build carries no `points` and
+ * renders "?" until a live lookup answers for it.
  */
 export type PackedStation = [
   number,
@@ -55,9 +85,9 @@ export type PackedStation = [
   number,
   number | null,
   string | null,
-  number | null,
   string | null,
   (string | null)?,
+  (PackedPointPowers | null)?,
 ]
 
 export interface StationListFile {
@@ -93,9 +123,11 @@ export function stationLabel(
  * One packed row as a `Charger`.
  *
  * `availablePoints` is null, never 0: "not measured yet" and "all busy" are
- * different statements and the badge renders them differently. `totalPoints`,
- * by contrast, is known from the list, so a row reads "?/8" rather than "?/0"
- * before its occupancy lookup lands.
+ * different statements and the badge renders them differently. How many points
+ * the station has, by contrast, is known from the list, so a row reads "?/4"
+ * rather than "?/0" before its occupancy lookup lands — and "4" there is
+ * already the count the Ladeleistung setting leaves, because the points ship
+ * with the row at their own powers.
  */
 export function unpackStation(row: PackedStation): Charger {
   const [
@@ -104,9 +136,9 @@ export function unpackStation(row: PackedStation): Charger {
     lon,
     maxPowerKw,
     address = null,
-    totalPoints = 0,
     operator = null,
     location = null,
+    points = null,
   ] = row
   return {
     id: chargerId(stationId),
@@ -115,7 +147,6 @@ export function unpackStation(row: PackedStation): Charger {
     address,
     lat,
     lon,
-    totalPoints: totalPoints ?? 0,
     availablePoints: null,
     unknownPoints: 0,
     maxPowerKw,
@@ -127,6 +158,10 @@ export function unpackStation(row: PackedStation): Charger {
     priceGroup: ENBW_PRICE_GROUP,
     alwaysOpen: null,
     chargePoints: null,
+    // The station's points at their own powers, which is both its size and what
+    // the displayed count is filtered by — on every row, rather than only on
+    // the ones a live lookup has reached. See core/points.ts.
+    pointPowers: unpackPointPowers(points),
     // The heading the UI renders. In the list precisely so it never changes
     // under the driver: it used to come from the live lookup, so a row opened
     // its detail panel and its own title moved.
@@ -134,8 +169,24 @@ export function unpackStation(row: PackedStation): Charger {
   }
 }
 
+/**
+ * Null rather than an empty array when the field is missing, so a row from an
+ * older file reads as "not in this list" instead of asserting that the station
+ * has no points at all.
+ */
+function unpackPointPowers(packed: PackedPointPowers | null | undefined): PointPowerGroup[] | null {
+  if (!Array.isArray(packed)) return null
+  return packed.map(([maxPowerKw, count]) => ({ maxPowerKw, count }))
+}
+
 export function parseStationList(file: StationListFile): StationList {
   if (!Array.isArray(file.stations)) throw new Error('Station list is malformed')
+  if (!(file.version >= MIN_LIST_VERSION)) {
+    throw new Error(
+      `Station list is version ${file.version}, and this app needs ${MIN_LIST_VERSION} or ` +
+        `newer. Run \`pnpm build:stations\` to regenerate public/stations.enbw.json.`,
+    )
+  }
   return {
     meta: { version: file.version, generatedAt: file.generatedAt, count: file.count },
     chargers: file.stations

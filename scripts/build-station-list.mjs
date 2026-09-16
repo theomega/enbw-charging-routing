@@ -9,10 +9,11 @@
  * Strategy: ask once. `v1/mapsearch` returns the whole region in a single
  * response — see `MAX_RESULTS`, which is the parameter that makes that true.
  *
- * Then one `/chargestations/{id}` request per surviving station, for the
- * location line — the heading the app shows — which the bulk query does not
- * return at all. See `fetchLocations`. That phase is now the entire cost of
- * the build.
+ * Then one `/chargestations/{id}` request per surviving station, for the two
+ * things the bulk query does not return at all: the location line — the
+ * heading the app shows — and the individual charge points, which is where the
+ * power of each point comes from. See `fetchDetails`. That phase is the entire
+ * cost of the build, and it is one request per station either way.
  *
  *   pnpm build:stations                    # default root: DE + AT + northern IT
  *   pnpm build:stations -- --bbox 48.3,49.3,8.7,9.7   # a small region, for testing
@@ -334,7 +335,15 @@ function unpackPin(pin) {
     shortAddress: p.address ?? null,
     operator: p.operatorName ?? null,
     maxPowerInKw: p.maxPowerInKw ?? null,
-    numberOfChargePoints: pin.allChargePointCount ?? 0,
+    // Not written to the file, and not a total either: `allChargePointCount`
+    // counts only the points matching the `minPowerInKw` this query was made
+    // with — measured against both endpoints, station 89607 answers 16 at
+    // >= 50 kW and 18 unfiltered. It used to be shipped as `totalPoints`, where
+    // the live record then overwrote it with the real total and a badge went
+    // from "4" to "8" without the station changing. The station's size now
+    // comes from `pointPowers`, which sums to it. Kept here only for the
+    // build's own reporting.
+    matchingChargePoints: pin.allChargePointCount ?? 0,
     // The bulk query has no `priceGroup`; this is the field that replaces it.
     onEnbwTariff: pin.shouldBeTreatedLikeEnBW === true,
   }
@@ -385,7 +394,7 @@ const fetchStation = (stationId, key) =>
  * becomes the heading. Measured over 250 stations, every occurrence *was* the
  * first line, so there is no good name to be saved by being narrower.
  */
-const LOCATION_BLACKLIST = ['Parkplatzverordnung', 'kostenlos']
+const LOCATION_BLACKLIST = ['Parkplatzverordnung', 'kostenlos', 'Öffnungszeiten']
 
 const isNotice = (text) =>
   !!text && LOCATION_BLACKLIST.some((word) => text.toLowerCase().includes(word.toLowerCase()))
@@ -401,25 +410,62 @@ const isNotice = (text) =>
 const firstLine = (text) => text?.split(/\r?\n/)[0]?.trim() || null
 
 /**
- * Phase 2: fill in the location line, one request per station.
+ * One station's charge points, counted by power.
  *
- * This is now the whole cost of the build, and it buys the one thing the bulk
- * query cannot get. `additionalInfo` is returned only by
- * `/chargestations/{id}` — the bulk query does not carry it at all — and it is
- * what every row in the app is headed with, because the name on the sign you
- * are looking for is more use than the street it stands on. Fetching it here
- * rather than on the phone is what keeps that heading from changing under the
- * driver a second after the list appears.
+ * The station's own `maxPowerInKw` is the fastest thing it has, which says
+ * nothing about the rest: a motorway hub is listed at 300 kW and keeps 22 kW AC
+ * posts beside the fast stalls. Without this the app can filter which stations
+ * it lists but not how many points it credits each one with, so a station shown
+ * because it can do 300 kW reports every AC post in its point count.
+ *
+ * A point with several connectors is one stall with alternative cables, so it
+ * delivers the highest of them rather than their sum — the same rule the Worker
+ * applies to the live record; see `trimChargePoints` in worker/index.ts.
+ *
+ * Statuses are deliberately dropped. They are the half of the record that
+ * changes minute to minute, which is what the runtime lookup is for; a month-old
+ * snapshot of them would be worse than the "?" the app shows until it lands.
  */
-async function fetchLocations(stations, key) {
+function pointPowers(chargePoints) {
+  if (!Array.isArray(chargePoints) || chargePoints.length === 0) return null
+  const counts = new Map()
+  for (const point of chargePoints) {
+    const powers = (point.connectors ?? []).map((c) => c.maxPowerInKw).filter((kw) => kw != null)
+    const power = powers.length > 0 ? Math.max(...powers) : null
+    counts.set(power, (counts.get(power) ?? 0) + 1)
+  }
+  // Fastest first, unknown power last — the order the app displays groups in,
+  // so the packed row reads the way the panel does.
+  return [...counts].sort(([a], [b]) => (a == null ? 1 : b == null ? -1 : b - a))
+}
+
+/**
+ * Phase 2: fill in what only the detail endpoint knows, one request per station.
+ *
+ * This is the whole cost of the build, and it buys the two things the bulk query
+ * cannot get. `additionalInfo` is what every row in the app is headed with,
+ * because the name on the sign you are looking for is more use than the street
+ * it stands on — fetching it here rather than on the phone is what keeps that
+ * heading from changing under the driver a second after the list appears. And
+ * `chargePoints` is where each point's own power comes from, which is what the
+ * app's point count is filtered by.
+ *
+ * Both come out of the same response, so the second one is free.
+ */
+async function fetchDetails(stations, key) {
   let done = 0
   let gone = 0
   let notices = 0
   let unnamed = 0
-  const locations = await mapPool(stations, CONCURRENCY, async (s) => {
+  let unpointed = 0
+  const details = await mapPool(stations, CONCURRENCY, async (s) => {
     let line = null
+    let points = null
     try {
-      const info = (await fetchStation(s.stationId, key))?.additionalInfo
+      const station = await fetchStation(s.stationId, key)
+      points = pointPowers(station?.chargePoints)
+      if (!points) unpointed++
+      const info = station?.additionalInfo
       if (isNotice(info)) {
         notices++
       } else {
@@ -428,22 +474,22 @@ async function fetchLocations(stations, key) {
       }
     } catch {
       // A 404 here is an id the bulk query reported and the detail endpoint no
-      // longer serves. The station keeps its street label; one missing heading
-      // is not worth failing the build over.
+      // longer serves. The station keeps its street label and its station-level
+      // point count; one missing heading is not worth failing the build over.
       gone++
     }
     done++
     if (done % 200 === 0 || done === stations.length) {
       process.stdout.write(
-        `  locations: ${String(done).padStart(5)}/${stations.length}` +
+        `  details: ${String(done).padStart(5)}/${stations.length}` +
           (gone > 0 ? `  (${gone} unanswered)` : '') +
           (rateLimitHits > 0 ? `  (${rateLimitHits} rate-limit pauses)` : '') +
           '\n',
       )
     }
-    return line
+    return { line, points }
   })
-  return { locations, gone, notices, unnamed }
+  return { details, gone, notices, unnamed, unpointed }
 }
 
 async function main() {
@@ -503,13 +549,45 @@ async function main() {
 
   // Phase 2 runs on the filtered set, so the requests are spent only on
   // stations that will actually be in the file.
-  const { locations, gone, notices, unnamed } = await fetchLocations(enbw, key)
-  const named = locations.filter(Boolean).length
+  const { details, gone, notices, unnamed, unpointed } = await fetchDetails(enbw, key)
+  const named = details.filter((d) => d.line).length
   console.log(
     `  ${named} of ${enbw.length} stations have a location line; ` +
       `${enbw.length - named} fall back to the address ` +
       `(${notices} a parking notice, ${unnamed} not reported, ${gone} unanswered)`,
   )
+
+  // The reason this build fetches point powers at all, as a number: every point
+  // below the floor is one the app used to count towards a station's displayed
+  // total. A run that suddenly reports none of them has lost the field.
+  const counted = details.flatMap((d) => d.points ?? [])
+  const points = counted.reduce((n, [, count]) => n + count, 0)
+  const slow = counted
+    .filter(([kw]) => kw != null && kw < MIN_POWER_KW)
+    .reduce((n, [, count]) => n + count, 0)
+  const matching = enbw.reduce((n, s) => n + (s.matchingChargePoints ?? 0), 0)
+  console.log(
+    `  ${enbw.length - unpointed} of ${enbw.length} stations report their points ` +
+      `(${points} points, of which ${slow} are below ${MIN_POWER_KW} kW; ` +
+      `the scan counted ${matching} at >= ${MIN_POWER_KW} kW)`,
+  )
+
+  // The same rule the address has, for the same reason: the point counts are
+  // now the only thing a row can state its size from, so a run that stops
+  // getting them is a build defect and not something a driver finds out on the
+  // motorway. Warned about at any level, refused above 5%.
+  if (unpointed > 0) {
+    console.warn(
+      `\n  ${unpointed} station(s) came back without charge points; those rows ` +
+        `will show "?" until a live lookup answers for them.`,
+    )
+  }
+  if (unpointed > enbw.length * 0.05) {
+    throw new Error(
+      `${unpointed} of ${enbw.length} stations report no charge points (>5%) — ` +
+        `refusing to write a list whose rows cannot say how big they are.`,
+    )
+  }
 
   const payload = {
     // 2: only stations at MIN_POWER_KW or above.
@@ -518,10 +596,17 @@ async function main() {
     // 4: carries the location line too, which is the heading the app shows. It
     //    costs one detail request per station to build and is the reason a row
     //    can name itself before any network call.
+    // 5: carries each station's points by power, out of the same detail request
+    //    as the location line, and drops `totalPoints`. It is what the app
+    //    filters the displayed point count by, so a 300 kW hub stops counting
+    //    its 22 kW AC posts — and the dropped column was never a total anyway;
+    //    see `matchingChargePoints` in unpackPin.
     //
-    // Still 4 after the move to the bulk query: same ids, same fields, same
-    // meanings, so a client that reads a version 4 file reads this one.
-    version: 4,
+    // It stayed 4 across the move to the bulk query, because that changed no
+    // field and no meaning. This one replaces a column, so a version 4 file is
+    // not readable as this one — deliberately, while the app is in testing and
+    // the only client is rebuilt with the file.
+    version: 5,
     generatedAt: new Date().toISOString(),
     bbox: root,
     count: enbw.length,
@@ -539,9 +624,13 @@ async function main() {
       'lon',
       'maxPowerKw',
       'address',
-      'totalPoints',
       'operator',
       'location',
+      // [maxPowerKw, count] pairs, fastest first, summing to the station's
+      // size. Null where the detail endpoint did not answer — the app has no
+      // count for those rows at all and says so, rather than showing one that
+      // ignores the driver's setting.
+      'points',
     ],
     // Sorted by id, so the row order is the same on every rebuild and a diff
     // shows what actually changed rather than a reshuffle.
@@ -552,9 +641,9 @@ async function main() {
         Math.round(s.lon * 1e5) / 1e5,
         s.maxPowerInKw ?? null,
         s.shortAddress?.trim() || null,
-        s.numberOfChargePoints ?? 0,
         s.operator?.trim() || null,
-        locations[i],
+        details[i].line,
+        details[i].points,
       ])
       .sort((a, b) => a[0] - b[0]),
   }

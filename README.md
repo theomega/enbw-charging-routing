@@ -73,14 +73,15 @@ pnpm build:stations -- --bbox 48.55,48.85,9.0,9.4     # a small region, for a qu
 
 It asks the API for EnBW-tariff stations at 50 kW and above, and both filters are applied
 server-side — see [Is there a listing endpoint?](#is-there-a-listing-endpoint). Measured for
-the default area: **2,439 requests in 51 seconds, 2,438 stations, 445 KB (104 KB gzipped)**
+the default area: **2,437 requests in 169 seconds, 2,436 stations, 677 KB (116 KB gzipped)**
 written to `public/stations.enbw.json`. Of those requests exactly **one** is the station
-scan; the other 2,438 are the per-station detail lookup for the location line, which is now
-the entire cost of the build. The scan used to be 1,881 requests on its own. Wall time
+scan; the other 2,436 are the per-station detail lookup for the location line and the
+per-point powers, which is now the entire cost of the build. Those two arrive in the same
+response, so the powers were free to add — the request was already being made. The scan used to be 1,881 requests on its own. Wall time
 depends on whether the run trips the rate limiter — 53 s clean, 84 s on a run that did.
 
-The file carries station _identity_ — location, address, power, point count, operator —
-which is why it is 445 KB rather than 74 KB, and why every row on screen is fully described
+The file carries station _identity_ — location, address, power, the points at their own
+powers, operator — which is why it is 677 KB rather than 74 KB, and why every row on screen is fully described
 before any network call. See [What the list carries](#what-the-list-carries). Re-run it every
 month or so, and after any run of stale rows — see [Known limitations](#known-limitations).
 
@@ -89,7 +90,7 @@ has to be reviewable. Minified it was a single 300 KB line, so every rebuild dif
 one line changed" and there was no way to see that a station had moved, lost a charge point
 or disappeared. The sort is what makes that work: without a fixed row order the API's own
 ordering leaks into the file and a rebuild looks like a reshuffle. Indenting costs 294 KB →
-445 KB on disk but only **97 KB → 104 KB gzipped**, which is what phones actually download.
+677 KB on disk but only **97 KB → 116 KB gzipped**, which is what phones actually download.
 
 ## Running
 
@@ -176,8 +177,8 @@ gate it on `Origin` or put Cloudflare Access in front.
    drives a real progress bar rather than an indeterminate shimmer.
 
 4. **Live record** (`src/services/enbw/availability.ts`) — only for the ~20 rows actually
-   shown. Everything that decides what a row _is_ — name, address, power, point count — is
-   already known from the list, so this step can only add to a row; it can never take its
+   shown. Everything that decides what a row _is_ — name, address, power, its points and
+   their powers — is already known from the list, so this step can only add to a row; it can never take its
    identity away. EnBW has no bulk endpoint (`?stationIds=`, `?ids=`, `/batch`, `/status`,
    comma-joined ids and `POST` are all rejected), so it is one `GET /chargestations/{id}` per
    station — typically 17–20 requests. See [Why not bounding boxes](#why-not-bounding-boxes).
@@ -342,8 +343,8 @@ already in flight.
 since the beginning and shown nowhere.
 
 The panel's **Station** block is deliberately thin: one row, the opening hours, and only
-when the live record actually reported them. Peak power, point count, address, location and
-operator all live on the card itself — the header, the badge and the footer — and repeating
+when the live record actually reported them. Peak power, the free count, address, location
+and operator all live on the card itself — the header, the badge and the footer — and repeating
 them below the map only made the panel longer to scroll past to reach the charge points.
 The per-point list is the reason to open the panel; the summary is the reason not to have to.
 
@@ -362,10 +363,10 @@ subrequests per invocation.
 ### What the list carries
 
 ```
-fields: [stationId, lat, lon, maxPowerKw, address, totalPoints, operator, location]
+fields: [stationId, lat, lon, maxPowerKw, address, operator, location, points]
 
-[83170, 47.64903, 15.85819, 50, "Schnellstraße 2, 2641 Schottwien, AT", 2, "SMATRICS",
- "ENI Schottwien"]
+[83170, 47.64903, 15.85819, 50, "Schnellstraße 2, 2641 Schottwien, AT", "SMATRICS",
+ "ENI Schottwien", [[50, 2]]]
 ```
 
 Packed positionally rather than as named objects — 2,400 rows of `{"stationId":…}` would
@@ -391,6 +392,31 @@ address fallback instead. The match is case-insensitive and against the whole fi
 the first line: sampled over 250 stations, every occurrence _was_ the first line, so nothing
 is lost by being blunt about it. It catches 54 of 2,404 stations; another 2 answered nothing
 at all, and those take the same fallback.
+
+`points` is the station's charge points counted by power — `[[300, 4], [22, 4]]` for a hub
+with four fast stalls and four AC posts beside them, fastest first, a `null` power for a
+point EnBW reports none for. It exists because the power of a _station_ and the power of a
+_point_ are different numbers: a hub is listed at 300 kW and keeps 22 kW posts, so a bare
+point count says nothing about how many points the driver's Ladeleistung setting leaves.
+Without it the app showed „4/8 frei" for a station where four of those eight were overnight
+AC chargers. It comes out of the same detail response as `location`, and carries no statuses
+— those change minute to minute and belong to the live lookup. Of the 13,063 points in the
+current file, **1,202 are below 50 kW**: that is how many the old count included. See
+`src/core/points.ts` for how the displayed count is derived.
+
+It is also the station's **size**, and there is deliberately no separate total beside it.
+File version 4 carried one, taken from the scan's `allChargePointCount`, and that field
+counts only the points matching the `minPowerInKw` the query was made with — measured
+against both endpoints, station 89607 answers 16 at ≥ 50 kW and 18 unfiltered, station
+411145 answers 4 and 8. So a column named "total" held a 50 kW-filtered figure, which the
+live record then overwrote with the real total: the badge's denominator grew the moment a
+lookup landed. Version 5 drops it. Summed over the current file the two agree exactly —
+13,063 points, 11,861 of them ≥ 50 kW, which is what the scan reported.
+
+Because version 5 replaced that column rather than appending one, an older file does not
+degrade — it mis-parses. `parseStationList` refuses anything below `MIN_LIST_VERSION` and
+says to re-run the build, which is the right trade while the app is in testing and the file
+ships with the code that reads it.
 
 The list is the source of truth for **who a station is**. The live call is the source of
 truth for **everything that changes**, and for the per-charge-point detail the list is too
@@ -449,8 +475,8 @@ shipped 2969949, 150 kW  ->  live 3029144 @0m, 150 kW  "Gewerbestraße 2, 3373 K
 ```
 
 A re-issued id 404s, so that row shows `?/n` until the list is rebuilt. Because identity now
-lives in the list, that is the _whole_ cost — the address, power and point count are still
-right. Before this change the same event blanked the row.
+lives in the list, that is the _whole_ cost — the address, the power and how many points the
+station has are still right. Before this change the same event blanked the row.
 
 A position-based fallback (adopt a same-position, same-power record under a new id) was
 considered and rejected: it would have restored the badge, at the price of keeping the
@@ -677,11 +703,12 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
   arrive. The header shows when it was fetched, next to a **Refresh** button that re-fetches
   occupancy only — never the routes or the station list, so it costs no Mapbox quota. There
   is no pull-to-refresh gesture and no auto-refresh.
-- **Only the first 20 rows have live occupancy in the list.** Every row is fully described —
-  name, address, power, point count, operator — straight from the shipped list. What the rows
-  past `ENRICHED_LIMIT` lack is the live count, so they read `?/8` rather than `6/8 free`.
-  Opening one fetches its live record on the spot, so the panel is complete either way; the
-  collapsed row is what stays `?/8` until then.
+- **Only the first 45 rows have live occupancy in the list.** Every row is fully described —
+  name, address, power, its points and their powers, operator — straight from the shipped
+  list. What the rows past `ENRICHED_LIMIT` lack is the live count, so they read `?/4` rather
+  than `2/4 frei` — the denominator is right either way, because the points ship with the
+  row. Opening one fetches its live record on the spot, so the panel is complete either way;
+  the collapsed row is what stays `?/4` until then.
 - **Detour is priced for the 20 nearest candidates only, and is never fetched on demand.** The
   "Away" and "Drive" columns are free — they come from projecting each charger onto the route
   polyline, so every charger in the corridor has them. Detour needs real driving times to and

@@ -2,12 +2,14 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_MAX_OFFSET_M, buildCorridor, placeChargersOnRoute } from '../core/corridor'
 import { priceDetours } from '../core/detour'
+import { matchingPoints } from '../core/points'
 import type { Charger, ChargerOnRoute, LatLon } from '../core/types'
 import { fetchAvailability, type LiveStationRecord } from '../services/enbw/availability'
 import { parseStationList, type StationList } from '../services/enbw/stations'
 import { stationIdOf } from '../services/enbw/wire'
 import { fetchRoutes, type RouteOption } from '../services/mapbox/directions'
 import { fetchMatrix } from '../services/mapbox/matrix'
+import { DEFAULT_SETTINGS } from '../state/store'
 
 /**
  * Opt-in integration check: real Mapbox routes, the shipped station list, real
@@ -95,7 +97,7 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
 
     // The headline claim of carrying identity offline: a complete row with no
     // network call at all beyond the list itself.
-    const described = candidates.filter((c) => c.charger.address && c.charger.totalPoints > 0)
+    const described = candidates.filter((c) => c.charger.address && c.charger.pointPowers?.length)
     // eslint-disable-next-line no-console
     console.log(
       `\n  ${described.length}/${candidates.length} rows fully described from the list alone\n` +
@@ -121,9 +123,9 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
           .slice(0, 8)
           .map((c) => {
             const o = live.get(c.charger.id)
-            const free = o
-              ? `${o.availablePoints}/${o.totalPoints ?? c.charger.totalPoints}`
-              : '?/?'
+            // What the badge shows, counted the way the badge counts it.
+            const shown = matchingPoints({ ...c.charger, ...o }, DEFAULT_SETTINGS.minPowerKw)
+            const free = `${shown.free ?? '?'}/${shown.total ?? '?'}`
             return (
               `    ${(c.alongDistanceM / 1000).toFixed(0).padStart(4)} km  ` +
               `${String(c.charger.maxPowerKw).padStart(4)} kW  ${free.padStart(6)} free  ` +
@@ -136,7 +138,9 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
     expect(live.size).toBeGreaterThan(0)
     for (const o of live.values()) {
       expect(o.availablePoints).toBeGreaterThanOrEqual(0)
-      expect(o.availablePoints).toBeLessThanOrEqual(o.totalPoints ?? Infinity)
+      // The station's size now comes from its own points, so that is what the
+      // free count has to fit inside.
+      expect(o.availablePoints).toBeLessThanOrEqual(o.chargePoints?.length ?? Infinity)
     }
     // Stale ids are expected — EnBW re-issues them — but a large share means
     // the list needs rebuilding.
@@ -275,13 +279,13 @@ describe.skipIf(!enabled)('live: real Mapbox route + shipped list + live occupan
     const vahrn = list.chargers.find((c) => c.address?.includes('Vahrn'))
     expect(vahrn, 'an EnBW station in Vahrn must be in the shipped list').toBeDefined()
     expect(vahrn!.address).toBeTruthy()
-    expect(vahrn!.totalPoints).toBeGreaterThan(0)
+    expect(vahrn!.pointPowers?.length).toBeGreaterThan(0)
     expect(vahrn!.availablePoints).toBeNull()
 
     const { live } = await fetchAvailability([vahrn!], { fetcher: viaWorker })
     const o = live.get(vahrn!.id)
     // A 404 here is legitimate (re-issued id) and must not fail the run — the
     // row is still complete without it.
-    if (o) expect(o.availablePoints).toBeLessThanOrEqual(o.totalPoints ?? Infinity)
+    if (o) expect(o.availablePoints).toBeLessThanOrEqual(o.chargePoints?.length ?? Infinity)
   }, 60_000)
 })
