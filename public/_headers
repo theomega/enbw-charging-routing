@@ -19,3 +19,24 @@
 
 /manifest.webmanifest
   Cache-Control: public, max-age=0, must-revalidate
+
+# The icons carry no hash either — the manifest and iOS reference them by fixed
+# name — so they cannot be frozen. But the favicon is requested on every open,
+# and revalidating it costs the same round trip as fetching it. A week is the
+# trade: at most one request per icon per week, and a redrawn icon reaches
+# phones within a week. `pnpm build:icons` regenerates them from icon.svg.
+
+/icon.svg
+  Cache-Control: public, max-age=604800
+
+/icon-192.png
+  Cache-Control: public, max-age=604800
+
+/icon-512.png
+  Cache-Control: public, max-age=604800
+
+/icon-maskable-512.png
+  Cache-Control: public, max-age=604800
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800
