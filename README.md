@@ -74,7 +74,7 @@ pnpm build:stations -- --bbox 48.55,48.85,9.0,9.4     # a small region, for a qu
 It asks the API for EnBW-tariff stations at 50 kW and above, and both filters are applied
 server-side — see [Is there a listing endpoint?](#is-there-a-listing-endpoint). Measured for
 the default area: **2,437 requests in 169 seconds, 2,436 stations, 677 KB (116 KB gzipped)**
-written to `public/stations.enbw.json`. Of those requests exactly **one** is the station
+written to `data/stations.enbw.json`. Of those requests exactly **one** is the station
 scan; the other 2,436 are the per-station detail lookup for the location line and the
 per-point powers, which is now the entire cost of the build. Those two arrive in the same
 response, so the powers were free to add — the request was already being made. The scan used to be 1,881 requests on its own. Wall time
@@ -107,7 +107,8 @@ does not — use a tunnel (`cloudflared tunnel --url http://localhost:5173`) or 
 deployed URL when testing on a device.
 
 The app ships a web manifest, so it installs to the home screen and runs standalone.
-There is no service worker: installed is not offline, and it always loads fresh.
+There is no service worker: installed is not offline, and it always loads fresh. What it
+does not do is fetch itself again on every open — see [Caching](#caching).
 
 ```bash
 pnpm test        # unit tests, hermetic and offline
@@ -123,12 +124,37 @@ constraints.
 configurable API base). Cloudflare Pages with a Worker route on the same zone does this; a host that only
 serves files does not.
 
-**Do not cache `/stations.enbw.json` for long.** Unlike the JS and CSS, it is served from
-`public/` with no content hash in its name, so a long `Cache-Control: max-age` means phones
-keep serving an old station list and a rebuild is invisible to them — including the rebuilds
-that clear [renumbered stations](#enbw-renumbers-stations). Set
-`Cache-Control: max-age=0, must-revalidate` (or a short max-age with an ETag) for that one
-path.
+**Serve `public/_headers`.** Without it every file is revalidated on every open — see
+[Caching](#caching) for what that costs and why the rules are the way they are. Cloudflare
+Workers and Pages both read the file; another static host needs the same two rules expressed
+in its own configuration.
+
+## Caching
+
+Cloudflare serves static assets with `Cache-Control: public, max-age=0, must-revalidate`
+unless told otherwise. That default is a bad fit for an installed PWA: every open put five
+conditional requests on the critical path before the app could paint — `index.html`, the
+bundle, the stylesheet, the manifest and the station list — and the `must-revalidate` means
+an offline phone does not start at all rather than starting stale.
+
+`public/_headers` freezes everything under `/assets/` for a year, `immutable`. That is safe
+because Vite gives every file there a content hash, so a deploy changes the _name_; a phone
+cannot serve a stale one, because the URL it is asked for no longer exists in its cache.
+`index.html` and the manifest carry no hash — they are the documents naming those hashes —
+so they keep revalidating. That is the one round trip an update needs, and the whole update
+path: new HTML, new names, everything else already on the device.
+
+The station list is in `/assets/` for exactly this reason. It used to sit in `public/` and
+be fetched from `/stations.enbw.json`, a fixed name with changing contents, which is why it
+was the one path that had to be excluded from long caching — a rebuild was otherwise
+invisible to phones already holding a copy, including the rebuilds that clear
+[renumbered stations](#enbw-renumbers-stations). It now lives in `data/stations.enbw.json`
+and is imported for its URL (`src/services/enbw/stations.ts`), so the build emits it hashed
+alongside the bundle and it inherits the same rule: cached until it changes, and a rebuild
+ships as a new URL that the new `index.html` points at.
+
+The icons stay unhashed at the root, because the manifest and iOS reference them by fixed
+name. They are a few kB and only fetched at install time.
 
 ## Why a proxy
 
@@ -643,8 +669,8 @@ runs, rather than measuring thousands of stations only to filter them out on scr
 
 `MIN_POWER_KW` in `scripts/build-station-list.mjs` applies it when the list is built, and
 `MIN_STATION_POWER_KW` in `src/services/enbw/stations.ts` applies it again at load — the
-file is HTTP-cached, so a phone can still be holding a list generated before the floor
-existed. Stations with unknown power are dropped too: "might be fast" is not good enough
+file is HTTP-cached and an installed app can be running an older `index.html`, so a phone
+can still be holding a list generated before the floor existed. Stations with unknown power are dropped too: "might be fast" is not good enough
 to put in front of a driver.
 
 Settings keeps: minimum power (50, 100, 150 or 300 kW), maximum detour, and which maps app to

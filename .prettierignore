@@ -4,4 +4,4 @@ dist
 .pnpm-store
 pnpm-lock.yaml
 *.tsbuildinfo
-public/stations.enbw.json
+data/stations.enbw.json

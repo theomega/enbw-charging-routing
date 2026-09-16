@@ -218,7 +218,7 @@ describe('parseStationList', () => {
 describe('the shipped station list', () => {
   it('parses, and every row can state its own size', async () => {
     const file = JSON.parse(
-      await readFile(new URL('../../../public/stations.enbw.json', import.meta.url), 'utf8'),
+      await readFile(new URL('../../../data/stations.enbw.json', import.meta.url), 'utf8'),
     ) as StationListFile
     const { meta, chargers } = parseStationList(file)
 

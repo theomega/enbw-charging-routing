@@ -1,0 +1,21 @@
+# Cloudflare serves static assets with `max-age=0, must-revalidate` by default,
+# so an installed PWA revalidated every file — bundle and station list included —
+# before it could paint. Everything under /assets/ carries a content hash in its
+# filename (Vite's build output, and the station list is emitted there too), so a
+# deploy changes the name rather than the contents. Those are safe to freeze.
+#
+# index.html and the manifest are the two documents that carry no hash, and they
+# are what points at the new names, so they must keep revalidating — that is the
+# path an update ships down. Both are small, and a 304 is one round trip.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate

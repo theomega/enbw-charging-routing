@@ -1,3 +1,4 @@
+import stationListUrl from '../../../data/stations.enbw.json?url'
 import type { Charger, PointPowerGroup } from '../../core/types'
 import { ENBW_PRICE_GROUP, chargerId } from './wire'
 
@@ -28,7 +29,13 @@ import { ENBW_PRICE_GROUP, chargerId } from './wire'
  * and the corridor geometry.
  */
 
-export const STATION_LIST_URL = '/stations.enbw.json'
+/**
+ * The built file, not the source path. Vite copies `data/stations.enbw.json`
+ * into the bundle's asset directory under a content-hashed name, which is what
+ * lets it be cached forever (see `public/_headers`): a rebuilt list ships as a
+ * different URL rather than as the same URL with new contents.
+ */
+export const STATION_LIST_URL = stationListUrl
 
 /**
  * The oldest file format this app can read.
@@ -39,9 +46,9 @@ export const STATION_LIST_URL = '/stations.enbw.json'
  * migration on purpose: the app is in testing, the file is committed alongside
  * the code that reads it, and the only cost of refusing it is a rebuild.
  *
- * Worth being strict about because the file has no content hash in its name, so
- * a phone can be holding an older copy in its HTTP cache. A hard error names
- * the fix; a shifted row would put a number where a station's operator goes.
+ * Worth being strict about even though the file is now content-hashed and
+ * fetched by a URL the bundle names: the check costs nothing and a shifted row
+ * would put a number where a station's operator goes. A hard error names the fix.
  */
 export const MIN_LIST_VERSION = 5
 
@@ -184,7 +191,7 @@ export function parseStationList(file: StationListFile): StationList {
   if (!(file.version >= MIN_LIST_VERSION)) {
     throw new Error(
       `Station list is version ${file.version}, and this app needs ${MIN_LIST_VERSION} or ` +
-        `newer. Run \`pnpm build:stations\` to regenerate public/stations.enbw.json.`,
+        `newer. Run \`pnpm build:stations\` to regenerate data/stations.enbw.json.`,
     )
   }
   return {
@@ -199,12 +206,8 @@ let cached: Promise<StationList> | null = null
 
 /**
  * Load the list, once per session. The browser HTTP cache handles persistence
- * between sessions; the file is content-stamped with `version` and
- * `generatedAt`.
- *
- * Note for deployment: the file has no content hash in its name, so a long
- * `Cache-Control: max-age` on this path will hide a rebuilt list from phones
- * that already have one. See the README.
+ * between sessions, and the URL is content-hashed, so a phone keeps its copy
+ * until a rebuild gives the file a new name.
  */
 export function loadStations(signal?: AbortSignal): Promise<StationList> {
   if (!cached) {
@@ -213,7 +216,7 @@ export function loadStations(signal?: AbortSignal): Promise<StationList> {
       if (!res.ok) {
         throw new Error(
           `Could not load the station list (${res.status}). ` +
-            `Run \`pnpm build:stations\` to generate public/stations.enbw.json.`,
+            `Run \`pnpm build:stations\` to generate data/stations.enbw.json.`,
         )
       }
       return parseStationList((await res.json()) as StationListFile)

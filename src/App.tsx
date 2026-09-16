@@ -9,7 +9,7 @@ import { ExpandIcon, RefreshIcon, SettingsIcon, SpinnerIcon } from './components
 import { isFiltering } from './core/filters'
 import { useGeolocation } from './hooks/useGeolocation'
 import { useRouteSearch } from './search/useRouteSearch'
-import { useAppStore } from './state/store'
+import { DEFAULT_SETTINGS, useAppStore } from './state/store'
 
 export default function App() {
   const [showSearch, setShowSearch] = useState(false)

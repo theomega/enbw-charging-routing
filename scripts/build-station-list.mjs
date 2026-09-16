@@ -17,7 +17,7 @@
  *
  *   pnpm build:stations                    # default root: DE + AT + northern IT
  *   pnpm build:stations -- --bbox 48.3,49.3,8.7,9.7   # a small region, for testing
- *   pnpm build:stations -- --out public/stations.enbw.json
+ *   pnpm build:stations -- --out data/stations.enbw.json
  *
  * Requires ENBW_SUBSCRIPTION_KEY, from .dev.vars or the environment.
  */
@@ -130,7 +130,7 @@ const RATE_LIMIT_BACKOFF_MS = 5_000
 const DEFAULT_ROOT = { fromLat: 45.0, toLat: 55.6, fromLon: 5.0, toLon: 19.5 }
 
 function parseArgs(argv) {
-  const args = { out: 'public/stations.enbw.json', root: DEFAULT_ROOT }
+  const args = { out: 'data/stations.enbw.json', root: DEFAULT_ROOT }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--out') args.out = argv[++i]
     else if (argv[i] === '--bbox') {

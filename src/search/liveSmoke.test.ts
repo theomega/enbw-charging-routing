@@ -24,7 +24,7 @@ import { DEFAULT_SETTINGS } from '../state/store'
 
 const enabled = process.env.SMOKE === '1'
 const WORKER = process.env.WORKER_URL ?? 'http://127.0.0.1:8787'
-const STATION_LIST = process.env.STATION_LIST ?? 'public/stations.enbw.json'
+const STATION_LIST = process.env.STATION_LIST ?? 'data/stations.enbw.json'
 
 const MAX_OFFSET_M = DEFAULT_MAX_OFFSET_M
 
