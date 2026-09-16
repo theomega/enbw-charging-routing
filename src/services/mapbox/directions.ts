@@ -56,7 +56,7 @@ export function buildDirectionsUrl(origin: LatLon, destination: LatLon, token: s
 /** Pure response mapping, split out so it is testable without a token. */
 export function mapDirectionsRoutes(body: DirectionsResponse): RouteOption[] {
   if (!body.routes?.length) {
-    throw new MapboxError(body.message ?? 'Für diese Strecke wurde keine Route gefunden.')
+    throw new MapboxError(body.message ?? 'Für dieses Ziel wurde keine Route gefunden.')
   }
 
   return body.routes.map((route, index) => {
