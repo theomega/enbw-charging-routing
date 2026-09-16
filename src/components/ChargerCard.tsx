@@ -9,6 +9,7 @@ import { Fact } from './Fact'
 import {
   distanceOrEstimate,
   formatDetour,
+  formatDetourDistance,
   formatDistance,
   formatDuration,
   formatPower,
@@ -153,7 +154,7 @@ export function ChargerCard({
           <Fact
             label="Umweg"
             value={formatDetour(item.detourS)}
-            sub={item.detourM != null ? `${formatDistance(item.detourM)} extra` : 'nicht berechnet'}
+            sub={formatDetourDistance(item.detourM)}
             emphasis={item.detourS != null && item.detourS <= 300}
           />
         </dl>

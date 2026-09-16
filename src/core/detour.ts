@@ -150,11 +150,8 @@ export function buildChunkQueries(
  * write the subtraction twice.
  *
  * Returns null when any of the four is unroutable, since a detour is only
- * meaningful once both endings of both journeys are known. Clamps at zero:
- * routing to the charger can come out marginally *cheaper* than routing to the
- * point on the road beside it — the route point is an arbitrary spot on the
- * carriageway and Mapbox snaps it to the network like any other coordinate —
- * and a detour of "-40 seconds" is noise reported as a discount.
+ * meaningful once both endings of both journeys are known. Negatives come back
+ * as they are.
  */
 export function detourCost(
   toCharger: number | null | undefined,
@@ -164,8 +161,7 @@ export function detourCost(
 ): number | null {
   if (toCharger == null || fromCharger == null) return null
   if (toRoutePoint == null || fromRoutePoint == null) return null
-  const detour = toCharger - toRoutePoint + (fromCharger - fromRoutePoint)
-  return detour < 0 ? 0 : detour
+  return toCharger - toRoutePoint + (fromCharger - fromRoutePoint)
 }
 
 export interface DetourOptions {

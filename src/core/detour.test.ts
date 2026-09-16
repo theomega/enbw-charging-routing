@@ -66,11 +66,15 @@ describe('detourCost', () => {
     expect(detourCost(3000, 720, 3000, 720)).toBe(0)
   })
 
-  it('clamps a slightly negative detour to zero', () => {
+  it('keeps a negative detour instead of clamping it to zero', () => {
     // The route point is an arbitrary spot on the carriageway, and Mapbox snaps
     // it to the network like any other coordinate — occasionally somewhere
-    // marginally more awkward than the charger's own driveway.
-    expect(detourCost(3000, 700, 3020, 700)).toBe(0)
+    // marginally more awkward than the charger's own driveway. Clamping that
+    // made the row claim "0 m extra", which nothing had measured.
+    expect(detourCost(3000, 700, 3020, 700)).toBe(-20)
+    // The clamp hid a large one exactly as well as a small one, and a large one
+    // is the baseline leg taking a different road — not a shorter excursion.
+    expect(detourCost(40_000, 12_000, 52_000, 13_000)).toBe(-13_000)
   })
 
   it('returns null unless all four journeys are routable', () => {

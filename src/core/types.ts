@@ -150,11 +150,13 @@ export interface ChargerOnRoute {
    */
   routePoint: LatLon
   /**
-   * Extra seconds of driving incurred by stopping here.
+   * Extra seconds of driving incurred by stopping here. Negative where the
+   * baseline leg did not take the road the driver will — core/detour.ts says
+   * how that happens and why the sign is kept.
    * `null` until priced, or when Mapbox could not route to the point.
    */
   detourS: number | null
-  /** Extra metres driven by stopping here. Null on the same terms as `detourS`. */
+  /** Extra metres driven by stopping here. Signed and null on `detourS`'s terms. */
   detourM: number | null
   /** The two legs the detour was computed from. Null until priced. */
   legs: ChargerLegs | null

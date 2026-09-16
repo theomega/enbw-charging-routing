@@ -7,11 +7,28 @@
  * the thing that let the panel and the list disagree about what "4.5 km" means.
  */
 
-/** German decimal comma; whole kilometres above 10 km carry no decimal at all. */
+/**
+ * German decimal comma; whole kilometres above 10 km carry no decimal at all.
+ *
+ * Formats the *magnitude*. Only the detour can be negative (`core/detour.ts`);
+ * every along-route figure is clamped at zero where it is measured
+ * (`core/progress.ts`), so no other caller has a sign to lose. The detour's
+ * sign is carried by the word beside the number — see `formatDetourDistance`,
+ * where "weniger" against "extra" is what tells the two apart. Taking the
+ * absolute value here is what keeps the branches below meaningful: a negative
+ * used to fall into the first one whatever its size, so −12 400 m printed
+ * "-12400 m" instead of "12 km".
+ *
+ * Rounding never turns a measurement into a zero: below 10 m the figure is
+ * printed to the metre. So a displayed "0 m" means the two journeys came out
+ * identical, and not that 4 m was rounded away.
+ */
 export function formatDistance(metres: number): string {
-  if (metres < 1_000) return `${Math.round(metres / 10) * 10} m`
-  if (metres < 10_000) return `${(metres / 1_000).toFixed(1).replace('.', ',')} km`
-  return `${Math.round(metres / 1_000)} km`
+  const m = Math.abs(metres)
+  if (m < 10) return `${Math.round(m)} m`
+  if (m < 1_000) return `${Math.round(m / 10) * 10} m`
+  if (m < 10_000) return `${(m / 1_000).toFixed(1).replace('.', ',')} km`
+  return `${Math.round(m / 1_000)} km`
 }
 
 /**
@@ -31,12 +48,30 @@ export function formatDuration(seconds: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m} min`
 }
 
-/** Detour is the number people scan for, so keep it short and signed. */
+/**
+ * Detour is the number people scan for, so keep it short and signed.
+ *
+ * A negative detour reads "4 min weniger" rather than "kein Umweg", which is
+ * what it used to collapse to alongside the clamp in `core/detour.ts`. It does
+ * not mean the station is a shortcut — that comment explains what it does mean
+ * — but hiding it made the app state a saving of exactly nothing.
+ *
+ * Sub-minute keeps "kein Umweg" at either sign: minutes are this cell's unit,
+ * and a rounded verdict is true where a rounded *number* would not be. That is
+ * the difference between this and the "0 m" the sub-line used to print.
+ */
 export function formatDetour(seconds: number | null): string {
   if (seconds == null) return '—'
   const mins = Math.round(seconds / 60)
-  if (mins <= 0) return 'kein Umweg'
+  if (mins === 0) return 'kein Umweg'
+  if (mins < 0) return `${-mins} min weniger`
   return `+${mins} min`
+}
+
+/** The detour's distance, as the sub-line under `formatDetour`. */
+export function formatDetourDistance(metres: number | null): string {
+  if (metres == null) return 'nicht berechnet'
+  return `${formatDistance(metres)} ${metres < 0 ? 'weniger' : 'extra'}`
 }
 
 /** How much slower an alternative is than the fastest route. SI units, as above. */

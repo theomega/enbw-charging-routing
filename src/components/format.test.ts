@@ -3,6 +3,7 @@ import {
   asEstimate,
   distanceOrEstimate,
   formatDetour,
+  formatDetourDistance,
   formatDistance,
   formatDuration,
   formatDurationDelta,
@@ -22,6 +23,19 @@ describe('formatDistance', () => {
   it('drops the decimal above 10 km, so there is no comma to write', () => {
     expect(formatDistance(83_400)).toBe('83 km')
     expect(formatDistance(206_000)).toBe('206 km')
+  })
+  it('never rounds a measured distance down to zero', () => {
+    // "0 m" has to keep meaning "the two journeys came out identical".
+    expect(formatDistance(4)).toBe('4 m')
+    expect(formatDistance(0)).toBe('0 m')
+  })
+  it('formats the magnitude, so a negative keeps its own branch', () => {
+    // Every branch used to test the signed value, so any negative fell into the
+    // first one: −12 400 printed as "-12400 m".
+    expect(formatDistance(-4)).toBe('4 m')
+    expect(formatDistance(-560)).toBe('560 m')
+    expect(formatDistance(-4_320)).toBe('4,3 km')
+    expect(formatDistance(-12_400)).toBe('12 km')
   })
 })
 
@@ -50,6 +64,24 @@ describe('formatDetour', () => {
   it('signs a real detour', () => {
     expect(formatDetour(180)).toBe('+3 min')
     expect(formatDetour(7 * 60)).toBe('+7 min')
+  })
+  it('names a negative detour rather than calling it no detour', () => {
+    expect(formatDetour(-240)).toBe('4 min weniger')
+    expect(formatDetour(-12 * 60)).toBe('12 min weniger')
+    // Sub-minute is a rounded verdict, not a rounded number, so it still holds.
+    expect(formatDetour(-20)).toBe('kein Umweg')
+  })
+})
+
+describe('formatDetourDistance', () => {
+  it('distinguishes unpriced from zero', () => {
+    expect(formatDetourDistance(null)).toBe('nicht berechnet')
+    expect(formatDetourDistance(0)).toBe('0 m extra')
+  })
+  it('carries the sign in the word, since formatDistance drops it', () => {
+    expect(formatDetourDistance(2_400)).toBe('2,4 km extra')
+    expect(formatDetourDistance(-560)).toBe('560 m weniger')
+    expect(formatDetourDistance(-4)).toBe('4 m weniger')
   })
 })
 
