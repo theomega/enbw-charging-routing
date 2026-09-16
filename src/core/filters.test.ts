@@ -108,9 +108,9 @@ describe('isFiltering', () => {
   })
 
   it('reports both at once as one indicator', () => {
-    expect(
-      isFiltering(settings({ minPowerKw: 150, maxDetourMinutes: 5 }), DEFAULT_SETTINGS),
-    ).toBe(true)
+    expect(isFiltering(settings({ minPowerKw: 150, maxDetourMinutes: 5 }), DEFAULT_SETTINGS)).toBe(
+      true,
+    )
   })
 
   it('ignores the maps app, which hides nothing', () => {
