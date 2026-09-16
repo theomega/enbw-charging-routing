@@ -75,17 +75,17 @@ export function ChargerDetail({ item, charger, loading, route, mapsApp, id }: Pr
 
       <section className="mt-5">
         <h4 className="text-xs uppercase tracking-wide text-slate-500">
-          Ladepunkte
+          Ladesäulen
           {charger.chargePoints && ` (${charger.chargePoints.length})`}
         </h4>
         {/* Only while there is nothing to show; a Refresh over a full list is
             reported by the badge's spinner instead. */}
         {loading && !charger.chargePoints && (
-          <p className="mt-2 text-sm text-slate-500">Ladepunkte werden geladen …</p>
+          <p className="mt-2 text-sm text-slate-500">Ladesäulen werden geladen …</p>
         )}
         {!loading && !charger.chargePoints && (
           <p className="mt-2 text-sm text-slate-500">
-            EnBW hat für diese Station nicht geantwortet, die einzelnen Ladepunkte sind daher
+            EnBW hat für diese Station nicht geantwortet, die einzelnen Ladesäulen sind daher
             unbekannt.
           </p>
         )}

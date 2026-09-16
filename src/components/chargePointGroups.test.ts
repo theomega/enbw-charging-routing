@@ -99,7 +99,7 @@ describe('describeGroup', () => {
   const busy = (n: number) => Array.from({ length: n }, () => point({ status: 'OCCUPIED' }))
 
   it('never says how many are in use, that being the residual', () => {
-    // "8 Ladepunkte" and "5 belegt" both follow from "3 von 8 frei".
+    // "8 Ladesäulen" and "5 belegt" both follow from "3 von 8 frei".
     expect(describe1([point(), point(), point(), ...busy(5)])).toBe('3 von 8 frei')
     expect(describe1(busy(8))).toBe('0 von 8 frei')
     expect(describe1([point({ status: 'OCCUPIED' })])).toBe('0 von 1 frei')
@@ -132,7 +132,7 @@ describe('describeGroup', () => {
   it('says unknown rather than claiming none are free', () => {
     // No "von 2" to carry the size of the group, so it is stated outright.
     expect(describe1([point({ status: null }), point({ status: null })])).toBe(
-      '2 Ladepunkte · Status unbekannt',
+      '2 Ladesäulen · Status unbekannt',
     )
   })
 

@@ -175,7 +175,7 @@ export function describeGroup(group: ChargePointGroup): string {
   // provider never gave, and with no "von 4" to carry it the size of the group
   // has to be said outright.
   if (group.free == null) {
-    return `${group.count} ${group.count === 1 ? 'Ladepunkt' : 'Ladepunkte'} · Status unbekannt`
+    return `${group.count} ${group.count === 1 ? 'Ladesäule' : 'Ladesäulen'} · Status unbekannt`
   }
 
   const free = `${group.free} von ${group.count} frei`
