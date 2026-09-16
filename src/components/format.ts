@@ -59,18 +59,6 @@ export function formatClock(date: Date): string {
 }
 
 /**
- * How far into the drive a charger sits, as a share of the whole route.
- *
- * German sets a space before the percent sign; only the detail panel reads
- * this, so the German form is the only form.
- */
-export function formatProgress(alongDistanceM: number, totalDistanceM: number): string {
-  if (totalDistanceM <= 0) return '—'
-  const pct = Math.round((alongDistanceM / totalDistanceM) * 100)
-  return `${Math.min(100, Math.max(0, pct))} %`
-}
-
-/**
  * Marks a figure the app worked out from the route geometry rather than
  * measured on the road. A driver deciding whether the battery reaches a
  * charger deserves to know which numbers were actually priced.

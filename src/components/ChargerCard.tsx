@@ -12,7 +12,6 @@ import {
   formatDistance,
   formatDuration,
   formatPower,
-  formatProgress,
 } from './format'
 import { ChevronIcon, SpinnerIcon } from './icons'
 
@@ -22,6 +21,12 @@ interface Props {
   /** The Ladeleistung setting, which the displayed point count is filtered by. */
   minPowerKw: number
   route: RouteOption | null
+  /**
+   * What is left of the journey from the driver's position. The route's own
+   * total is measured from wherever it was built, which stopped being the
+   * driver's position the moment they set off — see core/progress.ts.
+   */
+  remainingDistanceM: number
   expanded: boolean
   onToggle: () => void
   /** True when the search pipeline already looks this charger up. */
@@ -62,6 +67,7 @@ export function ChargerCard({
   mapsApp,
   minPowerKw,
   route,
+  remainingDistanceM,
   expanded,
   onToggle,
   enriched,
@@ -78,7 +84,6 @@ export function ChargerCard({
   const panelId = `charger-detail-${charger.id}`
 
   const legs = item.legs
-  const total = route?.route.totalDistanceM ?? 0
 
   const toCharger = distanceOrEstimate(legs?.toChargerM, item.alongDistanceM + item.offsetM)
 
@@ -128,7 +133,7 @@ export function ChargerCard({
           <Fact
             label="Auf der Route"
             value={formatDistance(item.alongDistanceM)}
-            sub={`${formatDuration(item.alongDurationS)} · ${formatProgress(item.alongDistanceM, total)} der Strecke`}
+            sub={formatDuration(item.alongDurationS)}
           />
           <Fact
             label="Zur Ladestation"
@@ -173,6 +178,7 @@ export function ChargerCard({
           charger={charger}
           loading={loading}
           route={route}
+          remainingDistanceM={remainingDistanceM}
           mapsApp={mapsApp}
           minPowerKw={minPowerKw}
         />

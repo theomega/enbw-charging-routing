@@ -8,7 +8,6 @@ import {
   formatDurationDelta,
   formatPointStatus,
   formatPower,
-  formatProgress,
 } from './format'
 
 describe('formatDistance', () => {
@@ -71,22 +70,6 @@ describe('formatDurationDelta', () => {
     expect(formatDurationDelta(22 * 60)).toBe('+22 min')
     expect(formatDurationDelta(90 * 60)).toBe('+1 h 30 min')
     expect(formatDurationDelta(120 * 60)).toBe('+2 h')
-  })
-})
-
-describe('formatProgress', () => {
-  it('reports how far into the drive a charger sits', () => {
-    expect(formatProgress(50_000, 200_000)).toBe('25 %')
-  })
-
-  it('clamps rather than reporting a nonsense share', () => {
-    // A charger measured slightly past the end of its own route polyline.
-    expect(formatProgress(210_000, 200_000)).toBe('100 %')
-    expect(formatProgress(-5, 200_000)).toBe('0 %')
-  })
-
-  it('says nothing when there is no route to measure against', () => {
-    expect(formatProgress(50_000, 0)).toBe('—')
   })
 })
 
