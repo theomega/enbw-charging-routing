@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ChargerOnRoute } from '../core/types'
 import { ChargerList } from './ChargerList'
@@ -260,5 +260,75 @@ describe('ChargerList while the list is rebuilt', () => {
 
     expect(scrollBy).not.toHaveBeenCalled()
     expect(scrollTo).not.toHaveBeenCalled()
+  })
+})
+
+describe('ChargerList share action', () => {
+  const station = (): ChargerOnRoute => {
+    const base = row(1)
+    return {
+      ...base,
+      charger: { ...base.charger, notes: 'Seligweiler', address: 'Kelternweg 124, 89075 Ulm' },
+    }
+  }
+
+  const stubShareSheet = (canShare: boolean) => {
+    const share = vi.fn<(data: ShareData) => Promise<void>>(() => Promise.resolve())
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true })
+    Object.defineProperty(navigator, 'canShare', {
+      value: () => canShare,
+      configurable: true,
+    })
+    return share
+  }
+
+  afterEach(() => {
+    // vi.unstubAllGlobals does not reach a defineProperty on navigator.
+    Reflect.deleteProperty(navigator, 'share')
+    Reflect.deleteProperty(navigator, 'canShare')
+  })
+
+  it('hides the control where the browser has no share sheet', () => {
+    stubShareSheet(false)
+    render(<ChargerList {...listProps({ results: [station()], expandedId: 'enbw:1' })} />)
+
+    expect(screen.queryByLabelText('Ladestation teilen')).toBeNull()
+    expect(screen.getByText('Hierhin navigieren')).toBeTruthy()
+  })
+
+  it('shares the Apple place card, with the station named in the text', () => {
+    const share = stubShareSheet(true)
+    render(<ChargerList {...listProps({ results: [station()], expandedId: 'enbw:1' })} />)
+
+    fireEvent.click(screen.getByLabelText('Ladestation teilen'))
+    fireEvent.click(screen.getByText('Apple Maps Link teilen'))
+
+    expect(share).toHaveBeenCalledWith({
+      title: 'Seligweiler',
+      text: 'Seligweiler, Kelternweg 124, 89075 Ulm',
+      url: 'https://maps.apple.com/place?coordinate=48%2C11&name=Seligweiler',
+    })
+  })
+
+  it('shares the unlabelled Google coordinate link', () => {
+    const share = stubShareSheet(true)
+    render(<ChargerList {...listProps({ results: [station()], expandedId: 'enbw:1' })} />)
+
+    fireEvent.click(screen.getByLabelText('Ladestation teilen'))
+    fireEvent.click(screen.getByText('Google Maps Link teilen'))
+
+    expect(share.mock.calls[0][0]).toMatchObject({
+      url: 'https://www.google.com/maps/search/?api=1&query=48%2C11',
+    })
+  })
+
+  it('closes the menu once an action is taken', () => {
+    stubShareSheet(true)
+    render(<ChargerList {...listProps({ results: [station()], expandedId: 'enbw:1' })} />)
+
+    fireEvent.click(screen.getByLabelText('Ladestation teilen'))
+    fireEvent.click(screen.getByText('Google Maps Link teilen'))
+
+    expect(screen.queryByText('Google Maps Link teilen')).toBeNull()
   })
 })

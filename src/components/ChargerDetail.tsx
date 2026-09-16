@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Charger, ChargerOnRoute } from '../core/types'
-import { navigationUrl, type MapsApp } from '../nav/deepLinks'
+import { navigationUrl, stationShare, type MapsApp, type PlaceProvider } from '../nav/deepLinks'
 import type { RouteOption } from '../services/mapbox/directions'
 import { TEXT_TONE, availabilityState } from './availability'
 import { describeGroup, groupChargePoints } from './chargePointGroups'
 import { Fact } from './Fact'
 import { distanceOrEstimate, formatDuration, formatPower } from './format'
+import { ChevronIcon } from './icons'
 import { RouteMap } from './RouteMap'
 
 interface Props {
@@ -83,6 +84,32 @@ export function ChargerDetail({
       : remaining === '—'
         ? undefined
         : 'aus der Route geschätzt'
+
+  const [shareOpen, setShareOpen] = useState(false)
+
+  /**
+   * Share sheet or nothing: there is no clipboard path, so where the API is
+   * missing the control is hidden outright rather than opening a menu that
+   * cannot do anything. Both providers' payloads have the same shape, so one
+   * probe answers for both.
+   */
+  const shareable = useMemo(
+    () =>
+      typeof navigator.canShare === 'function' &&
+      navigator.canShare(stationShare(charger, 'google')),
+    [charger],
+  )
+
+  const share = (provider: PlaceProvider) => {
+    setShareOpen(false)
+    // Called straight out of the tap handler: `share()` needs transient
+    // activation, which an `await` before it would already have spent.
+    navigator.share(stationShare(charger, provider)).catch((err: unknown) => {
+      // Dismissing the sheet rejects with AbortError. Nothing failed.
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      console.warn('Sharing the station failed:', err)
+    })
+  }
 
   return (
     <div id={id} className="border-t border-slate-800 px-4 pb-4 pt-3">
@@ -167,17 +194,75 @@ export function ChargerDetail({
         )}
       </section>
 
-      <a
-        href={navigationUrl(charger, mapsApp)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-5 block rounded-xl bg-emerald-600 px-4 py-3 text-center font-semibold text-white transition active:bg-emerald-700"
-      >
-        Hierhin navigieren
-      </a>
+      <div className="mt-5 flex gap-px">
+        <a
+          href={navigationUrl(charger, mapsApp)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex-1 bg-emerald-600 px-4 py-3 text-center font-semibold text-white transition active:bg-emerald-700 ${shareable ? 'rounded-l-xl' : 'rounded-xl'}`}
+        >
+          Hierhin navigieren
+        </a>
+        {shareable && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShareOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={shareOpen}
+              aria-label="Ladestation teilen"
+              className="flex h-full items-center rounded-r-xl bg-emerald-600 px-3.5 text-white transition active:bg-emerald-700"
+            >
+              <ChevronIcon className="h-4 w-4 rotate-90" />
+            </button>
+            {shareOpen && (
+              <>
+                {/* Tap-anywhere-else dismissal, without a document listener. */}
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-hidden
+                  onClick={() => setShareOpen(false)}
+                  className="fixed inset-0 z-30 cursor-default"
+                />
+                {/*
+                  Opens upwards: this button is the last thing in the panel, and
+                  a menu below it would unfold past the end of the list.
+                */}
+                <div
+                  role="menu"
+                  className="absolute bottom-full right-0 z-40 mb-2 w-56 overflow-hidden rounded-xl bg-slate-800 py-1 shadow-xl ring-1 ring-slate-700"
+                >
+                  {SHARE_ACTIONS.map(([provider, label]) => (
+                    <button
+                      key={provider}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => share(provider)}
+                      className="block w-full px-4 py-2.5 text-left text-sm text-slate-100 active:bg-slate-700"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
+
+/**
+ * Named by provider rather than by what the link does, because that is the only
+ * part the driver can decide on: what the recipient's phone will make of it is
+ * the one thing they know and we do not.
+ */
+const SHARE_ACTIONS: [PlaceProvider, string][] = [
+  ['google', 'Google Maps Link teilen'],
+  ['apple', 'Apple Maps Link teilen'],
+]
 
 /** The same states the station's badge and its map dot colour by. */
 const freeTone = (free: number | null): string => TEXT_TONE[availabilityState(free)]
