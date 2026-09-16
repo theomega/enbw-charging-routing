@@ -647,8 +647,18 @@ file is HTTP-cached, so a phone can still be holding a list generated before the
 existed. Stations with unknown power are dropped too: "might be fast" is not good enough
 to put in front of a driver.
 
-Settings keeps: minimum power (50, 150 or 300 kW), maximum detour, and which maps app to hand
-off to. The power chips only ever raise the floor.
+Settings keeps: minimum power (50, 100, 150 or 300 kW), maximum detour, and which maps app to
+hand off to. The power chips only ever raise the floor.
+
+The gear in the header carries an amber dot whenever either of the first two is narrower than
+its default — `isFiltering` in `core/filters.ts`, which is why `Settings extends ChargerFilters`
+is worth the split: the maps app is a setting but not a filter, and must not light the dot. It
+reads the settings, not the result: a 300 kW floor that happens to drop nothing on this route
+still shows the dot. The alternative — comparing `unfilteredCount` with the list length — is
+dark until a route exists and flickers as the static and live filters run in turn, and the
+question the dot answers is "have I narrowed this?", which is true of the settings alone.
+Without it the only hint is the empty state, which appears solely when nothing is left; the bad
+case is three rows that look like the whole road.
 
 There is no "hide fully occupied" toggle. A full station is still a station you might reach
 in twenty minutes, and hiding it makes the list lie about what is on the road ahead — the

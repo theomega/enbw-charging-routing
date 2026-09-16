@@ -5,7 +5,8 @@ import { RouteMapSheet } from './components/RouteMapSheet'
 import { RoutePicker } from './components/RoutePicker'
 import { SettingsSheet } from './components/SettingsSheet'
 import { formatClock, formatDistance, formatDuration } from './components/format'
-import { ExpandIcon, RefreshIcon, SpinnerIcon } from './components/icons'
+import { ExpandIcon, RefreshIcon, SettingsIcon, SpinnerIcon } from './components/icons'
+import { isFiltering } from './core/filters'
 import { useGeolocation } from './hooks/useGeolocation'
 import { useRouteSearch } from './search/useRouteSearch'
 import { useAppStore } from './state/store'
@@ -25,6 +26,7 @@ export default function App() {
 
   const destination = useAppStore((s) => s.lastDestination)
   const setDestination = useAppStore((s) => s.setDestination)
+  const filtering = useAppStore((s) => isFiltering(s.settings, DEFAULT_SETTINGS))
 
   const {
     position,
@@ -95,10 +97,23 @@ export default function App() {
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            aria-label="Einstellungen"
+            aria-label={filtering ? 'Einstellungen, Filter aktiv' : 'Einstellungen'}
             className="flex items-center justify-center rounded-lg bg-slate-900 px-3 ring-1 ring-slate-800"
           >
-            ⚙
+            {/*
+              The dot hangs off the icon, not off the button: the button
+              stretches to the destination button beside it, so a corner of the
+              box is nowhere near the gear.
+            */}
+            <span className="relative inline-flex">
+              <SettingsIcon className="h-5 w-5" />
+              {filtering && (
+                <span
+                  aria-hidden
+                  className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-slate-900"
+                />
+              )}
+            </span>
           </button>
         </div>
 

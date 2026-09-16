@@ -50,3 +50,24 @@ export function applyLiveFilters(
   const capS = filters.maxDetourMinutes * 60
   return items.filter(({ detourS }) => detourS == null || detourS <= capS)
 }
+
+/**
+ * Whether the settings are hiding anything, for the indicator on the settings
+ * button.
+ *
+ * `defaults` is the loosest setting the UI offers, not "off": the shipped list
+ * already stops at 50 kW, so `minPowerKw: 50` excludes nothing and must not
+ * light the indicator. It is a parameter rather than a constant here because
+ * that number is the store's to decide — core must not import state.
+ *
+ * The fields are compared one by one on purpose. A shallow diff over
+ * `Object.keys(defaults)` would also read `mapsApp` off a `Settings` passed as
+ * a `ChargerFilters`, and picking a maps app would light the indicator.
+ */
+export function isFiltering(filters: ChargerFilters, defaults: ChargerFilters): boolean {
+  // `>` rather than `!==`, because the power chips only ever raise the floor.
+  return (
+    filters.minPowerKw > defaults.minPowerKw ||
+    filters.maxDetourMinutes !== defaults.maxDetourMinutes
+  )
+}

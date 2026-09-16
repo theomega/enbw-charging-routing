@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS, type Settings } from '../state/store'
 import { eastwardRoute } from '../test/routes'
 import { buildCorridor, placeChargersOnRoute } from './corridor'
-import { applyLiveFilters, applyStaticFilters } from './filters'
+import { applyLiveFilters, applyStaticFilters, isFiltering } from './filters'
 import type { Charger, ChargerOnRoute } from './types'
 
 const settings = (over: Partial<Settings> = {}): Settings => ({ ...DEFAULT_SETTINGS, ...over })
@@ -89,6 +89,34 @@ describe('applyLiveFilters', () => {
   it('keeps chargers of unknown power rather than guessing', () => {
     const items = [onRoute(charger({ id: 'unknown', maxPowerKw: null }), 1_000)]
     expect(applyStaticFilters(items, settings({ minPowerKw: 150 }))).toHaveLength(1)
+  })
+})
+
+describe('isFiltering', () => {
+  it('is quiet at the defaults, which are the loosest the sheet offers', () => {
+    // 50 kW is the floor the list is built to, so it excludes nothing.
+    expect(isFiltering(settings(), DEFAULT_SETTINGS)).toBe(false)
+  })
+
+  it('reports a raised power floor', () => {
+    expect(isFiltering(settings({ minPowerKw: 100 }), DEFAULT_SETTINGS)).toBe(true)
+    expect(isFiltering(settings({ minPowerKw: 300 }), DEFAULT_SETTINGS)).toBe(true)
+  })
+
+  it('reports a detour cap', () => {
+    expect(isFiltering(settings({ maxDetourMinutes: 10 }), DEFAULT_SETTINGS)).toBe(true)
+  })
+
+  it('reports both at once as one indicator', () => {
+    expect(
+      isFiltering(settings({ minPowerKw: 150, maxDetourMinutes: 5 }), DEFAULT_SETTINGS),
+    ).toBe(true)
+  })
+
+  it('ignores the maps app, which hides nothing', () => {
+    // The reason the fields are compared one by one: a Settings passed as a
+    // ChargerFilters still carries mapsApp, and a shallow diff would see it.
+    expect(isFiltering(settings({ mapsApp: 'google' }), DEFAULT_SETTINGS)).toBe(false)
   })
 })
 
