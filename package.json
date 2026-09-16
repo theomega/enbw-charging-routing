@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "deploy:worker": "wrangler deploy",
-    "build:stations": "node scripts/build-station-list.mjs"
+    "build:stations": "node scripts/build-station-list.mjs",
+    "build:icons": "node scripts/build-icons.mjs"
   },
   "dependencies": {
     "@turf/bbox": "^7.4.0",

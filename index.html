@@ -16,6 +16,11 @@
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Ladestopp" />
+    <!--
+      iOS ignores the manifest's SVG icon and needs its own PNG, otherwise the
+      home screen shows a screenshot of the page instead of the app icon.
+    -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Ladestopp — ENBW</title>
   </head>
