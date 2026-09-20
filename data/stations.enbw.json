@@ -1,13 +1,13 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-16T14:55:59.922Z",
+  "generatedAt": "2026-09-20T19:04:00.756Z",
   "bbox": {
     "fromLat": 45,
     "toLat": 55.6,
     "fromLon": 5,
     "toLon": 19.5
   },
-  "count": 2436,
+  "count": 2435,
   "minPowerKw": 50,
   "fields": [
     "stationId",
@@ -77,7 +77,7 @@
         ],
         [
           50,
-          3
+          2
         ],
         [
           22,
@@ -132,29 +132,6 @@
       ]
     ],
     [
-      89180,
-      48.16651,
-      16.41134,
-      400,
-      "Swatoschgasse 3, 1110 Wien, AT",
-      "SMATRICS",
-      "BILLA PLUS Wien Swatoschgasse",
-      [
-        [
-          400,
-          4
-        ],
-        [
-          200,
-          6
-        ],
-        [
-          22.08,
-          2
-        ]
-      ]
-    ],
-    [
       89187,
       48.09402,
       16.28242,
@@ -179,7 +156,7 @@
     ],
     [
       89513,
-      48.30905,
+      48.30902,
       7.79157,
       150,
       "A5, Raststätte Mahlberg Ost, 77972 Mahlberg, DE",
@@ -206,8 +183,8 @@
     ],
     [
       89523,
-      48.20573,
-      8.62076,
+      48.2059,
+      8.62082,
       150,
       "A81, Raststätte Neckarburg West, 78661 Dietingen, DE",
       "EnBW",
@@ -257,7 +234,7 @@
     [
       89537,
       50.45437,
-      7.87313,
+      7.87315,
       300,
       "A3, Raststätte Heiligenroth, 56410 Montabaur, DE",
       "EnBW",
@@ -494,8 +471,8 @@
     ],
     [
       91676,
-      50.52287,
-      7.67526,
+      50.52288,
+      7.67523,
       300,
       "A3, Raststätte Sessenhausen West, 56244 Sessenhausen, DE",
       "EnBW",
@@ -517,8 +494,8 @@
     ],
     [
       91679,
-      50.52148,
-      7.69559,
+      50.52147,
+      7.69562,
       300,
       "A3, Raststätte Landsberg an der Warthe, 56244 Sessenhausen, DE",
       "EnBW",
@@ -616,8 +593,8 @@
     ],
     [
       121230,
-      53.05583,
-      8.50144,
+      53.05581,
+      8.50136,
       300,
       "A28 Raststätte Hasbruch Nord, 27777 Ganderkesee, DE",
       "EnBW",
@@ -1010,7 +987,7 @@
     [
       180913,
       49.34491,
-      8.67889,
+      8.6789,
       100,
       "Gottlieb-Daimler-Str. 1, 69181 Leimen, DE",
       "EnBW",
@@ -1779,7 +1756,7 @@
     ],
     [
       199976,
-      47.49257,
+      47.49255,
       14.48368,
       400,
       "Industriepark 3, 8784 Trieben, AT",
@@ -1929,7 +1906,7 @@
     [
       208222,
       51.06112,
-      6.82047,
+      6.82045,
       300,
       "Kruppstraße 1, 41540 Dormagen, DE",
       "EnBW",
@@ -2451,8 +2428,8 @@
     ],
     [
       224577,
-      52.16704,
-      10.57225,
+      52.16705,
+      10.57228,
       300,
       "Schweigerstraße 13, 38302 Wolfenbüttel, DE",
       "EnBW",
@@ -2489,8 +2466,8 @@
     ],
     [
       225010,
-      51.25371,
-      6.95947,
+      51.25373,
+      6.95948,
       300,
       "Düsseldorfer Straße 181-187, 40822 Mettmann, DE",
       "EnBW",
@@ -2649,8 +2626,8 @@
     ],
     [
       228687,
-      52.1813,
-      8.60737,
+      52.18128,
+      8.6074,
       300,
       "Herforder Str. 180, 32257 Bünde, DE",
       "EnBW",
@@ -3108,25 +3085,6 @@
         [
           22,
           1
-        ]
-      ]
-    ],
-    [
-      239782,
-      47.84545,
-      16.24524,
-      150,
-      "Wiener Straße 127, 2700 Wiener Neustadt, AT",
-      "SMATRICS",
-      "EKZ Neustadt Nord",
-      [
-        [
-          150,
-          2
-        ],
-        [
-          22,
-          4
         ]
       ]
     ],
@@ -4562,8 +4520,8 @@
     ],
     [
       323191,
-      51.3288,
-      6.52888,
+      51.32879,
+      6.52892,
       300,
       "Am Kempschen Weg 2, 47804 Krefeld, DE",
       "EnBW",
@@ -4847,7 +4805,7 @@
       [
         [
           300,
-          8
+          7
         ],
         [
           150,
@@ -5106,8 +5064,8 @@
     ],
     [
       352281,
-      53.59731,
-      11.43182,
+      53.59732,
+      11.43186,
       300,
       "Graf-Yorck-Straße 1, 19061 Schwerin, DE",
       "EnBW",
@@ -5235,8 +5193,8 @@
     ],
     [
       361233,
-      50.59415,
-      8.68153,
+      50.59419,
+      8.68158,
       300,
       "Marburger Straße 44, 35390 Gießen, DE",
       "EnBW",
@@ -5753,8 +5711,8 @@
     ],
     [
       389521,
-      51.03412,
-      7.01225,
+      51.03413,
+      7.01226,
       300,
       "Syltstraße 14, 51377 Leverkusen, DE",
       "EnBW",
@@ -6222,8 +6180,8 @@
     ],
     [
       411219,
-      51.95106,
-      8.57284,
+      51.95111,
+      8.57281,
       400,
       "Hansestraße 1f, 33689 Bielefeld, DE",
       "EnBW",
@@ -6231,7 +6189,7 @@
       [
         [
           400,
-          8
+          7
         ]
       ]
     ],
@@ -7073,25 +7031,6 @@
         [
           150,
           2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      468427,
-      49.12218,
-      9.22319,
-      50,
-      "Stuttgarter Str. 107, 74074 Heilbronn, DE",
-      "SMATRICS GmbH & Co KG",
-      "ZEAG ASW Stuttgarter Str.",
-      [
-        [
-          50,
-          1
         ],
         [
           22,
@@ -7947,8 +7886,8 @@
     ],
     [
       727809,
-      51.4967,
-      7.2571,
+      51.49674,
+      7.25706,
       300,
       "Castroper Hellweg 20, 44805 Bochum, DE",
       "EnBW",
@@ -8669,8 +8608,8 @@
     ],
     [
       1155851,
-      48.61451,
-      8.90309,
+      48.61453,
+      8.90303,
       150,
       "A81, Raststätte Schönbuch West, 71154 Nufringen, DE",
       "EnBW",
@@ -8977,8 +8916,8 @@
     ],
     [
       1156322,
-      49.64464,
-      8.29025,
+      49.6446,
+      8.29028,
       300,
       "A61, Raststätte Wonnegau West, 67551 Worms, DE",
       "EnBW",
@@ -9228,7 +9167,7 @@
       54.3746,
       10.98097,
       300,
-      "Am Yachthafen, 23774 Heiligenhafen, DE",
+      "Am Jachthafen 0, 23774 Heiligenhafen, DE",
       "EnBW",
       null,
       [
@@ -9640,8 +9579,8 @@
     ],
     [
       1156361,
-      49.10214,
-      9.69489,
+      49.10213,
+      9.69484,
       300,
       "Daimlerstraße 66, 74545 Michelfeld, DE",
       "EnBW",
@@ -9723,7 +9662,7 @@
       48.38757,
       10.03312,
       300,
-      "Europastr. 44, 89231 Neu-Ulm, DE",
+      "Europastraße 44, 89231 Neu-Ulm, DE",
       "EnBW",
       "Shell Neu-Ulm",
       [
@@ -9826,7 +9765,7 @@
       51.2881,
       7.56914,
       300,
-      "BAB45, Autobahnraststätte Rölvedermühle West, 58579 Schalksmühle, DE",
+      "A45, Raststätte Rölvedermühle West, 58579 Schalksmühle, DE",
       "EnBW",
       "Autobahnraststätte Rölvedermühle West",
       [
@@ -10193,8 +10132,8 @@
     ],
     [
       1156393,
-      48.61635,
-      8.90838,
+      48.61632,
+      8.90832,
       150,
       "A81, Raststätte Schönbuch Ost, 71154 Nufringen, DE",
       "EnBW",
@@ -10444,8 +10383,8 @@
     ],
     [
       1156407,
-      52.2152,
-      10.5301,
+      52.21515,
+      10.53014,
       300,
       "Senefelderstraße 2, 38124 Braunschweig, DE",
       "EnBW",
@@ -10463,7 +10402,7 @@
     ],
     [
       1156408,
-      50.62971,
+      50.62973,
       7.2286,
       300,
       "Wittichenauer Straße 13, 53604 Bad Honnef, DE",
@@ -10505,8 +10444,8 @@
     ],
     [
       1156410,
-      54.08779,
-      13.39894,
+      54.08786,
+      13.39882,
       150,
       "Hans-Beimler-Straße 1-3, 17491 Greifswald, DE",
       "EnBW",
@@ -10830,7 +10769,7 @@
       150,
       "Werner-von-Siemens-Straße 6, 30890 Barsinghausen, DE",
       "EnBW",
-      "Bitte beachten Sie die maximale Höchsparkdauer",
+      null,
       [
         [
           150,
@@ -10878,10 +10817,10 @@
     ],
     [
       1156435,
-      49.89256,
-      8.54382,
+      49.89263,
+      8.54389,
       300,
-      "A67, Raststätte Büttelborn Süd, 64572 Büttelborn, DE",
+      "BAB67, Autobahnraststätte Büttelborn Süd, 64572 Büttelborn, DE",
       "EnBW",
       "Raststätte Büttelborn Süd",
       [
@@ -10902,7 +10841,7 @@
     [
       1156437,
       48.64417,
-      9.42976,
+      9.42983,
       300,
       "Kruichling 15, 73230 Kirchheim unter Teck, DE",
       "EnBW",
@@ -10920,7 +10859,7 @@
     ],
     [
       1156439,
-      48.12471,
+      48.12474,
       10.11215,
       150,
       "A7, Raststätte Illertal Ost, 88451 Dettingen an der Iller, DE",
@@ -10970,8 +10909,8 @@
     ],
     [
       1156441,
-      49.64312,
-      8.55199,
+      49.64314,
+      8.552,
       300,
       "BAB67, Autobahnraststätte Lorsch West, 64653 Lorsch, DE",
       "EnBW",
@@ -11054,7 +10993,7 @@
     ],
     [
       1156445,
-      48.30961,
+      48.30966,
       7.78886,
       150,
       "A5, Raststätte Mahlberg West, 77972 Mahlberg, DE",
@@ -11241,8 +11180,8 @@
     ],
     [
       1156455,
-      49.69057,
-      6.89946,
+      49.69064,
+      6.89953,
       300,
       "A1, Raststätte Hochwald Ost, 54421 Reinsfeld, DE",
       "EnBW",
@@ -11416,8 +11355,8 @@
     ],
     [
       1156469,
-      50.78128,
-      7.95871,
+      50.78127,
+      7.95864,
       300,
       "Schneiderstraße 30, 57562 Herdorf, DE",
       "EnBW",
@@ -11462,7 +11401,7 @@
     ],
     [
       1156472,
-      51.47617,
+      51.47616,
       7.15331,
       300,
       "Vietingstr. 50, 44866 Bochum, DE",
@@ -11542,8 +11481,8 @@
     ],
     [
       1156478,
-      50.52953,
-      9.69048,
+      50.5295,
+      9.69047,
       300,
       "Keltenstr. 20, 36043 Fulda, DE",
       "EnBW",
@@ -11862,8 +11801,8 @@
     ],
     [
       1156503,
-      51.42612,
-      6.66836,
+      51.42619,
+      6.66829,
       300,
       "Römerstraße 244, 47228 Duisburg, DE",
       "EnBW",
@@ -12110,7 +12049,7 @@
     [
       1156524,
       49.84583,
-      7.82314,
+      7.82311,
       300,
       "Am Wiesenberg 1, 55593 Rüdesheim, DE",
       "EnBW",
@@ -12320,8 +12259,8 @@
     ],
     [
       1156539,
-      51.76778,
-      11.48416,
+      51.76777,
+      11.48411,
       300,
       "Güstener Straße 19C, 06449 Aschersleben, DE",
       "EnBW",
@@ -12363,7 +12302,7 @@
     [
       1156541,
       50.87983,
-      7.93557,
+      7.93544,
       300,
       "A45, Raststätte Siegerland West, 57258 Freudenberg, DE",
       "EnBW",
@@ -12385,8 +12324,8 @@
     ],
     [
       1156544,
-      48.56299,
-      7.95582,
+      48.563,
+      7.95584,
       150,
       "A5, Raststätte Renchtal West, 77767 Appenweier, DE",
       "EnBW",
@@ -12436,7 +12375,7 @@
     [
       1156546,
       54.13432,
-      12.06987,
+      12.06988,
       300,
       "Kolumbusring 58, 18106 Rostock, DE",
       "EnBW",
@@ -12538,8 +12477,8 @@
     ],
     [
       1156552,
-      49.81212,
-      8.57934,
+      49.81213,
+      8.57935,
       300,
       "A67, Raststätte Pfungstadt Ost, 64319 Pfungstadt, DE",
       "EnBW",
@@ -12744,8 +12683,8 @@
     ],
     [
       1156564,
-      51.47308,
-      7.48625,
+      51.47311,
+      7.48628,
       300,
       "Zillestraße 71, 44265 Dortmund, DE",
       "EnBW",
@@ -12763,8 +12702,8 @@
     ],
     [
       1156565,
-      49.04445,
-      9.26177,
+      49.04444,
+      9.26179,
       150,
       "A81 Raststätte Wunnenstein West, 74360 Ilsfeld, DE",
       "EnBW",
@@ -12828,8 +12767,8 @@
     ],
     [
       1156569,
-      48.50025,
-      11.45198,
+      48.50026,
+      11.45199,
       300,
       "Klosterberg 2, 85298 Scheyern, DE",
       "EnBW",
@@ -12893,8 +12832,8 @@
     ],
     [
       1156573,
-      49.20951,
-      6.96645,
+      49.20948,
+      6.96634,
       300,
       "A6, Raststätte Goldene Bremm Nord, 66117 Saarbrücken, DE",
       "EnBW",
@@ -13092,7 +13031,7 @@
     ],
     [
       1156588,
-      50.9518,
+      50.95181,
       7.32067,
       300,
       "A4, Raststätte Aggertal Süd, 51491 Overath, DE",
@@ -13386,7 +13325,7 @@
     ],
     [
       1156608,
-      53.24025,
+      53.24026,
       10.46197,
       300,
       "Auf den Blöcken 1, 21337 Lüneburg, DE",
@@ -13497,9 +13436,9 @@
     [
       1156616,
       49.6443,
-      8.5541,
+      8.55409,
       300,
-      "BAB67, Autobahnraststätte Lorsch Ost, 64653 Lorsch, DE",
+      "A67, Raststätte Lorsch Ost, 64653 Lorsch, DE",
       "EnBW",
       "Raststätte Lorsch Ost",
       [
@@ -13545,7 +13484,7 @@
       50.95169,
       7.31796,
       300,
-      "A4, Raststätte Aggertal Nord, 51491 Overath, DE",
+      "BAB4, Autobahnraststätte Aggertal Nord, 51491 Overath, DE",
       "EnBW",
       "Raststätte Aggertal Nord",
       [
@@ -13599,8 +13538,8 @@
     ],
     [
       1156624,
-      51.4022,
-      7.47921,
+      51.40216,
+      7.47926,
       300,
       "Schwerter Straße 223-227, 58099 Hagen, DE",
       "EnBW",
@@ -13858,8 +13797,8 @@
     ],
     [
       1156644,
-      50.26562,
-      7.22723,
+      50.26565,
+      7.22724,
       300,
       "A48, Raststätte Elztal Süd, 56729 Kehrig, DE",
       "EnBW",
@@ -13988,8 +13927,8 @@
     ],
     [
       1156655,
-      49.96325,
-      7.76588,
+      49.9634,
+      7.76572,
       300,
       "A61, Raststätte Hunsrück West, 55442 Daxweiler, DE",
       "EnBW",
@@ -14034,8 +13973,8 @@
     ],
     [
       1156658,
-      51.49324,
-      7.55045,
+      51.49323,
+      7.55042,
       300,
       "Rodenbergstraße 61, 44287 Dortmund, DE",
       "EnBW",
@@ -14118,7 +14057,7 @@
     ],
     [
       1156664,
-      48.58403,
+      48.58404,
       10.17569,
       150,
       "BAB7, Autobahnraststätte Lonetal West, 89537 Giengen an der Brenz, DE",
@@ -14632,7 +14571,7 @@
       48.58416,
       10.17886,
       150,
-      "BAB7, Autobahnraststätte Lonetal Ost, 89537 Giengen an der Brenz, DE",
+      "A7, Raststätte Lonetal Ost, 89537 Giengen an der Brenz, DE",
       "EnBW",
       "Autobahnraststätte Lonetal Ost",
       [
@@ -15183,10 +15122,10 @@
     ],
     [
       1156756,
-      49.52751,
-      8.07267,
+      49.52748,
+      8.07255,
       300,
-      "A6, Raststätte Wattenheim Nord, 67319 Wattenheim, DE",
+      "BAB6, Autobahnraststätte Pfalz, 67319 Wattenheim, DE",
       "EnBW",
       "Autobahnraststätte Wattenheim Nord",
       [
@@ -15439,7 +15378,7 @@
     [
       1156777,
       50.42314,
-      7.92838,
+      7.92839,
       300,
       "A3, Raststätte Nentershausen Ost, 56412 Nentershausen, DE",
       "EnBW",
@@ -15621,10 +15560,10 @@
     ],
     [
       1156789,
-      49.19196,
-      9.22271,
+      49.19197,
+      9.22268,
       50,
-      "Urbanstr. 11, 74172 Neckarsulm, DE",
+      "Urbanstrasse 15-19, 74172 Neckarsulm, DE",
       "EnBW",
       "74172 Neckarsulm, Urbanstr. 11",
       [
@@ -15804,8 +15743,8 @@
     ],
     [
       1156802,
-      49.27035,
-      8.15393,
+      49.27038,
+      8.1538,
       300,
       "BAB65, Rastätte Pfälzer Weinstrasse Ost, 67483 Edesheim, DE",
       "EnBW",
@@ -15888,8 +15827,8 @@
     ],
     [
       1156812,
-      49.62171,
-      9.73072,
+      49.6217,
+      9.73074,
       150,
       "A81, Raststätte Ob der Tauber Ost, 97947 Grünsfeld, DE",
       "EnBW",
@@ -15956,7 +15895,7 @@
       53.1093,
       9.984,
       300,
-      "A7, Autobahnraststätte Lüneburger Heide Ost, 29646 Bispingen, DE",
+      "A7, Raststätte Brunautal Ost, 29646 Bispingen, DE",
       "EnBW",
       "Raststätte Brunautal Ost",
       [
@@ -16026,8 +15965,8 @@
     ],
     [
       1156822,
-      49.07425,
-      9.06271,
+      49.07424,
+      9.06267,
       150,
       "Hermann-Bauer-Straße 10, 74336 Brackenheim, DE",
       "EnBW",
@@ -16087,8 +16026,8 @@
     ],
     [
       1156829,
-      49.31696,
-      8.5759,
+      49.31709,
+      8.57589,
       150,
       "A6, Raststätte Am Hockenheimring Ost, 68766 Hockenheim, DE",
       "EnBW",
@@ -16262,7 +16201,7 @@
       47.99724,
       11.67594,
       300,
-      "BAB8, Raststätte Hofoldinger Forst Süd, 85649 Brunnthal, DE",
+      "A8, Raststätte Hofoldinger Forst Süd, 85649 Brunnthal, DE",
       "EnBW",
       "Raststätte Hofoldinger Forst Süd",
       [
@@ -16324,8 +16263,8 @@
     ],
     [
       1156846,
-      49.37323,
-      7.37442,
+      49.37325,
+      7.37443,
       300,
       "A6, Raststätte Waldmohr, 66914 Waldmohr, DE",
       "EnBW",
@@ -16586,7 +16525,7 @@
     ],
     [
       1156876,
-      49.32402,
+      49.324,
       9.41218,
       150,
       "A81, Raststätte Jagsttal West, 74259 Widdern, DE",
@@ -16660,7 +16599,7 @@
     [
       1156880,
       51.67032,
-      6.97519,
+      6.9752,
       300,
       "Halterner Str. 45, 46284 Dorsten, DE",
       "EnBW",
@@ -16701,8 +16640,8 @@
     ],
     [
       1156883,
-      48.83006,
-      9.13124,
+      48.8301,
+      9.13125,
       300,
       "Zuffenhauser Straße 70, 70825 Korntal-Münchingen, DE",
       "EnBW",
@@ -16811,8 +16750,8 @@
     ],
     [
       1156901,
-      51.24568,
-      7.18793,
+      51.24567,
+      7.18791,
       300,
       "Oberbergische Straße 200, 42285 Wuppertal, DE",
       "EnBW",
@@ -16852,7 +16791,7 @@
       52.33881,
       9.86382,
       300,
-      "A7, Raststätte Hannover-Wülferode West, 30539 Hannover, DE",
+      "A7,Autobahnraststätte Hannover-Wülferode West, 30539 Hannover, DE",
       "EnBW",
       "Raststätte T&R Hannover-Wülferode West,  A7",
       [
@@ -16888,7 +16827,7 @@
     [
       1156907,
       51.88935,
-      11.06317,
+      11.06314,
       300,
       "Quedlinburger Straße 101, 38820 Halberstadt, DE",
       "EnBW",
@@ -16910,8 +16849,8 @@
     ],
     [
       1156908,
-      47.87792,
-      10.6148,
+      47.87785,
+      10.61474,
       300,
       "Apfeltranger Straße 3, 87600 Kaufbeuren, DE",
       "EnBW",
@@ -17031,7 +16970,7 @@
       50.25065,
       8.99451,
       300,
-      "A45, Raststätte Langen-Bergheim Ost, 63546 Hammersbach, DE",
+      "BAB45, Autobahnraststätte Langen-Bergheim Ost, 63546 Hammersbach, DE",
       "EnBW",
       "Raststätte Langen-Bergheim Ost",
       [
@@ -17272,8 +17211,8 @@
     ],
     [
       1156942,
-      50.68841,
-      8.2958,
+      50.68846,
+      8.29578,
       300,
       "A45, Raststätte Dollenberg Ost, 35745 Herborn, DE",
       "EnBW",
@@ -17523,8 +17462,8 @@
     ],
     [
       1156962,
-      51.20546,
-      10.46897,
+      51.20547,
+      10.46894,
       300,
       "Rudolf-Breitscheid-Straße 24, 99974 Mühlhausen/Thüringen, DE",
       "EnBW",
@@ -17629,7 +17568,7 @@
       48.20629,
       8.62735,
       150,
-      "BAB81, Autobahnraststätte Neckarburg Ost, 78661 Dietingen, DE",
+      "A81, Raststätte Neckarburg Ost, 78661 Dietingen, DE",
       "EnBW",
       "Raststätte Neckarburg Ost",
       [
@@ -17836,10 +17775,10 @@
     ],
     [
       1156990,
-      49.00126,
-      12.19718,
+      49.00125,
+      12.19724,
       300,
-      "Neutraublinger Str 12, 93092 Barbing, DE",
+      "Neutraublinger Straße 12, 93092 Barbing, DE",
       "EnBW",
       "Shell Barbing",
       [
@@ -17969,8 +17908,8 @@
     ],
     [
       1157003,
-      47.59876,
-      7.60326,
+      47.59874,
+      7.60328,
       100,
       "BAB5, Lustgartenstr. 5, 79576 Weil am Rhein, DE",
       "EnBW",
@@ -17996,8 +17935,8 @@
     ],
     [
       1157005,
-      48.38801,
-      11.92999,
+      48.38803,
+      11.92997,
       300,
       "St.-Florian-Weg 1, 85459 Berglern, DE",
       "EnBW",
@@ -18150,7 +18089,7 @@
       300,
       "Bayrische Str. 155, 44339 Dortmund, DE",
       "EnBW",
-      "Bitte beachten Sie die maximale Höchstparkdauer",
+      null,
       [
         [
           300,
@@ -18336,10 +18275,10 @@
     ],
     [
       1157026,
-      48.78184,
-      9.1756,
+      48.7818,
+      9.17551,
       300,
-      "Keplerstraße 7, 70174 Stuttgart, DE",
+      "Keplerstr. 7, 70174 Stuttgart, DE",
       "EnBW",
       null,
       [
@@ -18375,7 +18314,7 @@
     [
       1157032,
       47.84151,
-      12.12536,
+      12.12538,
       400,
       "Isarstraße 2, 83026 Rosenheim, DE",
       "EnBW",
@@ -18416,8 +18355,8 @@
     ],
     [
       1157034,
-      48.88581,
-      12.3458,
+      48.88583,
+      12.34579,
       300,
       "Regensburger Straße 71, 93104 Sünching, DE",
       "EnBW",
@@ -19326,7 +19265,7 @@
     [
       1157102,
       48.12757,
-      10.83425,
+      10.83424,
       300,
       "Gewerbestr Nord 19, 86857 Hurlach, DE",
       "EnBW",
@@ -19496,8 +19435,8 @@
     ],
     [
       1157117,
-      50.04889,
-      8.80048,
+      50.04882,
+      8.80055,
       300,
       "Werner-von-Siemens-Straße 2, 63150 Heusenstamm, DE",
       "EnBW",
@@ -20064,8 +20003,8 @@
     ],
     [
       1157165,
-      48.08586,
-      12.02957,
+      48.08583,
+      12.02954,
       300,
       "Bahnhof Str 4, 85643 Steinhöring, DE",
       "EnBW",
@@ -20744,8 +20683,8 @@
     ],
     [
       1157220,
-      50.98308,
-      7.52794,
+      50.98307,
+      7.528,
       150,
       "Dieringhauser Straße 18, 51645 Gummersbach, DE",
       "EnBW",
@@ -21258,8 +21197,8 @@
     ],
     [
       1157265,
-      49.00344,
-      13.22001,
+      49.00345,
+      13.21996,
       300,
       "Regener Straße 70, 94227 Zwiesel, DE",
       "EnBW",
@@ -21281,8 +21220,8 @@
     ],
     [
       1157267,
-      53.05216,
-      8.96219,
+      53.05227,
+      8.96215,
       300,
       "Hans-Bredow-Straße 20, 28307 Bremen, DE",
       "EnBW",
@@ -21486,7 +21425,7 @@
       49.42281,
       11.68792,
       300,
-      "A6, Raststätte Oberpfälzer Alb Süd, 92278 Illschwang, DE",
+      "BAB6, Autobahnraststätte Oberpfälzer Alb Süd, 92278 Illschwang, DE",
       "EnBW",
       "Raststätte Oberpfälzer Alb Süd",
       [
@@ -21722,8 +21661,8 @@
     ],
     [
       1157300,
-      51.70632,
-      8.72913,
+      51.70633,
+      8.72912,
       300,
       "Grüner Weg 24, 33098 Paderborn, DE",
       "EnBW",
@@ -22197,7 +22136,7 @@
       49.42439,
       11.69039,
       300,
-      "A6, Raststätte Oberpfälzer Alb Nord, 92278 Illschwang, DE",
+      "BAB6,Autobahnraststätte Oberpfälzer Alb Nord, 92278 Illschwang, DE",
       "EnBW",
       "Raststätte Oberpfälzer Alb Nord",
       [
@@ -22546,8 +22485,8 @@
     ],
     [
       1157378,
-      48.40782,
-      11.98514,
+      48.40785,
+      11.98512,
       300,
       "Strogenstraße 59, 85456 Wartenberg, DE",
       "EnBW",
@@ -24901,10 +24840,10 @@
     ],
     [
       1157626,
-      48.1018,
-      9.79142,
+      48.10182,
+      9.79145,
       75,
-      "Adolf-Pirrung-Straße 7, 88400 Biberach an der Riß, DE",
+      "Adolf-Pirrung-Str. 7, 88400 Biberach an der Riß, DE",
       "EnBW",
       "iLis@EnBW Biberach an der Riß",
       [
@@ -25257,8 +25196,8 @@
     ],
     [
       1157652,
-      48.73585,
-      13.37306,
+      48.73586,
+      13.37308,
       300,
       "Tresdorf 7C, 94104 Tittling, DE",
       "EnBW",
@@ -25857,8 +25796,8 @@
     ],
     [
       1157694,
-      48.69272,
-      9.7313,
+      48.69274,
+      9.73127,
       150,
       "Eislinger Straße 60, 73084 Salach, DE",
       "EnBW",
@@ -26047,7 +25986,7 @@
     ],
     [
       1157708,
-      52.30835,
+      52.30834,
       9.80559,
       300,
       "Erich-Panitz-Straße 1, 30880 Laatzen, DE",
@@ -26200,7 +26139,7 @@
     [
       1157726,
       49.98032,
-      8.02685,
+      8.02682,
       150,
       "Nahering 20, 55218 Ingelheim am Rhein, DE",
       "EnBW",
@@ -26214,8 +26153,8 @@
     ],
     [
       1157727,
-      49.98048,
-      8.02659,
+      49.98047,
+      8.02656,
       300,
       "Nahering 20, 55218 Ingelheim am Rhein, DE",
       "EnBW",
@@ -26339,8 +26278,8 @@
     ],
     [
       1157742,
-      49.20515,
-      9.68082,
+      49.20514,
+      9.68077,
       300,
       "Günther-Ziehl-Straße 2, 74635 Kupferzell, DE",
       "EnBW",
@@ -26420,7 +26359,7 @@
     [
       1157749,
       52.53405,
-      13.17458,
+      13.17459,
       300,
       "Brunsbütteler Damm 144, 13581 Berlin, DE",
       "EnBW",
@@ -27227,7 +27166,7 @@
       48.33298,
       7.8466,
       150,
-      "Im Götzmann 4, 77933 Lahr/Schwarzwald, DE",
+      "Im Götzmann 3, 77933 Lahr/Schwarzwald, DE",
       "EnBW",
       "dm Lahr, Im Götzmann 4",
       [
@@ -27902,8 +27841,8 @@
     ],
     [
       1157919,
-      51.29035,
-      6.80453,
+      51.29027,
+      6.80451,
       300,
       "A52, 40880 Ratingen, DE",
       "EnBW",
@@ -29109,8 +29048,8 @@
     ],
     [
       1158057,
-      48.85024,
-      9.11279,
+      48.85023,
+      9.11282,
       100,
       "Stuttgarter Straße 121, 70825 Korntal-Münchingen, DE",
       "EnBW",
@@ -30725,7 +30664,7 @@
       300,
       "Yorckstraße 38-39, 10965 Berlin, DE",
       "EnBW",
-      "Bitte beachten Sie die ausgewiesenen Parkraumbestimmungen.",
+      null,
       [
         [
           300,
@@ -30739,8 +30678,8 @@
     ],
     [
       1158291,
-      52.18795,
-      7.8496,
+      52.18791,
+      7.84958,
       300,
       "Wielandstraße 24, 49525 Lengerich, DE",
       "EnBW",
@@ -31075,8 +31014,8 @@
     ],
     [
       1158321,
-      53.5825,
-      7.79625,
+      53.58252,
+      7.79627,
       150,
       "Eggelinger Straße 18, 26409 Wittmund, DE",
       "EnBW",
@@ -31129,7 +31068,7 @@
       100,
       "Hofmillerstraße 1, 83024 Rosenheim, DE",
       "EnBW",
-      "Bitte beachten Sie die Höchstparkdauer von 90 Minuten.",
+      null,
       [
         [
           100,
@@ -32384,16 +32323,16 @@
     ],
     [
       1183561,
-      51.95105,
-      8.5726,
+      51.95096,
+      8.57274,
       400,
-      "Hansestraße 1F, 33689 Bielefeld, DE",
+      "Hansestraße 1f, 33689 Bielefeld, DE",
       "EnBW",
       "A2 AS26 Bielefeld-Sennestadt, 33689 Bielefeld, Hansestr. 1f",
       [
         [
           400,
-          8
+          9
         ]
       ]
     ],
@@ -32578,7 +32517,7 @@
     [
       1209803,
       48.16584,
-      11.71983,
+      11.71982,
       300,
       "Jedovnicestraße 10, 85609 Aschheim, DE",
       "EnBW",
@@ -34046,7 +33985,7 @@
       49.3739,
       8.30606,
       200,
-      "Am Schwarzweiher 9 -11, 67459 Böhl-Iggelheim, DE",
+      "Am Schwarzweiher 9-11, 67459 Böhl-Iggelheim, DE",
       "EnBW",
       "67459 Böhl-Iggelheim, Am Schwarzweiher 9+11",
       [
@@ -34160,8 +34099,8 @@
     ],
     [
       1546385,
-      47.7033,
-      11.87853,
+      47.70329,
+      11.87855,
       100,
       "Dürnbachstraße 1, 83727 Schliersee, DE",
       "EnBW",
@@ -34617,7 +34556,7 @@
       48.62156,
       9.52948,
       200,
-      "Kirchheimer Str. 86, 73235 Weilheim an der Teck, DE",
+      "Kirchheimer Str. 86, 73235 Weilheim, DE",
       "EnBW",
       "73235 Weilheim, Kirchheimer Str. 86",
       [
@@ -34938,7 +34877,7 @@
       [
         [
           300,
-          7
+          8
         ],
         [
           50,
@@ -35313,7 +35252,7 @@
     [
       1665905,
       48.21106,
-      9.00023,
+      9.00022,
       200,
       "Kientenstraße 57, 72458 Albstadt, DE",
       "EnBW",
@@ -35613,8 +35552,8 @@
     ],
     [
       1734275,
-      48.30712,
-      11.89062,
+      48.30711,
+      11.89047,
       150,
       "Johann-Auer-Straße 2-4, 85435 Erding, DE",
       "EnBW",
@@ -35622,7 +35561,7 @@
       [
         [
           150,
-          7
+          8
         ]
       ]
     ],
@@ -35912,8 +35851,8 @@
     ],
     [
       1748597,
-      48.37036,
-      10.84679,
+      48.37035,
+      10.84675,
       400,
       "Hagenmähderstraße 14, 86391 Stadtbergen, DE",
       "EnBW",
@@ -36174,7 +36113,7 @@
     [
       1760461,
       48.3071,
-      11.89038,
+      11.89028,
       300,
       "Johann-Auer-Straße 2-4, 85435 Erding, DE",
       "EnBW",
@@ -36186,7 +36125,7 @@
         ],
         [
           150,
-          3
+          2
         ]
       ]
     ],
@@ -38374,8 +38313,8 @@
     ],
     [
       1992120,
-      48.16334,
-      11.73099,
+      48.16336,
+      11.73096,
       300,
       "Theodor-Fontane-Straße 14, 85609 Aschheim, DE",
       "EnBW",
@@ -38474,10 +38413,6 @@
       [
         [
           400,
-          4
-        ],
-        [
-          200,
           4
         ]
       ]
@@ -40744,8 +40679,8 @@
     ],
     [
       2263457,
-      48.30191,
-      11.62105,
+      48.30192,
+      11.62108,
       100,
       "Schlesierstraße 4, 85386 Eching, DE",
       "EnBW",
@@ -40809,7 +40744,7 @@
     [
       2278140,
       47.68138,
-      11.20026,
+      11.20025,
       100,
       "Reschstraße 7, 82418 Murnau am Staffelsee, DE",
       "EnBW",
@@ -41566,7 +41501,7 @@
       53.00728,
       8.79035,
       100,
-      "Syker Str. 42, 28816 Stuhr, DE",
+      "Syker Str. 42, 28816 Stuhr-Brinkum, DE",
       "EnBW",
       "REWE Stuhr-Brinkum, Syker Str.",
       [
@@ -42085,21 +42020,6 @@
       ]
     ],
     [
-      2810812,
-      48.20587,
-      13.48058,
-      180,
-      "Braunauer Str. 10, 4910 Ried im Innkreis, AT",
-      "SMATRICS",
-      "Turmstrom Ried im Innkreis",
-      [
-        [
-          180,
-          2
-        ]
-      ]
-    ],
-    [
       2816435,
       47.81418,
       12.99921,
@@ -42178,7 +42098,7 @@
         ],
         [
           200,
-          4
+          2
         ]
       ]
     ],
@@ -42481,25 +42401,6 @@
       ]
     ],
     [
-      2911886,
-      48.12476,
-      16.56365,
-      50,
-      "Gst. 611/1, 1300 Wien-Flughafen Schwechat, AT",
-      "SMATRICS",
-      "BILLA Schwechat",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
       2912737,
       48.24599,
       16.46338,
@@ -42667,28 +42568,9 @@
       ]
     ],
     [
-      2928951,
-      48.13573,
-      16.49193,
-      50,
-      "Brucker Bundesstraße 6, 2320 Schwechat, AT",
-      "SMATRICS",
-      "McDonald's Schwechat",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       2933790,
-      48.33233,
-      11.73587,
+      48.33232,
+      11.73591,
       200,
       "Ludwigstraße 46, 85399 Hallbergmoos, DE",
       "EnBW",
@@ -42712,25 +42594,6 @@
         [
           100,
           4
-        ]
-      ]
-    ],
-    [
-      2939406,
-      47.90023,
-      14.12594,
-      50,
-      "Dr.-Gaisbauer-Straße 1, 4560 Kirchdorf an der Krems, AT",
-      "SMATRICS",
-      "PENNY Kirchdorf an der Krems",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43231,25 +43094,6 @@
       ]
     ],
     [
-      3031260,
-      46.63995,
-      14.36719,
-      50,
-      "Ikea Platz 1, 9020 Klagenfurt am Wörthersee, AT",
-      "SMATRICS",
-      "IKEA Klagenfurt am Wörthersee",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       3034417,
       52.15941,
       13.65194,
@@ -43359,25 +43203,6 @@
       ]
     ],
     [
-      3045260,
-      47.85961,
-      13.1249,
-      50,
-      "Römerstraße 1, 5301 Eugendorf, AT",
-      "SMATRICS",
-      "McDonald's Eugendorf",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       3048455,
       48.15052,
       16.30012,
@@ -43404,25 +43229,6 @@
         [
           50,
           4
-        ]
-      ]
-    ],
-    [
-      3057334,
-      47.41027,
-      13.21726,
-      50,
-      "Molkereistrasse 32, 5500 Bischofshofen, AT",
-      "SMATRICS",
-      "BILLA PLUS Bischofshofen",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43562,7 +43368,7 @@
       [
         [
           300,
-          3
+          4
         ],
         [
           50,
@@ -43783,21 +43589,6 @@
       ]
     ],
     [
-      3075930,
-      48.0726,
-      16.45055,
-      200,
-      "Gutenhoferstraße 50, 2325 Himberg bei Wien, AT",
-      "SMATRICS",
-      "AWS Werkstoffzentrum Himberg",
-      [
-        [
-          200,
-          2
-        ]
-      ]
-    ],
-    [
       3076584,
       47.72711,
       13.06041,
@@ -43910,7 +43701,7 @@
       200,
       "Bahnhofstraße 22, 58553 Halver, DE",
       "EnBW",
-      "58553 Halver, Bahnhofstraße  22",
+      "FMZ Halver, Bahnhofstr.",
       [
         [
           200,
@@ -43934,25 +43725,6 @@
       ]
     ],
     [
-      3087701,
-      48.1583,
-      15.11235,
-      50,
-      "Oberegging 54, 3373 Bergland, AT",
-      "SMATRICS",
-      "ENI Bergland",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       3094118,
       46.61181,
       13.83974,
@@ -43960,44 +43732,6 @@
       "Völkendorfer Straße 1, 9500 Villach, AT",
       "SMATRICS",
       "Villach",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      3099668,
-      48.01093,
-      13.92335,
-      50,
-      "Asamerstraße 1, 4655 Vorchdorf, AT",
-      "SMATRICS",
-      "McDonald's Vorchdorf",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
-      3103611,
-      47.48191,
-      12.05781,
-      50,
-      "Innsbrucker Straße 56, 6300 Wörgl, AT",
-      "SMATRICS",
-      "McDonald's Wörgl",
       [
         [
           50,
@@ -44272,21 +44006,6 @@
       ]
     ],
     [
-      3117334,
-      48.19929,
-      13.64208,
-      100,
-      "Geierau 5, 4680 Haag/Hausruck, AT",
-      "SMATRICS",
-      "McDonald's Haag am Hausruck",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
       3117337,
       48.181,
       15.62093,
@@ -44297,7 +44016,7 @@
       [
         [
           300,
-          1
+          3
         ]
       ]
     ],
@@ -44565,21 +44284,6 @@
       ]
     ],
     [
-      3117787,
-      47.05165,
-      16.07359,
-      100,
-      "Grazer Platz, 8280 Fürstenfeld, AT",
-      "SMATRICS",
-      "Stadtwerke Fürstenfeld / Grazer Platz",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
       3117790,
       48.22333,
       14.50994,
@@ -44625,21 +44329,6 @@
       ]
     ],
     [
-      3117796,
-      47.59373,
-      12.17696,
-      150,
-      "Rosenheimer Straße 4, 6332 Kufstein, AT",
-      "SMATRICS",
-      "McDonald's Kufstein",
-      [
-        [
-          150,
-          1
-        ]
-      ]
-    ],
-    [
       3117797,
       48.11496,
       16.39736,
@@ -44671,10 +44360,10 @@
     ],
     [
       3117801,
-      48.1802,
-      14.06358,
+      48.1801,
+      14.06367,
       300,
-      "Ginzkeystraße 27, 4600 Wels, AT",
+      "Ginzkeystraße 60, 4600 Wels, AT",
       "SMATRICS",
       "McDonald's Wels",
       [
@@ -44783,25 +44472,6 @@
       ]
     ],
     [
-      3117812,
-      47.829,
-      16.24748,
-      300,
-      "Stadionstraße 42, 2700 Wiener Neustadt, AT",
-      "SMATRICS",
-      "CineNova Wr. Neustadt",
-      [
-        [
-          300,
-          2
-        ],
-        [
-          50,
-          1
-        ]
-      ]
-    ],
-    [
       3117813,
       46.89507,
       14.3375,
@@ -44832,21 +44502,6 @@
       ]
     ],
     [
-      3117818,
-      47.9925,
-      13.90068,
-      50,
-      "Peintal 31, 4655 Vorchdorf, AT",
-      "SMATRICS",
-      "solarcap Amering Peintal  P&R",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
       3117819,
       48.2172,
       13.49842,
@@ -44858,21 +44513,6 @@
         [
           50,
           2
-        ]
-      ]
-    ],
-    [
-      3117820,
-      47.27462,
-      16.23361,
-      200,
-      "Steinamangerer Str. 177-183, 7400 Oberwart, AT",
-      "SMATRICS",
-      "STOP-SHOP Oberwart",
-      [
-        [
-          200,
-          4
         ]
       ]
     ],
@@ -45274,70 +44914,6 @@
       ]
     ],
     [
-      3118949,
-      48.44187,
-      13.44653,
-      200,
-      "St. Florian am Inn 54, 4782 Sankt Florian am Inn, AT",
-      "SMATRICS",
-      "BILLA Plus St. Florian am Inn",
-      [
-        [
-          200,
-          2
-        ]
-      ]
-    ],
-    [
-      3118967,
-      46.81073,
-      13.76964,
-      100,
-      "Gegendtaler W. 1, 9546 Untertschern, AT",
-      "SMATRICS",
-      "Hotel GUT Trattlerhof & Chalets",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
-      3119008,
-      48.22196,
-      14.40559,
-      400,
-      "Handelsring 1, 4481 Asten, AT",
-      "SMATRICS",
-      "Hub PENNY Asten",
-      [
-        [
-          400,
-          8
-        ]
-      ]
-    ],
-    [
-      3119009,
-      47.29876,
-      12.79609,
-      400,
-      "Kitzsteinhornstraße 49, 5700 Zell am See, AT",
-      "SMATRICS",
-      "Hub FMZ Zell am See",
-      [
-        [
-          400,
-          2
-        ],
-        [
-          200,
-          6
-        ]
-      ]
-    ],
-    [
       3119225,
       50.96643,
       11.25731,
@@ -45372,25 +44948,6 @@
       ]
     ],
     [
-      3119577,
-      46.83688,
-      14.83941,
-      50,
-      "Spanheimerstraße 32, 9400 Wolfsberg, AT",
-      "SMATRICS",
-      "BILLA PLUS Wolfsberg",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
       3120358,
       47.81001,
       13.2476,
@@ -45398,25 +44955,6 @@
       "Schloss Strasse 1, 5322 Hof bei Salzburg, AT",
       "SMATRICS",
       "Hof bei Salzburg",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      3120613,
-      46.80576,
-      15.56031,
-      50,
-      "Gewerbepark Nord 13, 8431 Gralla/Leibnitz, AT",
-      "SMATRICS",
-      "McDonald's Leibnitz",
       [
         [
           50,
@@ -45459,10 +44997,6 @@
         [
           50,
           2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -45482,7 +45016,7 @@
       ]
     ],
     [
-      3121762,
+      3122207,
       48.41218,
       15.77736,
       50,
@@ -45493,6 +45027,429 @@
         [
           50,
           2
+        ]
+      ]
+    ],
+    [
+      3124093,
+      48.19929,
+      13.64208,
+      100,
+      "Geierau 5, 4680 Haag/Hausruck, AT",
+      "SMATRICS",
+      "McDonald's Haag am Hausruck",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3124417,
+      47.90023,
+      14.12594,
+      50,
+      "Dr.-Gaisbauer-Straße 1, 4560 Kirchdorf an der Krems, AT",
+      "SMATRICS",
+      "PENNY Kirchdorf an der Krems",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3124458,
+      47.05165,
+      16.07359,
+      100,
+      "Grazer Platz, 8280 Fürstenfeld, AT",
+      "SMATRICS",
+      "Stadtwerke Fürstenfeld / Grazer Platz",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3124520,
+      46.80576,
+      15.56031,
+      50,
+      "Gewerbepark Nord 13, 8431 Gralla/Leibnitz, AT",
+      "SMATRICS",
+      "McDonald's Leibnitz",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3125097,
+      46.81073,
+      13.76964,
+      100,
+      "Gegendtaler W. 1, 9546 Untertschern, AT",
+      "SMATRICS",
+      "Hotel GUT Trattlerhof & Chalets",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3125112,
+      53.66908,
+      10.23107,
+      100,
+      "Hamburger Straße 57, 22926 Ahrensburg, DE",
+      "EnBW",
+      "Euronics Buddenhagen Ahrensburg",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3125137,
+      51.9353,
+      7.17181,
+      200,
+      "Dülmener Straße 39, 48653 Coesfeld, DE",
+      "EnBW",
+      "REWE Coesfeld, Dülmener Straße",
+      [
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3125180,
+      53.5238,
+      10.1501,
+      100,
+      "Steinbeker Grenzdamm 4-6, 22115 Hamburg, DE",
+      "EnBW",
+      "PENNY Hamburg/Billstedt, Steinbeker Grenzdamm",
+      [
+        [
+          100,
+          4
+        ]
+      ]
+    ],
+    [
+      3126081,
+      48.31561,
+      14.30163,
+      300,
+      "Hafenstraße 8, 4020 Linz, AT",
+      "SMATRICS",
+      "OMV Linz",
+      [
+        [
+          300,
+          1
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3126084,
+      48.44187,
+      13.44653,
+      200,
+      "St. Florian am Inn 54, 4782 Sankt Florian am Inn, AT",
+      "SMATRICS",
+      "BILLA Plus St. Florian am Inn",
+      [
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3126098,
+      48.0726,
+      16.45055,
+      200,
+      "Gutenhoferstraße 50, 2325 Himberg bei Wien, AT",
+      "SMATRICS",
+      "AWS Werkstoffzentrum Himberg",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3126305,
+      47.48191,
+      12.05781,
+      50,
+      "Innsbrucker Straße 56, 6300 Wörgl, AT",
+      "SMATRICS",
+      "McDonald's Wörgl",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3126899,
+      48.20587,
+      13.48058,
+      180,
+      "Braunauer Str. 10, 4910 Ried im Innkreis, AT",
+      "SMATRICS",
+      "Turmstrom Ried im Innkreis",
+      [
+        [
+          180,
+          2
+        ]
+      ]
+    ],
+    [
+      3126971,
+      47.9925,
+      13.90068,
+      50,
+      "Peintal 31, 4655 Vorchdorf, AT",
+      "SMATRICS",
+      "solarcap Amering Peintal  P&R",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3127841,
+      47.82919,
+      16.24671,
+      300,
+      "Stadionstraße 42, 2700 Wiener Neustadt, AT",
+      "SMATRICS",
+      "CineNova Wr. Neustadt",
+      [
+        [
+          300,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3127842,
+      47.27476,
+      16.23299,
+      200,
+      "Steinamangerer Str. 177-183, 7400 Oberwart, AT",
+      "SMATRICS",
+      "STOP-SHOP Oberwart",
+      [
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3127982,
+      48.12476,
+      16.56365,
+      50,
+      "Gst. 611/1, 1300 Wien-Flughafen Schwechat, AT",
+      "SMATRICS",
+      "BILLA Schwechat",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3128162,
+      47.59373,
+      12.17696,
+      150,
+      "Rosenheimer Straße 4, 6332 Kufstein, AT",
+      "SMATRICS",
+      "McDonald's Kufstein",
+      [
+        [
+          150,
+          1
+        ]
+      ]
+    ],
+    [
+      3128404,
+      47.41027,
+      13.21726,
+      50,
+      "Molkereistrasse 32, 5500 Bischofshofen, AT",
+      "SMATRICS",
+      "BILLA PLUS Bischofshofen",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3128801,
+      48.13573,
+      16.49193,
+      50,
+      "Brucker Bundesstraße 6, 2320 Schwechat, AT",
+      "SMATRICS",
+      "McDonald's Schwechat",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3129191,
+      47.29876,
+      12.79609,
+      400,
+      "Kitzsteinhornstraße 49, 5700 Zell am See, AT",
+      "SMATRICS",
+      "Hub FMZ Zell am See",
+      [
+        [
+          400,
+          2
+        ],
+        [
+          200,
+          6
+        ]
+      ]
+    ],
+    [
+      3129298,
+      48.01093,
+      13.92335,
+      50,
+      "Asamerstraße 1, 4655 Vorchdorf, AT",
+      "SMATRICS",
+      "McDonald's Vorchdorf",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3129319,
+      47.85961,
+      13.1249,
+      50,
+      "Römerstraße 1, 5301 Eugendorf, AT",
+      "SMATRICS",
+      "McDonald's Eugendorf",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3129324,
+      46.63995,
+      14.36719,
+      50,
+      "Ikea Platz 1, 9020 Klagenfurt am Wörthersee, AT",
+      "SMATRICS",
+      "IKEA Klagenfurt am Wörthersee",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3129780,
+      48.1583,
+      15.11235,
+      50,
+      "Oberegging 54, 3373 Bergland, AT",
+      "SMATRICS",
+      "ENI Bergland",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
         ]
       ]
     ]
