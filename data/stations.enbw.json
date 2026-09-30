@@ -1,6 +1,6 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-25T10:29:29.520Z",
+  "generatedAt": "2026-09-30T18:56:08.076Z",
   "bbox": {
     "fromLat": 45,
     "toLat": 55.6,
@@ -73,11 +73,11 @@
       [
         [
           300,
-          3
+          4
         ],
         [
           50,
-          3
+          2
         ],
         [
           22,
@@ -128,29 +128,6 @@
         [
           50,
           1
-        ]
-      ]
-    ],
-    [
-      89180,
-      48.16651,
-      16.41134,
-      400,
-      "Swatoschgasse 3, 1110 Wien, AT",
-      "SMATRICS",
-      "BILLA PLUS Wien Swatoschgasse",
-      [
-        [
-          400,
-          4
-        ],
-        [
-          200,
-          6
-        ],
-        [
-          22.08,
-          2
         ]
       ]
     ],
@@ -448,8 +425,8 @@
     ],
     [
       90772,
-      50.06849,
-      6.8803,
+      50.06854,
+      6.88007,
       300,
       "A1, Raststätte Eifel West, 54533 Niederöfflingen, DE",
       "EnBW",
@@ -576,7 +553,7 @@
         ],
         [
           50,
-          1
+          2
         ],
         [
           22,
@@ -2474,8 +2451,8 @@
     ],
     [
       225010,
-      51.25373,
-      6.95948,
+      51.25371,
+      6.95947,
       300,
       "Düsseldorfer Straße 181-187, 40822 Mettmann, DE",
       "EnBW",
@@ -4457,7 +4434,7 @@
       [
         [
           150,
-          4
+          2
         ],
         [
           75,
@@ -5201,8 +5178,8 @@
     ],
     [
       361233,
-      50.59419,
-      8.68158,
+      50.5941,
+      8.68166,
       300,
       "Marburger Straße 44, 35390 Gießen, DE",
       "EnBW",
@@ -5305,6 +5282,25 @@
       [
         [
           75,
+          2
+        ]
+      ]
+    ],
+    [
+      367611,
+      50.13262,
+      14.13927,
+      100,
+      "Arménská  , 27201 Kladno, CZ",
+      "Pražská energetika, a. s.",
+      null,
+      [
+        [
+          100,
+          2
+        ],
+        [
+          22,
           2
         ]
       ]
@@ -5733,25 +5729,6 @@
         [
           150,
           4
-        ]
-      ]
-    ],
-    [
-      394012,
-      49.24735,
-      8.87969,
-      50,
-      "Neulandstraße 8, 74889 Sinsheim, DE",
-      "SMATRICS GmbH & Co KG",
-      "ZEAG Sinsheim Neulandstraße",
-      [
-        [
-          50,
-          1
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -6307,7 +6284,7 @@
       [
         [
           400,
-          26
+          30
         ],
         [
           300,
@@ -7894,8 +7871,8 @@
     ],
     [
       727809,
-      51.49674,
-      7.25706,
+      51.49666,
+      7.25718,
       300,
       "Castroper Hellweg 20, 44805 Bochum, DE",
       "EnBW",
@@ -7964,7 +7941,7 @@
       [
         [
           400,
-          8
+          14
         ]
       ]
     ],
@@ -8277,25 +8254,6 @@
         [
           100,
           4
-        ]
-      ]
-    ],
-    [
-      918646,
-      48.26582,
-      16.45292,
-      400,
-      "Julius Ficker Straße 91, 1210 Wien, AT",
-      "SMATRICS",
-      "Hub BILLA PLUS Wien Julius Ficker Straße",
-      [
-        [
-          400,
-          4
-        ],
-        [
-          200,
-          6
         ]
       ]
     ],
@@ -8616,8 +8574,8 @@
     ],
     [
       1155851,
-      48.61451,
-      8.90308,
+      48.61455,
+      8.90299,
       150,
       "A81, Raststätte Schönbuch West, 71154 Nufringen, DE",
       "EnBW",
@@ -8924,8 +8882,8 @@
     ],
     [
       1156322,
-      49.64463,
-      8.29025,
+      49.64459,
+      8.29029,
       300,
       "A61, Raststätte Wonnegau West, 67551 Worms, DE",
       "EnBW",
@@ -9270,25 +9228,6 @@
       ]
     ],
     [
-      1156341,
-      51.4418,
-      7.65185,
-      150,
-      "Hennener Marktplatz 2 - 2b, 58640 Iserlohn-Hennen, DE",
-      "EnBW",
-      "REWE Iserlohn-Hennen, Hennener Marktplatz",
-      [
-        [
-          150,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
       1156342,
       50.81056,
       7.12487,
@@ -9588,7 +9527,7 @@
     [
       1156361,
       49.10213,
-      9.69484,
+      9.69483,
       300,
       "Daimlerstraße 66, 74545 Michelfeld, DE",
       "EnBW",
@@ -10299,7 +10238,7 @@
       50.31744,
       7.49793,
       300,
-      "A61, Raststätte Moseltal West, 56333 Winningen, DE",
+      "BAB61, Autobahnraststätte Moseltal West, 56333 Winningen, DE",
       "EnBW",
       "Raststätte Moseltal West",
       [
@@ -10792,7 +10731,7 @@
       300,
       "Am Hohen Teich 27, 44359 Dortmund, DE",
       "EnBW",
-      "REWE Dortmund, Am Hohen Teich",
+      null,
       [
         [
           300,
@@ -10867,8 +10806,8 @@
     ],
     [
       1156439,
-      48.1247,
-      10.11216,
+      48.12476,
+      10.11214,
       150,
       "A7, Raststätte Illertal Ost, 88451 Dettingen an der Iller, DE",
       "EnBW",
@@ -11188,8 +11127,8 @@
     ],
     [
       1156455,
-      49.69064,
-      6.89953,
+      49.69057,
+      6.89946,
       300,
       "A1, Raststätte Hochwald Ost, 54421 Reinsfeld, DE",
       "EnBW",
@@ -12569,10 +12508,10 @@
     ],
     [
       1156557,
-      53.04174,
+      53.04173,
       8.22121,
       300,
-      "A29 Raststätte Huntetal Ost, 26203 Wardenburg, DE",
+      "Luchsendamm 43, 26203 Wardenburg, DE",
       "EnBW",
       "Raststätte Huntetal Ost",
       [
@@ -12710,10 +12649,10 @@
     ],
     [
       1156565,
-      49.04444,
-      9.26179,
+      49.04437,
+      9.26201,
       150,
-      "A81 Raststätte Wunnenstein West, 74360 Ilsfeld, DE",
+      "BAB81, Autobahnraststätte Wunnenstein West, 74360 Ilsfeld, DE",
       "EnBW",
       "Raststätte Wunnenstein West",
       [
@@ -13671,7 +13610,7 @@
       51.63566,
       6.74485,
       300,
-      "A3, Autobahnraststätte Hünxe West, 46569 Hünxe, DE",
+      "A3, Raststätte Hünxe West, 46569 Hünxe, DE",
       "EnBW",
       "Raststätte Hünxe West",
       [
@@ -15816,8 +15755,8 @@
     ],
     [
       1156812,
-      49.6217,
-      9.73074,
+      49.62162,
+      9.73091,
       150,
       "A81, Raststätte Ob der Tauber Ost, 97947 Grünsfeld, DE",
       "EnBW",
@@ -16015,8 +15954,8 @@
     ],
     [
       1156829,
-      49.31696,
-      8.5759,
+      49.31709,
+      8.57589,
       150,
       "A6, Raststätte Am Hockenheimring Ost, 68766 Hockenheim, DE",
       "EnBW",
@@ -16248,8 +16187,8 @@
     ],
     [
       1156846,
-      49.37325,
-      7.37443,
+      49.37323,
+      7.37442,
       300,
       "A6, Raststätte Waldmohr, 66914 Waldmohr, DE",
       "EnBW",
@@ -16402,25 +16341,6 @@
         [
           100,
           4
-        ]
-      ]
-    ],
-    [
-      1156871,
-      53.56509,
-      13.26825,
-      50,
-      "Kranichstr. 2, 17034 Neubrandenburg, DE",
-      "EnBW",
-      "Euronics Nehls Neubrandenburg",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          43,
-          1
         ]
       ]
     ],
@@ -16955,7 +16875,7 @@
       50.25065,
       8.99451,
       300,
-      "BAB45, Autobahnraststätte Langen-Bergheim Ost, 63546 Hammersbach, DE",
+      "A45, Raststätte Langen-Bergheim Ost, 63546 Hammersbach, DE",
       "EnBW",
       "Raststätte Langen-Bergheim Ost",
       [
@@ -17760,10 +17680,10 @@
     ],
     [
       1156990,
-      49.00125,
-      12.19724,
+      49.00126,
+      12.19716,
       300,
-      "Neutraublinger Straße 12, 93092 Barbing, DE",
+      "Neutraublinger Str 12, 93092 Barbing, DE",
       "EnBW",
       "Shell Barbing",
       [
@@ -18260,10 +18180,10 @@
     ],
     [
       1157026,
-      48.78177,
-      9.17547,
+      48.78185,
+      9.17564,
       300,
-      "Keplerstr. 7, 70174 Stuttgart, DE",
+      "Keplerstraße 7, 70174 Stuttgart, DE",
       "EnBW",
       null,
       [
@@ -18298,7 +18218,7 @@
     ],
     [
       1157032,
-      47.84151,
+      47.84154,
       12.12538,
       400,
       "Isarstraße 2, 83026 Rosenheim, DE",
@@ -20078,6 +19998,14 @@
         [
           300,
           2
+        ],
+        [
+          150,
+          2
+        ],
+        [
+          22,
+          1
         ]
       ]
     ],
@@ -20653,8 +20581,8 @@
     ],
     [
       1157220,
-      50.98308,
-      7.52795,
+      50.98307,
+      7.52804,
       150,
       "Dieringhauser Straße 18, 51645 Gummersbach, DE",
       "EnBW",
@@ -21190,8 +21118,8 @@
     ],
     [
       1157267,
-      53.05227,
-      8.96215,
+      53.05225,
+      8.96214,
       300,
       "Hans-Bredow-Straße 20, 28307 Bremen, DE",
       "EnBW",
@@ -21395,7 +21323,7 @@
       49.42281,
       11.68792,
       300,
-      "BAB6, Autobahnraststätte Oberpfälzer Alb Süd, 92278 Illschwang, DE",
+      "A6, Raststätte Oberpfälzer Alb Süd, 92278 Illschwang, DE",
       "EnBW",
       "Raststätte Oberpfälzer Alb Süd",
       [
@@ -24810,8 +24738,8 @@
     ],
     [
       1157626,
-      48.10182,
-      9.79145,
+      48.10183,
+      9.79146,
       75,
       "Adolf-Pirrung-Str. 7, 88400 Biberach an der Riß, DE",
       "EnBW",
@@ -25956,7 +25884,7 @@
     ],
     [
       1157708,
-      52.30834,
+      52.30832,
       9.80559,
       300,
       "Erich-Panitz-Straße 1, 30880 Laatzen, DE",
@@ -27811,7 +27739,7 @@
     ],
     [
       1157919,
-      51.29027,
+      51.29024,
       6.80451,
       300,
       "A52, 40880 Ratingen, DE",
@@ -28934,8 +28862,8 @@
     ],
     [
       1158051,
-      48.63806,
-      12.42387,
+      48.63807,
+      12.42389,
       300,
       "Landshuter Straße 23A, 84180 Loiching, DE",
       "EnBW",
@@ -30648,7 +30576,7 @@
     ],
     [
       1158291,
-      52.18791,
+      52.1879,
       7.84958,
       300,
       "Wielandstraße 24, 49525 Lengerich, DE",
@@ -32293,8 +32221,8 @@
     ],
     [
       1183561,
-      51.95096,
-      8.57274,
+      51.95099,
+      8.57261,
       400,
       "Hansestraße 1f, 33689 Bielefeld, DE",
       "EnBW",
@@ -33955,7 +33883,7 @@
       49.3739,
       8.30606,
       200,
-      "Am Schwarzweiher 9-11, 67459 Böhl-Iggelheim, DE",
+      "Am Schwarzweiher 9 -11, 67459 Böhl-Iggelheim, DE",
       "EnBW",
       "67459 Böhl-Iggelheim, Am Schwarzweiher 9+11",
       [
@@ -35184,7 +35112,7 @@
     [
       1665905,
       48.21106,
-      9.00022,
+      9.00023,
       200,
       "Kientenstraße 57, 72458 Albstadt, DE",
       "EnBW",
@@ -40842,7 +40770,7 @@
         ],
         [
           44,
-          2
+          1
         ],
         [
           11,
@@ -41300,13 +41228,13 @@
       2414916,
       49.59281,
       11.01444,
-      300,
+      150,
       "Werner-von-Siemens-Straße 45, 91052 Erlangen, DE",
       "EnBW",
       "EG Group Erlangen",
       [
         [
-          300,
+          150,
           2
         ]
       ]
@@ -42071,7 +41999,7 @@
       [
         [
           50,
-          1
+          2
         ],
         [
           22,
@@ -42148,21 +42076,6 @@
       ]
     ],
     [
-      2862251,
-      47.8097,
-      13.05677,
-      400,
-      "Sterneckstraße 31-33, 5020 Salzburg, AT",
-      "SMATRICS",
-      "Hub Business Boulevard Salzburg",
-      [
-        [
-          400,
-          8
-        ]
-      ]
-    ],
-    [
       2862494,
       47.18242,
       15.99282,
@@ -42173,7 +42086,7 @@
       [
         [
           400,
-          8
+          7
         ]
       ]
     ],
@@ -42392,11 +42305,11 @@
       [
         [
           400,
-          2
+          1
         ],
         [
           50,
-          1
+          2
         ],
         [
           44,
@@ -42984,21 +42897,6 @@
       ]
     ],
     [
-      3044385,
-      47.9768,
-      13.82071,
-      300,
-      "Gmundner Straße 32, 4663 Laakirchen, AT",
-      "SMATRICS",
-      "VERBUND Laakirchen",
-      [
-        [
-          300,
-          2
-        ]
-      ]
-    ],
-    [
       3044805,
       50.27687,
       7.62377,
@@ -43070,25 +42968,6 @@
         [
           50,
           4
-        ]
-      ]
-    ],
-    [
-      3062166,
-      48.29807,
-      16.33399,
-      50,
-      "Wiener Straße 9, 3400 Klosterneuburg, AT",
-      "SMATRICS",
-      "BILLA Klosterneuburg",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43218,21 +43097,6 @@
       ]
     ],
     [
-      3067724,
-      46.59153,
-      14.63761,
-      300,
-      "An der Bundesstraße 1, 9141 Eberndorf, AT",
-      "SMATRICS",
-      "BILLA Eberndorf",
-      [
-        [
-          300,
-          4
-        ]
-      ]
-    ],
-    [
       3067725,
       48.28578,
       14.3103,
@@ -43293,25 +43157,6 @@
         [
           200,
           4
-        ]
-      ]
-    ],
-    [
-      3068925,
-      48.12433,
-      16.26574,
-      50,
-      "Donauwörther Str. 46, 2380 Perchtoldsdorf, AT",
-      "SMATRICS",
-      "BILLA Perchtoldsdorf",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43415,40 +43260,6 @@
       ]
     ],
     [
-      3075505,
-      47.08257,
-      16.31078,
-      50,
-      "Tobaj 149, 7540 Tobaj, AT",
-      "SMATRICS",
-      "Joke Systems Tobaj",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3076649,
-      47.82996,
-      16.51927,
-      50,
-      "Mattersburgerstrasse 50, 7000 Eisenstadt, AT",
-      "SMATRICS",
-      "BILLA PLUS Eisenstadt",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
       3078245,
       53.42769,
       11.19979,
@@ -43479,21 +43290,6 @@
       ]
     ],
     [
-      3087001,
-      51.186,
-      7.5039,
-      200,
-      "Bahnhofstraße 22, 58553 Halver, DE",
-      "EnBW",
-      "FMZ Halver, Bahnhofstr.",
-      [
-        [
-          200,
-          4
-        ]
-      ]
-    ],
-    [
       3087594,
       51.59346,
       12.59258,
@@ -43505,25 +43301,6 @@
         [
           200,
           4
-        ]
-      ]
-    ],
-    [
-      3094118,
-      46.61181,
-      13.83974,
-      50,
-      "Völkendorfer Straße 1, 9500 Villach, AT",
-      "SMATRICS",
-      "Villach",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43566,25 +43343,6 @@
         [
           100,
           2
-        ]
-      ]
-    ],
-    [
-      3114092,
-      48.26744,
-      16.40307,
-      50,
-      "Brünner Straße 57D, 1210 Wien, AT",
-      "SMATRICS",
-      "BILLA Wien Brünner Straße",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -43710,21 +43468,6 @@
         [
           11,
           4
-        ]
-      ]
-    ],
-    [
-      3117539,
-      46.76107,
-      15.28615,
-      200,
-      "Aigen 50, 8543 Sankt Martin im Sulmtal, AT",
-      "SMATRICS",
-      "MS-Elektrotechnik, Sankt Martin im Sulmtal",
-      [
-        [
-          200,
-          2
         ]
       ]
     ],
@@ -43945,21 +43688,6 @@
       ]
     ],
     [
-      3117839,
-      48.13761,
-      16.32495,
-      300,
-      "Triester Straße 248, 2331 Vösendorf, AT",
-      "SMATRICS",
-      "BILLA Vösendorf",
-      [
-        [
-          300,
-          4
-        ]
-      ]
-    ],
-    [
       3117840,
       46.60538,
       13.86587,
@@ -43990,21 +43718,6 @@
       ]
     ],
     [
-      3117843,
-      48.15956,
-      16.38515,
-      300,
-      "Ludwig von Höhnel Gasse 2, 1100 Wien, AT",
-      "SMATRICS",
-      "Wien Verteilerkreis",
-      [
-        [
-          300,
-          4
-        ]
-      ]
-    ],
-    [
       3117846,
       47.1577,
       13.10681,
@@ -44024,36 +43737,6 @@
       ]
     ],
     [
-      3117847,
-      47.97402,
-      13.10181,
-      300,
-      "Passauer Str. 32, 5163 Mattsee, AT",
-      "SMATRICS",
-      "BILLA Mattsee",
-      [
-        [
-          300,
-          4
-        ]
-      ]
-    ],
-    [
-      3117848,
-      48.21998,
-      16.48899,
-      200,
-      "Pilotengasse 76, 1220 Wien, AT",
-      "SMATRICS",
-      "BILLA Wien Pilotengasse",
-      [
-        [
-          200,
-          4
-        ]
-      ]
-    ],
-    [
       3117850,
       47.79438,
       12.98657,
@@ -44069,29 +43752,6 @@
         [
           150,
           2
-        ]
-      ]
-    ],
-    [
-      3117854,
-      48.38588,
-      16.23548,
-      300,
-      "Wiener Straße 32a, 2000 Stockerau, AT",
-      "SMATRICS",
-      "STOP-SHOP Stockerau",
-      [
-        [
-          300,
-          2
-        ],
-        [
-          150,
-          2
-        ],
-        [
-          50,
-          1
         ]
       ]
     ],
@@ -44140,45 +43800,11 @@
       [
         [
           50,
-          2
+          1
         ],
         [
           22,
           1
-        ]
-      ]
-    ],
-    [
-      3120854,
-      48.24197,
-      14.29193,
-      50,
-      "Dallingerstraße 11, 4030 Linz, AT",
-      "SMATRICS",
-      "ENI Linz Dallingerstraße",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
-      3121024,
-      47.03287,
-      15.42378,
-      50,
-      "Weblinger Gürtel 31, 8054 Graz, AT",
-      "SMATRICS",
-      "IKEA Graz",
-      [
-        [
-          50,
-          2
         ]
       ]
     ],
@@ -44219,7 +43845,7 @@
       100,
       "Steinbeker Grenzdamm 4-6, 22115 Hamburg, DE",
       "EnBW",
-      "PENNY Hamburg/Billstedt, Steinbeker Grenzdamm",
+      "PENNY Hamburg, Steinbeker Grenzdamm",
       [
         [
           100,
@@ -44258,21 +43884,6 @@
       ]
     ],
     [
-      3126971,
-      47.9925,
-      13.90068,
-      50,
-      "Peintal 31, 4655 Vorchdorf, AT",
-      "SMATRICS",
-      "solarcap Amering Peintal  P&R",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
       3127842,
       47.27476,
       16.23299,
@@ -44284,25 +43895,6 @@
         [
           200,
           4
-        ]
-      ]
-    ],
-    [
-      3128404,
-      47.41027,
-      13.21726,
-      50,
-      "Molkereistrasse 32, 5500 Bischofshofen, AT",
-      "SMATRICS",
-      "BILLA PLUS Bischofshofen",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
         ]
       ]
     ],
@@ -44345,25 +43937,6 @@
       ]
     ],
     [
-      3129324,
-      46.63995,
-      14.36719,
-      50,
-      "Ikea Platz 1, 9020 Klagenfurt am Wörthersee, AT",
-      "SMATRICS",
-      "IKEA Klagenfurt am Wörthersee",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       3129780,
       48.1583,
       15.11235,
@@ -44378,25 +43951,6 @@
         ],
         [
           44,
-          1
-        ]
-      ]
-    ],
-    [
-      3130617,
-      48.12476,
-      16.56365,
-      50,
-      "Gst. 611/1, 1300 Wien-Flughafen Schwechat, AT",
-      "SMATRICS",
-      "BILLA Schwechat",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
           1
         ]
       ]
@@ -44481,25 +44035,6 @@
       ]
     ],
     [
-      3132121,
-      48.31334,
-      14.29849,
-      50,
-      "Untere Donaulände 15, 4020 Linz, AT",
-      "SMATRICS",
-      "ENI Linz Untere Donaulände",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          44,
-          1
-        ]
-      ]
-    ],
-    [
       3134095,
       47.74822,
       13.08537,
@@ -44514,25 +44049,6 @@
         ],
         [
           50,
-          1
-        ]
-      ]
-    ],
-    [
-      3135401,
-      47.48191,
-      12.05781,
-      50,
-      "Innsbrucker Straße 56, 6300 Wörgl, AT",
-      "SMATRICS",
-      "McDonald's Wörgl",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
           1
         ]
       ]
@@ -44606,183 +44122,6 @@
       ]
     ],
     [
-      3141564,
-      47.59143,
-      16.53901,
-      300,
-      "Hauptstraße 100, 7312 Horitschon, AT",
-      "SMATRICS",
-      "BILLA Horitschon",
-      [
-        [
-          300,
-          2
-        ],
-        [
-          50,
-          1
-        ]
-      ]
-    ],
-    [
-      3141566,
-      48.181,
-      15.62093,
-      300,
-      "Karl Pfeffer-Gasse 4, 3100 St. Pölten, AT",
-      "SMATRICS",
-      "solarcap St. Pölten",
-      [
-        [
-          300,
-          3
-        ]
-      ]
-    ],
-    [
-      3141567,
-      47.05055,
-      16.07976,
-      150,
-      "Kirchenplatz, 8280 Fürstenfeld, AT",
-      "SMATRICS",
-      "Stadtwerke Fürstenfeld / Kirchenplatz",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141570,
-      47.9489,
-      14.11206,
-      150,
-      "Sauternstraße 27, 4553 Schlierbach, AT",
-      "SMATRICS",
-      "HSC Haidlmair Schlierbach",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141571,
-      48.14845,
-      15.08319,
-      150,
-      "Gewerbestraße 2, 3373 Kemmelbach, AT",
-      "SMATRICS",
-      "HKH Immoinvest GmbH Kemmelbach",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141574,
-      46.84614,
-      14.84341,
-      150,
-      "Grazer Str. 1, 9400 Wolfsberg, AT",
-      "SMATRICS",
-      "Turmstrom Wolfsberg Grazer Straße 1",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141575,
-      47.52307,
-      16.19105,
-      50,
-      "Bundesstraße 2, 2851 Krumbach, AT",
-      "SMATRICS",
-      "BILLA Krumbach, Bundesstraße",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141578,
-      47.05165,
-      16.07359,
-      100,
-      "Grazer Platz, 8280 Fürstenfeld, AT",
-      "SMATRICS",
-      "Stadtwerke Fürstenfeld / Grazer Platz",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
-      3141580,
-      47.42118,
-      15.27435,
-      150,
-      "Wiener Straße 54, 8600 Bruck an der Mur, AT",
-      "SMATRICS",
-      "McDonald's Bruck an der Mur",
-      [
-        [
-          150,
-          2
-        ],
-        [
-          50,
-          1
-        ]
-      ]
-    ],
-    [
-      3141599,
-      47.69267,
-      14.61702,
-      150,
-      "Markt 32, 8933 Sankt Gallen, AT",
-      "SMATRICS",
-      "Gemeinde St. Gallen",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141602,
-      48.24163,
-      14.54633,
-      150,
-      "Gewerbestraße 1, 4310 Mauthausen, AT",
-      "SMATRICS",
-      "Autohaus Ernest Wipplinger Mauthausen Gewerbestr.",
-      [
-        [
-          150,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
       3141607,
       46.62559,
       14.34046,
@@ -44790,329 +44129,6 @@
       "Völkermarkter Str. 142, 9020 Sankt Peter am Bichl, AT",
       "SMATRICS",
       "Turmstrom Klagenfurt Völkermarkterstraße",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141609,
-      48.22333,
-      14.50994,
-      300,
-      "Wirtschaftspark, Straße 1, 4482 Ennsdorf, AT",
-      "SMATRICS",
-      "solarcap Wirtschaftspark Ennshafen",
-      [
-        [
-          300,
-          2
-        ]
-      ]
-    ],
-    [
-      3141613,
-      47.25844,
-      11.32309,
-      50,
-      "Cytastraße 1, 6176 Völs, AT",
-      "SMATRICS",
-      "CYTA Völs",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141620,
-      48.11496,
-      16.39736,
-      200,
-      "Hennersdorferstraße 40, 2333 Leopoldsdorf bei Wien, AT",
-      "SMATRICS",
-      "Turmstrom Leopoldsdorf, Hennersdorferstraße",
-      [
-        [
-          200,
-          2
-        ]
-      ]
-    ],
-    [
-      3141630,
-      46.61523,
-      13.85149,
-      300,
-      "Nikolaigasse 14, 9500 Villach, AT",
-      "SMATRICS",
-      "Villach Congress-Center",
-      [
-        [
-          300,
-          2
-        ]
-      ]
-    ],
-    [
-      3141631,
-      48.28427,
-      14.29266,
-      150,
-      "Unionstraße 55, 4020 Linz, AT",
-      "SMATRICS",
-      "Turmstrom Linz Unionstraße 55",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141638,
-      47.97288,
-      14.1709,
-      150,
-      "Gewerbestraße 3, 4542 Nußbach, AT",
-      "SMATRICS",
-      "SP-Verpackungen, Nußbach",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141643,
-      46.78694,
-      15.64073,
-      50,
-      "Otterweg 3, 8423 Labuttendorf, AT",
-      "SMATRICS",
-      "Weingut Scheucher, St. Veit",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141648,
-      48.17288,
-      14.05298,
-      400,
-      "Linzer Str. 189, 4600 Wels, AT",
-      "SMATRICS",
-      "Turmstrom, Wels Linzerstraße",
-      [
-        [
-          400,
-          2
-        ]
-      ]
-    ],
-    [
-      3141650,
-      46.89507,
-      14.3375,
-      150,
-      "Hauptstraße 1b, 9341 Straßburg, AT",
-      "SMATRICS",
-      "Turmstrom Straßburg Hauptstraße 1b",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141651,
-      48.01858,
-      12.853,
-      50,
-      "Weilhartstraße 40, 5120 Sankt Pantaleon, AT",
-      "SMATRICS",
-      "BILLA St. Pantaleon Weilhartstraße",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141661,
-      48.18008,
-      14.06368,
-      300,
-      "Ginzkeystraße 27, 4600 Wels, AT",
-      "SMATRICS",
-      "McDonald's Wels",
-      [
-        [
-          300,
-          2
-        ],
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141662,
-      48.42251,
-      14.15732,
-      150,
-      "Neußerling 16, 4175 Neußerling, AT",
-      "SMATRICS",
-      "Screenroof Herzogsdorf",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141670,
-      47.7644,
-      13.36411,
-      200,
-      "Konrad-Lesiak-Platz 6, 5340 Sankt Gilgen, AT",
-      "SMATRICS",
-      "Turmstrom St. Gilgen, Konrad-Lesiak-Platz 6",
-      [
-        [
-          200,
-          2
-        ]
-      ]
-    ],
-    [
-      3141671,
-      48.18755,
-      16.33898,
-      400,
-      "Gaudenzdorfer Gürtel 77, 1120 Wien, AT",
-      "SMATRICS",
-      "Burger King Wien",
-      [
-        [
-          400,
-          2
-        ]
-      ]
-    ],
-    [
-      3141696,
-      48.30051,
-      14.30817,
-      150,
-      "Goethestraße 101, 4020 Linz, AT",
-      "SMATRICS",
-      "Turmstrom Linz Goethestraße 101",
-      [
-        [
-          150,
-          2
-        ]
-      ]
-    ],
-    [
-      3141698,
-      48.13624,
-      16.35853,
-      300,
-      "Laxenburger Straße 365, 1230 Wien, AT",
-      "SMATRICS",
-      "Großmarkt, 1230 Wien",
-      [
-        [
-          300,
-          2
-        ]
-      ]
-    ],
-    [
-      3141709,
-      47.59373,
-      12.17696,
-      150,
-      "Rosenheimer Straße 4, 6332 Kufstein, AT",
-      "SMATRICS",
-      "McDonald's Kufstein",
-      [
-        [
-          150,
-          1
-        ]
-      ]
-    ],
-    [
-      3141710,
-      48.0069,
-      13.12614,
-      50,
-      "Mundenham 118, 5163 Palting, AT",
-      "SMATRICS",
-      "BILLA Palting Mundenham",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141711,
-      48.2172,
-      13.49842,
-      50,
-      "Hannesgrub Süd 16, 4911 Tumeltsham, AT",
-      "SMATRICS",
-      "Turmstrom Autohaus Deschberger Tumeltsham",
-      [
-        [
-          50,
-          2
-        ]
-      ]
-    ],
-    [
-      3141740,
-      47.82919,
-      16.24671,
-      300,
-      "Stadionstraße 42, 2700 Wiener Neustadt, AT",
-      "SMATRICS",
-      "CineNova Wr. Neustadt",
-      [
-        [
-          300,
-          2
-        ],
-        [
-          50,
-          1
-        ]
-      ]
-    ],
-    [
-      3141742,
-      46.61804,
-      14.05017,
-      150,
-      "Klagenfurter Straße 19, 9220 Velden am Wörthersee, AT",
-      "SMATRICS",
-      "Turmstrom Velden Klagenfurter Straße 19",
       [
         [
           150,
@@ -45195,26 +44211,11 @@
       [
         [
           300,
-          1
+          3
         ],
         [
           50,
           1
-        ]
-      ]
-    ],
-    [
-      3141891,
-      48.27622,
-      16.38808,
-      150,
-      "Prager Str. 155, 1210 Wien, AT",
-      "SMATRICS",
-      "Turmstrom Wien Prager Straße 155",
-      [
-        [
-          150,
-          2
         ]
       ]
     ],
@@ -45245,25 +44246,6 @@
       "Dr.-Gaisbauer-Straße 1, 4560 Kirchdorf an der Krems, AT",
       "SMATRICS",
       "PENNY Kirchdorf an der Krems",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      3143238,
-      48.21407,
-      16.42134,
-      50,
-      "Handelskai 269, 1020 Wien, AT",
-      "SMATRICS",
-      "Hilton Wien",
       [
         [
           50,
@@ -45333,21 +44315,6 @@
       ]
     ],
     [
-      3143966,
-      48.55064,
-      16.07956,
-      200,
-      "Wiener Straße 95, 2020 Hollabrunn, AT",
-      "SMATRICS",
-      "Turmstrom Hollabrunn Wiener Straße",
-      [
-        [
-          200,
-          2
-        ]
-      ]
-    ],
-    [
       3145140,
       48.17064,
       16.33932,
@@ -45381,21 +44348,6 @@
         ],
         [
           200,
-          2
-        ]
-      ]
-    ],
-    [
-      3151097,
-      48.4168,
-      15.62759,
-      300,
-      "Landersdorfer Straße 8, 3500 Krems an der Donau, AT",
-      "SMATRICS",
-      "BILLA PLUS Krems an der Donau",
-      [
-        [
-          300,
           2
         ]
       ]
@@ -45446,7 +44398,64 @@
       ]
     ],
     [
-      3156871,
+      3160208,
+      51.9306,
+      7.59903,
+      400,
+      "Geringhoffstraße 44, 48163 Münster, DE",
+      "EnBW",
+      "HIT Münster",
+      [
+        [
+          400,
+          2
+        ],
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3161234,
+      48.24197,
+      14.29193,
+      50,
+      "Dallingerstraße 11, 4030 Linz, AT",
+      "SMATRICS",
+      "ENI Linz Dallingerstraße",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3164164,
+      48.12476,
+      16.56365,
+      50,
+      "Gst. 611/1, 1300 Wien-Flughafen Schwechat, AT",
+      "SMATRICS",
+      "BILLA Schwechat",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3169980,
       48.16108,
       16.27805,
       50,
@@ -45465,7 +44474,219 @@
       ]
     ],
     [
-      3157361,
+      3170589,
+      47.41027,
+      13.21726,
+      50,
+      "Molkereistrasse 32, 5500 Bischofshofen, AT",
+      "SMATRICS",
+      "BILLA PLUS Bischofshofen",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3170605,
+      47.72711,
+      13.06041,
+      50,
+      "Salzachtal Straße 135, 5081 Anif, AT",
+      "SMATRICS",
+      "Hotel Kaiserhof Anif",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3170617,
+      48.21407,
+      16.42134,
+      50,
+      "Handelskai 269, 1020 Wien, AT",
+      "SMATRICS",
+      "Hilton Wien",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3171877,
+      46.61181,
+      13.83974,
+      50,
+      "Völkendorfer Straße 1, 9500 Villach, AT",
+      "SMATRICS",
+      "Villach",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3172145,
+      47.48191,
+      12.05781,
+      50,
+      "Innsbrucker Straße 56, 6300 Wörgl, AT",
+      "SMATRICS",
+      "McDonald's Wörgl",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3175085,
+      48.0726,
+      16.45055,
+      200,
+      "Gutenhoferstraße 50, 2325 Himberg bei Wien, AT",
+      "SMATRICS",
+      "AWS Werkstoffzentrum Himberg",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3175320,
+      48.31334,
+      14.29849,
+      50,
+      "Untere Donaulände 15, 4020 Linz, AT",
+      "SMATRICS",
+      "ENI Linz Untere Donaulände",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3176389,
+      51.18456,
+      7.50444,
+      200,
+      "Bahnhofstraße 22, 58553 Halver, DE",
+      "EnBW",
+      "FMZ Halver, Bahnhofstr.",
+      [
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3177573,
+      51.74231,
+      7.51665,
+      50,
+      "Lüdinghauser Straße 62, 59394 Nordkirchen, DE",
+      "EnBW",
+      "Euronics Dworak Nordkirchen",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3183039,
+      47.8097,
+      13.05677,
+      400,
+      "Sterneckstraße 31-33, 5020 Salzburg, AT",
+      "SMATRICS",
+      "Hub Business Boulevard Salzburg",
+      [
+        [
+          400,
+          8
+        ]
+      ]
+    ],
+    [
+      3184976,
+      47.09602,
+      13.63301,
+      50,
+      "Gewerbestraße 581, 5582 Sankt Michael im Lungau, AT",
+      "SMATRICS",
+      "BILLA St. Michael im Lungau",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3188419,
+      47.59143,
+      16.53901,
+      300,
+      "Hauptstraße 100, 7312 Horitschon, AT",
+      "SMATRICS",
+      "BILLA Horitschon",
+      [
+        [
+          300,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3188428,
       48.19929,
       13.64208,
       100,
@@ -45480,7 +44701,680 @@
       ]
     ],
     [
-      3157500,
+      3188431,
+      48.181,
+      15.62093,
+      300,
+      "Karl Pfeffer-Gasse 4, 3100 St. Pölten, AT",
+      "SMATRICS",
+      "solarcap St. Pölten",
+      [
+        [
+          300,
+          3
+        ]
+      ]
+    ],
+    [
+      3188436,
+      48.27622,
+      16.38808,
+      150,
+      "Prager Str. 155, 1210 Wien, AT",
+      "SMATRICS",
+      "Turmstrom Wien Prager Straße 155",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188437,
+      47.08257,
+      16.31078,
+      50,
+      "Tobaj 149, 7540 Tobaj, AT",
+      "SMATRICS",
+      "Joke Systems Tobaj",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188438,
+      47.05055,
+      16.07976,
+      150,
+      "Kirchenplatz, 8280 Fürstenfeld, AT",
+      "SMATRICS",
+      "Stadtwerke Fürstenfeld / Kirchenplatz",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188439,
+      46.84614,
+      14.84341,
+      150,
+      "Grazer Str. 1, 9400 Wolfsberg, AT",
+      "SMATRICS",
+      "Turmstrom Wolfsberg Grazer Straße 1",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188441,
+      47.9489,
+      14.11206,
+      150,
+      "Sauternstraße 27, 4553 Schlierbach, AT",
+      "SMATRICS",
+      "HSC Haidlmair Schlierbach",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188442,
+      48.14845,
+      15.08319,
+      150,
+      "Gewerbestraße 2, 3373 Kemmelbach, AT",
+      "SMATRICS",
+      "HKH Immoinvest GmbH Kemmelbach",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188443,
+      47.69267,
+      14.61702,
+      150,
+      "Markt 32, 8933 Sankt Gallen, AT",
+      "SMATRICS",
+      "Gemeinde St. Gallen",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188444,
+      47.52307,
+      16.19105,
+      50,
+      "Bundesstraße 2, 2851 Krumbach, AT",
+      "SMATRICS",
+      "BILLA Krumbach, Bundesstraße",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188445,
+      47.9768,
+      13.82071,
+      300,
+      "Gmundner Straße 32, 4663 Laakirchen, AT",
+      "SMATRICS",
+      "VERBUND Laakirchen",
+      [
+        [
+          300,
+          2
+        ]
+      ]
+    ],
+    [
+      3188449,
+      47.42118,
+      15.27435,
+      150,
+      "Wiener Straße 54, 8600 Bruck an der Mur, AT",
+      "SMATRICS",
+      "McDonald's Bruck an der Mur",
+      [
+        [
+          150,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3188457,
+      48.4168,
+      15.62759,
+      300,
+      "Landersdorfer Straße 8, 3500 Krems an der Donau, AT",
+      "SMATRICS",
+      "BILLA PLUS Krems an der Donau",
+      [
+        [
+          300,
+          2
+        ]
+      ]
+    ],
+    [
+      3188458,
+      46.78694,
+      15.64073,
+      50,
+      "Otterweg 3, 8423 Labuttendorf, AT",
+      "SMATRICS",
+      "Weingut Scheucher, St. Veit",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188469,
+      47.97288,
+      14.1709,
+      150,
+      "Gewerbestraße 3, 4542 Nußbach, AT",
+      "SMATRICS",
+      "SP-Verpackungen, Nußbach",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188473,
+      48.24163,
+      14.54633,
+      150,
+      "Gewerbestraße 1, 4310 Mauthausen, AT",
+      "SMATRICS",
+      "Autohaus Ernest Wipplinger Mauthausen Gewerbestr.",
+      [
+        [
+          150,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3188481,
+      47.05165,
+      16.07359,
+      100,
+      "Grazer Platz, 8280 Fürstenfeld, AT",
+      "SMATRICS",
+      "Stadtwerke Fürstenfeld / Grazer Platz",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3188482,
+      46.61523,
+      13.85149,
+      300,
+      "Nikolaigasse 14, 9500 Villach, AT",
+      "SMATRICS",
+      "Villach Congress-Center",
+      [
+        [
+          300,
+          2
+        ]
+      ]
+    ],
+    [
+      3188492,
+      48.30051,
+      14.30817,
+      150,
+      "Goethestraße 101, 4020 Linz, AT",
+      "SMATRICS",
+      "Turmstrom Linz Goethestraße 101",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188493,
+      48.28427,
+      14.29266,
+      150,
+      "Unionstraße 55, 4020 Linz, AT",
+      "SMATRICS",
+      "Turmstrom Linz Unionstraße 55",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188494,
+      47.7644,
+      13.36411,
+      200,
+      "Konrad-Lesiak-Platz 6, 5340 Sankt Gilgen, AT",
+      "SMATRICS",
+      "Turmstrom St. Gilgen, Konrad-Lesiak-Platz 6",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3188496,
+      48.13624,
+      16.35853,
+      300,
+      "Laxenburger Straße 365, 1230 Wien, AT",
+      "SMATRICS",
+      "Großmarkt, 1230 Wien",
+      [
+        [
+          300,
+          2
+        ]
+      ]
+    ],
+    [
+      3188501,
+      48.11496,
+      16.39736,
+      200,
+      "Hennersdorferstraße 40, 2333 Leopoldsdorf bei Wien, AT",
+      "SMATRICS",
+      "Turmstrom Leopoldsdorf, Hennersdorferstraße",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3188507,
+      48.22333,
+      14.50994,
+      300,
+      "Wirtschaftspark, Straße 1, 4482 Ennsdorf, AT",
+      "SMATRICS",
+      "solarcap Wirtschaftspark Ennshafen",
+      [
+        [
+          300,
+          2
+        ]
+      ]
+    ],
+    [
+      3188508,
+      48.17288,
+      14.05298,
+      400,
+      "Linzer Str. 189, 4600 Wels, AT",
+      "SMATRICS",
+      "Turmstrom, Wels Linzerstraße",
+      [
+        [
+          400,
+          2
+        ]
+      ]
+    ],
+    [
+      3188522,
+      48.55064,
+      16.07956,
+      200,
+      "Wiener Straße 95, 2020 Hollabrunn, AT",
+      "SMATRICS",
+      "Turmstrom Hollabrunn Wiener Straße",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3188523,
+      48.18755,
+      16.33898,
+      400,
+      "Gaudenzdorfer Gürtel 77, 1120 Wien, AT",
+      "SMATRICS",
+      "Burger King Wien",
+      [
+        [
+          400,
+          2
+        ]
+      ]
+    ],
+    [
+      3188526,
+      48.18021,
+      14.06358,
+      300,
+      "Ginzkeystraße 27, 4600 Wels, AT",
+      "SMATRICS",
+      "McDonald's Wels",
+      [
+        [
+          300,
+          2
+        ],
+        [
+          150,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3188529,
+      47.9925,
+      13.90068,
+      50,
+      "Peintal 31, 4655 Vorchdorf, AT",
+      "SMATRICS",
+      "solarcap Amering Peintal  P&R",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188530,
+      47.82919,
+      16.24671,
+      300,
+      "Stadionstraße 42, 2700 Wiener Neustadt, AT",
+      "SMATRICS",
+      "CineNova Wr. Neustadt",
+      [
+        [
+          300,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3188534,
+      46.89507,
+      14.3375,
+      150,
+      "Hauptstraße 1b, 9341 Straßburg, AT",
+      "SMATRICS",
+      "Turmstrom Straßburg Hauptstraße 1b",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188538,
+      48.01858,
+      12.853,
+      50,
+      "Weilhartstraße 40, 5120 Sankt Pantaleon, AT",
+      "SMATRICS",
+      "BILLA St. Pantaleon Weilhartstraße",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188539,
+      46.61804,
+      14.05017,
+      150,
+      "Klagenfurter Straße 19, 9220 Velden am Wörthersee, AT",
+      "SMATRICS",
+      "Turmstrom Velden Klagenfurter Straße 19",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3188547,
+      48.0069,
+      13.12614,
+      50,
+      "Mundenham 118, 5163 Palting, AT",
+      "SMATRICS",
+      "BILLA Palting Mundenham",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188548,
+      48.2172,
+      13.49842,
+      50,
+      "Hannesgrub Süd 16, 4911 Tumeltsham, AT",
+      "SMATRICS",
+      "Turmstrom Autohaus Deschberger Tumeltsham",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188554,
+      48.38588,
+      16.23548,
+      300,
+      "Wiener Straße 32a, 2000 Stockerau, AT",
+      "SMATRICS",
+      "STOP-SHOP Stockerau",
+      [
+        [
+          300,
+          2
+        ],
+        [
+          150,
+          2
+        ],
+        [
+          50,
+          1
+        ]
+      ]
+    ],
+    [
+      3188555,
+      47.97402,
+      13.10181,
+      300,
+      "Passauer Str. 32, 5163 Mattsee, AT",
+      "SMATRICS",
+      "BILLA Mattsee",
+      [
+        [
+          300,
+          4
+        ]
+      ]
+    ],
+    [
+      3188557,
+      48.15956,
+      16.38515,
+      300,
+      "Ludwig von Höhnel Gasse 2, 1100 Wien, AT",
+      "SMATRICS",
+      "Wien Verteilerkreis",
+      [
+        [
+          300,
+          4
+        ]
+      ]
+    ],
+    [
+      3188559,
+      48.13761,
+      16.32495,
+      300,
+      "Triester Straße 248, 2331 Vösendorf, AT",
+      "SMATRICS",
+      "BILLA Vösendorf",
+      [
+        [
+          300,
+          4
+        ]
+      ]
+    ],
+    [
+      3188566,
+      48.21998,
+      16.48899,
+      200,
+      "Pilotengasse 76, 1220 Wien, AT",
+      "SMATRICS",
+      "BILLA Wien Pilotengasse",
+      [
+        [
+          200,
+          4
+        ]
+      ]
+    ],
+    [
+      3188569,
+      46.59153,
+      14.63761,
+      300,
+      "An der Bundesstraße 1, 9141 Eberndorf, AT",
+      "SMATRICS",
+      "BILLA Eberndorf",
+      [
+        [
+          300,
+          4
+        ]
+      ]
+    ],
+    [
+      3188572,
+      47.25844,
+      11.32309,
+      50,
+      "Cytastraße 1, 6176 Völs, AT",
+      "SMATRICS",
+      "CYTA Völs",
+      [
+        [
+          50,
+          2
+        ]
+      ]
+    ],
+    [
+      3188602,
+      46.76107,
+      15.28615,
+      200,
+      "Aigen 50, 8543 Sankt Martin im Sulmtal, AT",
+      "SMATRICS",
+      "MS-Elektrotechnik, Sankt Martin im Sulmtal",
+      [
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3188606,
+      48.42251,
+      14.15732,
+      150,
+      "Neußerling 16, 4175 Neußerling, AT",
+      "SMATRICS",
+      "Screenroof Herzogsdorf",
+      [
+        [
+          150,
+          2
+        ]
+      ]
+    ],
+    [
+      3189216,
       46.81073,
       13.76964,
       100,
@@ -45495,22 +45389,7 @@
       ]
     ],
     [
-      3157517,
-      48.22196,
-      14.40559,
-      400,
-      "Handelsring 1, 4481 Asten, AT",
-      "SMATRICS",
-      "Hub PENNY Asten",
-      [
-        [
-          400,
-          8
-        ]
-      ]
-    ],
-    [
-      3157521,
+      3189240,
       47.29876,
       12.79609,
       400,
@@ -45529,28 +45408,47 @@
       ]
     ],
     [
-      3157534,
-      48.0726,
-      16.45055,
-      200,
-      "Gutenhoferstraße 50, 2325 Himberg bei Wien, AT",
-      "SMATRICS",
-      "AWS Werkstoffzentrum Himberg",
+      3189452,
+      50.06156,
+      14.30441,
+      50,
+      "Drahoňovského  , 16000 Praha 6 - Řepy, CZ",
+      "Pražská energetika, a. s.",
+      "TS 4625 Drahoňovského",
       [
         [
-          200,
+          50,
           2
         ]
       ]
     ],
     [
-      3158035,
-      46.83688,
-      14.83941,
+      3189912,
+      46.63995,
+      14.36719,
       50,
-      "Spanheimerstraße 32, 9400 Wolfsberg, AT",
+      "Ikea Platz 1, 9020 Klagenfurt am Wörthersee, AT",
       "SMATRICS",
-      "BILLA PLUS Wolfsberg",
+      "IKEA Klagenfurt am Wörthersee",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3190018,
+      48.12433,
+      16.26574,
+      50,
+      "Donauwörther Str. 46, 2380 Perchtoldsdorf, AT",
+      "SMATRICS",
+      "BILLA Perchtoldsdorf",
       [
         [
           50,
@@ -45563,22 +45461,98 @@
       ]
     ],
     [
-      3158224,
-      46.80576,
-      15.56031,
+      3190121,
+      47.82996,
+      16.51927,
       50,
-      "Gewerbepark Nord 13, 8431 Gralla/Leibnitz, AT",
+      "Mattersburgerstrasse 50, 7000 Eisenstadt, AT",
       "SMATRICS",
-      "McDonald's Leibnitz",
+      "BILLA PLUS Eisenstadt",
       [
         [
           50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3190385,
+      48.26582,
+      16.45292,
+      400,
+      "Julius Ficker Straße 91, 1210 Wien, AT",
+      "SMATRICS",
+      "Hub BILLA PLUS Wien Julius Ficker Straße",
+      [
+        [
+          400,
+          4
+        ],
+        [
+          200,
+          6
+        ]
+      ]
+    ],
+    [
+      3190424,
+      47.03287,
+      15.42378,
+      50,
+      "Weblinger Gürtel 31, 8054 Graz, AT",
+      "SMATRICS",
+      "IKEA Graz",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3190932,
+      47.59373,
+      12.17696,
+      150,
+      "Rosenheimer Straße 4, 6332 Kufstein, AT",
+      "SMATRICS",
+      "McDonald's Kufstein",
+      [
+        [
+          150,
           2
         ]
       ]
     ],
     [
-      3159121,
+      3191131,
+      48.29807,
+      16.33399,
+      50,
+      "Wiener Straße 9, 3400 Klosterneuburg, AT",
+      "SMATRICS",
+      "BILLA Klosterneuburg",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3191208,
       47.41225,
       13.78447,
       50,
@@ -45597,21 +45571,55 @@
       ]
     ],
     [
-      3159466,
-      47.72711,
-      13.06041,
+      3191491,
+      48.26744,
+      16.40307,
       50,
-      "Salzachtal Straße 135, 5081 Anif, AT",
+      "Brünner Straße 57D, 1210 Wien, AT",
       "SMATRICS",
-      "Hotel Kaiserhof Anif",
+      "BILLA Wien Brünner Straße",
       [
         [
           50,
           2
         ],
         [
-          44,
+          22,
           1
+        ]
+      ]
+    ],
+    [
+      3191662,
+      46.80576,
+      15.56031,
+      50,
+      "Gewerbepark Nord 13, 8431 Gralla/Leibnitz, AT",
+      "SMATRICS",
+      "McDonald's Leibnitz",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3192172,
+      51.0609,
+      8.78113,
+      200,
+      "Ruhrstraße 15C, 35066 Frankenberg (Eder), DE",
+      "EnBW",
+      "REWE Frankenberg, Ruhrstraße 15C",
+      [
+        [
+          200,
+          4
         ]
       ]
     ]
