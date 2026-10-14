@@ -125,7 +125,7 @@ Three layers, and the dependency arrows only ever point downwards.
 src/core/       the maths. No I/O, no React, no wire formats.
                 types · geo (the TurfJS seam) · route · corridor · detour · filters
 src/services/   everything that talks to something.
-                mapbox/{client,geocoding,directions,matrix}
+                mapbox/{client,searchBox,directions,matrix}
                 enbw/{wire,stations,availability}
 src/search/     the pipeline, as React hooks.
                 useRoutes · useCorridor · useAvailability · useDetours
@@ -673,6 +673,13 @@ SMOKE=1 pnpm vitest run src/search/liveSmoke.test.ts
 - **Detour uses the `driving` profile**, not `driving-traffic`, because the traffic profile caps
   matrix requests at 10 coordinates instead of 25. The headline route ETA is traffic-aware; the
   detour delta is not.
+- **Destination search is billed per _session_, not per request.** `/suggest` and `/retrieve`
+  share one session token, and Mapbox counts the pair once however many keystrokes went into it
+  — so the free tier is 500 searches a month rather than 100,000 requests. That is still far
+  beyond one driver, but it moves the whole cost onto one variable: `src/services/mapbox/searchBox.ts`
+  owns the token, makes it once per search and rotates it only on a completed pick. A token made
+  per keystroke instead would bill five sessions for one typed destination. The debounce in
+  `DestinationSearch.tsx` therefore buys latency, not quota.
 - **Building the list** is a heavier one-off use of an undocumented API than per-route scanning
   was, though the station scan itself is now a single request. What remains is the per-station
   detail lookup: the script runs it at concurrency 4 and honours `Retry-After` on HTTP 429 with a

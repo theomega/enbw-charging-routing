@@ -285,7 +285,6 @@ export default function App() {
 
       {showSearch && (
         <DestinationSearch
-          proximity={position}
           onPick={(place) => {
             setDestination(place)
             setShowSearch(false)

@@ -31,7 +31,7 @@ No accounts, no server-side state — destination history and settings live in
   </tr>
   <tr>
     <td><b>Full screen when the question is "does this really go that way".</b> Chargers carry the same three availability colours as the list.</td>
-    <td><b>Destination search.</b> Places and addresses, biased to where you are; the last one is remembered.</td>
+    <td><b>Destination search.</b> Towns, addresses and POIs in one ranked list, each with its own icon; the last one is remembered.</td>
     <td><b>Settings.</b> A power floor, a detour cap, and which maps app to hand off to.</td>
   </tr>
 </table>
@@ -78,7 +78,7 @@ cp .env.example .env
 # edit .env and paste your pk.* token
 ```
 
-**Scopes: none required.** The three APIs this app calls — Geocoding v6, Directions
+**Scopes: none required.** The three APIs this app calls — Search Box v1, Directions
 v5, and Directions-Matrix v1 — are public APIs that work with any valid public token.
 Use the _Default public token_, or create a new one and leave the scope checkboxes at
 their defaults. The default public scopes (`styles:tiles`, `styles:read`, `fonts:read`,

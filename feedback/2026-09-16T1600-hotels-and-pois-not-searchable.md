@@ -1,5 +1,5 @@
 ---
-status: discussed
+status: implemented
 ---
 
 # Hotels — and POIs generally — are not searchable
@@ -79,6 +79,38 @@ two seconds.
 If distance is ever wanted, `origin` comes back pinned at sheet open, never
 tracked.
 
+## Correction, measured while implementing: omitting `proximity` is not neutral
+
+Against the live `/suggest` on 2026-10-14, from a Berlin address.
+
+The section above rests on two claims, and both are wrong. Sending no position
+does not give the global-relevance list, and the IP fallback does not only
+corrupt `distance`: the Search Box API documents **IP proximity as its
+default**, and that biases the _ranking_.
+
+| query            | no `proximity`                                                              | `proximity=0,0`                                |
+| ---------------- | --------------------------------------------------------------------------- | ---------------------------------------------- |
+| `Bozen`          | Bozen, then MOA Bogen, BODENHAUS, Glischke Parkett — five Berlin businesses | Bozen, Bözen, Bozeni, Bożeń                    |
+| `Bahnhof`        | Bahnhof Berlin-Friedrichstraße, Südkreuz                                    | Bahnhof Whitechapel, Bahnhofsviertel Frankfurt |
+| `Pizzeria Meran` | four Italian results                                                        | the same four                                  |
+
+The byte-identical test above could not have caught this. `origin` really is
+ranking-neutral, so Munich, Hamburg and no-origin all carried the same hidden
+IP bias — and the probing IP sat near the Alpine places being searched, where
+that bias is invisible. It shows on a town name that also matches streets and
+businesses elsewhere, which „Sankt Johann" and „Bozen" both are.
+
+Left alone, this reproduces on the driver's phone the very fault the item
+opens with: a carrier IP near Munich, and „Bozen" spending its list on Bozener
+Straße again.
+
+**So the sheet does send a position, and it is a constant.** Mapbox documents
+no value that disables the bias, so it is aimed at Null Island — `proximity=0,0`
+is open ocean 500 km off Ghana and has nothing to promote. The _intent_ of the
+section above is unchanged, and this is how it is actually obtained: no local
+bias, the global list, no `origin`, no `distance`, and nothing read from the
+driver's position. The moving-car re-fire bug goes with it as described.
+
 ## No category filtering, no dedupe
 
 An earlier probe showed „Bozen" returning six identical bus stops and a category
@@ -89,6 +121,46 @@ filter ships; if the tester hits a bad list in the car, a blocklist can be added
 then against a real example. `poi_category_ids` carries canonical English ids
 (`bus_stop`, `transportation`) independent of `language=de`, so that stays cheap
 to do later.
+
+## `/suggest` returns rows that are not places
+
+Also measured while implementing, and a different question from the section
+above: that one filters noise out of a list of places. These are not places.
+
+„Hotel" answers with six rows of three kinds:
+
+| `feature_type` | name                     | `place_formatted`         |
+| -------------- | ------------------------ | ------------------------- |
+| `category`     | Hotel, Motel             | **Category**              |
+| `brand`        | Hotel Indigo             | **Brand**                 |
+| `poi`          | ibis Styles Berlin Mitte | 10119 Berlin, Deutschland |
+
+Mapbox means the first two to be _tapped to narrow the search_, which needs
+`/category` or a second `/suggest` — and both rank around a location this sheet
+deliberately does not send. „Hotels near nowhere" has no answer. Retrieved
+instead of re-suggested:
+
+- `category` → HTTP 200 with `features: []`. There are no coordinates, because
+  „Hotel" is not anywhere.
+- `brand` → HTTP 200 with three features: Hotel Indigo Madrid and two in
+  Barcelona. Taking the first would set Madrid silently.
+
+So one is a row that leads nowhere and the other a row that leads somewhere
+arbitrary, and the second is worse because it looks like it worked.
+
+**Decision: both types are dropped.** A row that cannot become a destination
+should not be tappable. Everything that resolves to one location — `poi`,
+`place`, `address`, `street`, `locality` — stays unfiltered, exactly as decided
+above.
+
+**`limit` goes to 10, Mapbox's maximum**, because the dropped rows are counted
+by the API before this filter sees them: at 6, „Hotel" returned six and showed
+three. At 10 it returns ten and shows seven, and „Lermoos" — which has no
+refinement rows at all — simply shows ten.
+
+Nothing is billed by result count. A session counts `/suggest` calls, not what
+they answer with, so the whole cost is a response about 3 KB larger (4.6 → 7.6
+KB for „Lermoos") and 6 ms of measured latency.
 
 ## Rows: icon, name, context — no distance
 
@@ -203,3 +275,37 @@ Today the 250 ms debounce is the only thing between a typist and 20 geocode
 requests, so it is a cost control that happens to also feel responsive. Under
 session billing it controls latency and nothing else, and the token lifecycle
 takes over as the only parameter with a price attached.
+
+## Implemented
+
+- `src/services/mapbox/searchBox.ts` replaces `geocoding.ts`, deleted with its
+  tests. `createDestinationSearch()` owns the session token: one per search,
+  reused by every `/suggest`, rotated only once a `/retrieve` has returned.
+  Confirmed against the live API — two suggests and the retrieve of one typed
+  destination shared a single `session_token`.
+- **`SearchSession` is not used, although the decision above chose it for
+  exactly this job.** Its `suggest()` promise never settles once a request has
+  been superseded mid-flight, which is what typing does: `Evented.fire`
+  iterates a live listener array while each one-shot listener splices itself
+  out of it, and an aborted call never fires, so the stale listener stays at
+  index 0 and pushes the live one past the end of the loop. „Suche läuft…"
+  then stays on screen for good. `SearchBoxCore` with the library's own
+  `SessionToken` bills identically and writes the rotation out in one line; the
+  debounce and the `AbortController` stay in the component, where they already
+  were. `DestinationSearch.test.tsx` holds the regression.
+- `DestinationSearch` loses its `proximity` prop, so the debounced effect
+  depends on the query alone and a moving car no longer re-searches every 50 m.
+  `proximity=0,0` goes on the request instead, per the correction above.
+- Rows carry an icon — `src/components/placeIcon.tsx`, `maki` for the specific
+  kinds and `feature_type` for the ones where `maki` is `marker` for town,
+  street and house number alike. No distance, as decided.
+- `limit` is 10, the maximum, so that dropping the refinement rows does not
+  shorten the list.
+- Picking is a round trip: the row spins while `/retrieve` is in flight, and a
+  failure names the row it happened on.
+- Recents are untouched; they store coordinates and resolve nothing.
+- `README.md` (screenshot and the token's API list) and `docs/implementation.md`
+  (layout, and session billing under Known limitations) follow the change.
+
+**Still parked:** Mapbox's storage terms. Nothing here touches
+`recentDestinations`, so that question stands exactly where it did.

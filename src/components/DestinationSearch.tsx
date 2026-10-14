@@ -1,28 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
-import type { LatLon, Place } from '../core/types'
-import { geocode } from '../services/mapbox/geocoding'
+import type { Place } from '../core/types'
+import { createDestinationSearch, type Suggestion } from '../services/mapbox/searchBox'
 import { useAppStore } from '../state/store'
+import { SpinnerIcon } from './icons'
+import { PlaceIcon } from './placeIcon'
 
 interface Props {
-  proximity: LatLon | null
   onPick: (place: Place) => void
   onClose: () => void
 }
 
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
+
 /** Full-screen destination picker: recents first, then live search results. */
-export function DestinationSearch({ proximity, onPick, onClose }: Props) {
+export function DestinationSearch({ onPick, onClose }: Props) {
   const recents = useAppStore((s) => s.recentDestinations)
   const removeRecent = useAppStore((s) => s.removeRecent)
 
+  // One search per open sheet, which is also one billed Mapbox session.
+  const [search] = useState(() => createDestinationSearch())
+
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Place[]>([])
+  const [results, setResults] = useState<Suggestion[]>([])
   const [error, setError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [resolving, setResolving] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => inputRef.current?.focus(), [])
 
-  // Debounced so typing does not fire a geocode request per keystroke.
+  // Debounced so typing does not fire a request per keystroke — a latency
+  // concern only, since every keystroke of one search shares a billed session
+  // either way. The sheet takes no position, so this depends on the query and
+  // nothing else: a moving car no longer re-runs the search every 50 m.
   useEffect(() => {
     const trimmed = query.trim()
     if (trimmed.length < 2) {
@@ -33,14 +43,15 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
     const controller = new AbortController()
     setSearching(true)
     const timer = setTimeout(() => {
-      geocode(trimmed, proximity, controller.signal)
-        .then((places) => {
-          setResults(places)
+      search
+        .suggest(trimmed, controller.signal)
+        .then((found) => {
+          setResults(found)
           setError(null)
         })
         .catch((err: unknown) => {
           if (controller.signal.aborted) return
-          setError(err instanceof Error ? err.message : String(err))
+          setError(message(err))
         })
         .finally(() => setSearching(false))
     }, 250)
@@ -49,7 +60,20 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [query, proximity])
+  }, [query, search])
+
+  // A suggestion is only a name until `/retrieve` has run, so picking one is a
+  // round trip that can fail on its own.
+  async function pick(suggestion: Suggestion) {
+    setResolving(suggestion.id)
+    setError(null)
+    try {
+      onPick(await search.resolve(suggestion))
+    } catch (err: unknown) {
+      setError(`„${suggestion.name}“ konnte nicht geladen werden: ${message(err)}`)
+      setResolving(null)
+    }
+  }
 
   const showRecents = query.trim().length < 2 && recents.length > 0
 
@@ -110,16 +134,30 @@ export function DestinationSearch({ proximity, onPick, onClose }: Props) {
         )}
 
         <ul className="space-y-1">
-          {results.map((place) => (
-            <li key={place.id}>
+          {results.map((suggestion) => (
+            <li key={suggestion.id}>
               <button
-                onClick={() => onPick(place)}
-                className="w-full rounded-lg p-3 text-left active:bg-slate-900"
+                onClick={() => pick(suggestion)}
+                disabled={resolving !== null}
+                className="flex w-full items-center gap-3 rounded-lg p-3 text-left active:bg-slate-900 disabled:opacity-60"
               >
-                <div className="truncate font-medium text-slate-100">{place.name}</div>
-                {place.context && (
-                  <div className="truncate text-sm text-slate-500">{place.context}</div>
-                )}
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500">
+                  {resolving === suggestion.id ? (
+                    <SpinnerIcon className="text-emerald-500" />
+                  ) : (
+                    <PlaceIcon featureType={suggestion.featureType} maki={suggestion.maki} />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-slate-100">
+                    {suggestion.name}
+                  </span>
+                  {suggestion.context && (
+                    <span className="block truncate text-sm text-slate-500">
+                      {suggestion.context}
+                    </span>
+                  )}
+                </span>
               </button>
             </li>
           ))}
