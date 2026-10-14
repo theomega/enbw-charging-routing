@@ -1,5 +1,5 @@
 ---
-status: open
+status: implemented
 ---
 
 # Ladestation-Marker auf der Übersichtskarte sind auf dem Handy schwer zu treffen
@@ -47,3 +47,28 @@ So: the report matches the code. The visible dot is small by design (route
 readability at low zoom), and there is already a fattened invisible tap layer meant
 to compensate — but that layer's radius (14px) was set below the fingertip figure
 its own neighboring comment cites, rather than derived from it.
+
+**Decision: leave the sizes as they are.** With the analysis above in hand the
+current target was judged good enough in practice: the 28 px circle is what the
+thumb actually lands on, not the 5-12 px dot that prompted the report, and the
+dot's smallness is a deliberate trade for route readability at low zoom. Nothing in the code changes, and the 14 px radius stands as the
+agreed value rather than as an unexamined one.
+
+Considered and not taken: raising `chargers-hit` to a 22 px radius so the
+diameter meets the ~44 px its neighbour comment cites. Along a route the
+stations are strung close together, and the hit circles already touch at low
+zoom; widening them makes neighbours overlap further, and the handler takes
+`e.features?.[0]` — so the cost of a bigger target is not a missed tap but a
+tap that silently opens the wrong station, which reads as a bug where a miss
+reads as a miss. The 44 px figure also transfers badly from the route line:
+a line is missed in one dimension, a dot in two, but a line has no neighbour
+competing for the same pixels.
+
+Also considered: enlarging the visible dot on touch devices, via
+`matchMedia('(pointer: coarse)')` or `devicePixelRatio`. That reopens exactly
+the overlap the zoom interpolation exists to prevent, and would make the map
+look different on the two screens it is compared on, for a tap target that is
+already larger than the dot either way.
+
+**Implemented:** no code change. `chargers-dots` and `chargers-hit`
+(`src/components/RouteMap.tsx`) keep their current radii.
