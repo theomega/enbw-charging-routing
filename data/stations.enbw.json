@@ -1,13 +1,13 @@
 {
   "version": 5,
-  "generatedAt": "2026-10-13T09:15:43.770Z",
+  "generatedAt": "2026-10-14T13:59:56.317Z",
   "bbox": {
     "fromLat": 45,
     "toLat": 55.6,
     "fromLon": 5,
     "toLon": 19.5
   },
-  "count": 2452,
+  "count": 2457,
   "minPowerKw": 50,
   "fields": [
     "stationId",
@@ -77,7 +77,7 @@
         ],
         [
           50,
-          3
+          2
         ],
         [
           22,
@@ -257,7 +257,7 @@
     [
       89537,
       50.45437,
-      7.87315,
+      7.87314,
       300,
       "A3, Raststätte Heiligenroth, 56410 Montabaur, DE",
       "EnBW",
@@ -494,8 +494,8 @@
     ],
     [
       91676,
-      50.52288,
-      7.67523,
+      50.52287,
+      7.67526,
       300,
       "A3, Raststätte Sessenhausen West, 56244 Sessenhausen, DE",
       "EnBW",
@@ -576,7 +576,7 @@
         ],
         [
           50,
-          2
+          1
         ],
         [
           22,
@@ -1745,7 +1745,7 @@
     ],
     [
       199976,
-      47.49255,
+      47.49256,
       14.48368,
       400,
       "Industriepark 3, 8784 Trieben, AT",
@@ -2864,7 +2864,7 @@
       [
         [
           50,
-          3
+          2
         ],
         [
           11,
@@ -6292,7 +6292,7 @@
         ],
         [
           300,
-          14
+          15
         ],
         [
           75,
@@ -11841,7 +11841,7 @@
       300,
       "Roter Str. 2, 69190 Walldorf, DE",
       "EnBW",
-      "Leonardo Hotel Heidelberg-Walldorf, FlSt. 9383",
+      "Leonardo Hotel Heidelberg-Walldorf",
       [
         [
           300,
@@ -12265,7 +12265,7 @@
     [
       1156544,
       48.56303,
-      7.95592,
+      7.95591,
       150,
       "A5, Raststätte Renchtal West, 77767 Appenweier, DE",
       "EnBW",
@@ -12768,8 +12768,8 @@
     ],
     [
       1156573,
-      49.2095,
-      6.96644,
+      49.20945,
+      6.96625,
       300,
       "A6, Raststätte Goldene Bremm Nord, 66117 Saarbrücken, DE",
       "EnBW",
@@ -12916,7 +12916,7 @@
       48.56287,
       7.95916,
       150,
-      "BAB5, Autobahnraststätte Renchtal Ost, 77767 Appenweier, DE",
+      "A5, Raststätte Renchtal Ost, 77767 Appenweier, DE",
       "EnBW",
       "Raststätte Renchtal Ost",
       [
@@ -19314,8 +19314,8 @@
     ],
     [
       1157117,
-      50.04886,
-      8.8005,
+      50.04888,
+      8.80049,
       300,
       "Werner-von-Siemens-Straße 2, 63150 Heusenstamm, DE",
       "EnBW",
@@ -38209,7 +38209,7 @@
       [
         [
           400,
-          4
+          14
         ]
       ]
     ],
@@ -38873,13 +38873,13 @@
       2042823,
       48.28323,
       8.83844,
-      75,
+      150,
       "Rosenfelder Str. 77, 72336 Balingen, DE",
       "SMATRICS GmbH & Co KG",
       "Stadtwerke Balingen, Rosenfelder Straße",
       [
         [
-          75,
+          150,
           2
         ]
       ]
@@ -42192,7 +42192,7 @@
         ],
         [
           50,
-          2
+          1
         ],
         [
           44,
@@ -43105,16 +43105,6 @@
       ]
     ],
     [
-      3106118,
-      48.08742,
-      16.28467,
-      50,
-      "Norbert Spronglgasse 5, 2340 Mödling, AT",
-      "SMATRICS",
-      null,
-      null
-    ],
-    [
       3113632,
       49.5949,
       10.9489,
@@ -43515,7 +43505,7 @@
       [
         [
           50,
-          2
+          1
         ],
         [
           22,
@@ -43688,11 +43678,11 @@
       [
         [
           400,
-          3
+          4
         ],
         [
           200,
-          3
+          2
         ]
       ]
     ],
@@ -44221,44 +44211,6 @@
         ],
         [
           44,
-          1
-        ]
-      ]
-    ],
-    [
-      3209010,
-      47.41027,
-      13.21726,
-      50,
-      "Molkereistrasse 32, 5500 Bischofshofen, AT",
-      "SMATRICS",
-      "BILLA PLUS Bischofshofen",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      3215249,
-      48.26744,
-      16.40307,
-      50,
-      "Brünner Straße 57D, 1210 Wien, AT",
-      "SMATRICS",
-      "BILLA Wien Brünner Straße",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
           1
         ]
       ]
@@ -45114,6 +45066,10 @@
       [
         [
           50,
+          2
+        ],
+        [
+          44,
           1
         ]
       ]
@@ -45148,25 +45104,6 @@
         ],
         [
           44,
-          1
-        ]
-      ]
-    ],
-    [
-      3234916,
-      47.82996,
-      16.51927,
-      50,
-      "Mattersburgerstrasse 50, 7000 Eisenstadt, AT",
-      "SMATRICS",
-      "BILLA PLUS Eisenstadt",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
           1
         ]
       ]
@@ -45554,51 +45491,6 @@
       ]
     ],
     [
-      3250375,
-      48.19929,
-      13.64208,
-      100,
-      "Geierau 5, 4680 Haag/Hausruck, AT",
-      "SMATRICS",
-      "McDonald's Haag am Hausruck",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
-      3250402,
-      46.81073,
-      13.76964,
-      100,
-      "Gegendtaler W. 1, 9546 Untertschern, AT",
-      "SMATRICS",
-      "Hotel GUT Trattlerhof & Chalets",
-      [
-        [
-          100,
-          2
-        ]
-      ]
-    ],
-    [
-      3250411,
-      48.22196,
-      14.40559,
-      400,
-      "Handelsring 1, 4481 Asten, AT",
-      "SMATRICS",
-      "Hub PENNY Asten",
-      [
-        [
-          400,
-          8
-        ]
-      ]
-    ],
-    [
       3250557,
       48.2539,
       16.47216,
@@ -45606,25 +45498,6 @@
       "Sverigestraße 1A, 1220 Wien, AT",
       "SMATRICS",
       "IKEA Wien",
-      [
-        [
-          50,
-          2
-        ],
-        [
-          22,
-          1
-        ]
-      ]
-    ],
-    [
-      3250572,
-      46.83688,
-      14.83941,
-      50,
-      "Spanheimerstraße 32, 9400 Wolfsberg, AT",
-      "SMATRICS",
-      "BILLA PLUS Wolfsberg",
       [
         [
           50,
@@ -45724,6 +45597,233 @@
         [
           200,
           4
+        ]
+      ]
+    ],
+    [
+      3251045,
+      47.14889,
+      10.37376,
+      50,
+      "Schnann-Gewerbezone 150, 6574 Pettneu am Arlberg, AT",
+      "SMATRICS",
+      "OMV Pettneu am Arlberg",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          44,
+          1
+        ]
+      ]
+    ],
+    [
+      3251060,
+      48.08742,
+      16.28467,
+      50,
+      "Norbert Spronglgasse 5, 2340 Mödling, AT",
+      "SMATRICS",
+      "Mödling",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3251467,
+      50.83381,
+      9.72696,
+      100,
+      "Rotenseer Weg 50, 36282 Hauneck, DE",
+      "EnBW",
+      "REWE Hauneck-Unterhaun, Rotenseer Weg 50",
+      [
+        [
+          100,
+          4
+        ]
+      ]
+    ],
+    [
+      3254659,
+      48.19929,
+      13.64208,
+      100,
+      "Geierau 5, 4680 Haag/Hausruck, AT",
+      "SMATRICS",
+      "McDonald's Haag am Hausruck",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3254725,
+      48.11778,
+      15.13481,
+      400,
+      "Gewerbepark Haag 2, 3250 Wieselburg, AT",
+      "SMATRICS",
+      "AWÖ Entsorgungs GmbH, Wieselburg",
+      [
+        [
+          400,
+          2
+        ]
+      ]
+    ],
+    [
+      3254765,
+      46.81073,
+      13.76964,
+      100,
+      "Gegendtaler W. 1, 9546 Untertschern, AT",
+      "SMATRICS",
+      "Hotel GUT Trattlerhof & Chalets",
+      [
+        [
+          100,
+          2
+        ]
+      ]
+    ],
+    [
+      3254785,
+      48.22196,
+      14.40559,
+      400,
+      "Handelsring 1, 4481 Asten, AT",
+      "SMATRICS",
+      "Hub PENNY Asten",
+      [
+        [
+          400,
+          8
+        ]
+      ]
+    ],
+    [
+      3255255,
+      46.83688,
+      14.83941,
+      50,
+      "Spanheimerstraße 32, 9400 Wolfsberg, AT",
+      "SMATRICS",
+      "BILLA PLUS Wolfsberg",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3255420,
+      47.82996,
+      16.51927,
+      50,
+      "Mattersburgerstrasse 50, 7000 Eisenstadt, AT",
+      "SMATRICS",
+      "BILLA PLUS Eisenstadt",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3255606,
+      48.26744,
+      16.40307,
+      50,
+      "Brünner Straße 57D, 1210 Wien, AT",
+      "SMATRICS",
+      "BILLA Wien Brünner Straße",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3256225,
+      47.18403,
+      14.68394,
+      400,
+      "Arena am Waldfeld, 8753 Fohnsdorf, AT",
+      "SMATRICS",
+      "McDonald's Fohnsdorf",
+      [
+        [
+          400,
+          2
+        ],
+        [
+          200,
+          2
+        ]
+      ]
+    ],
+    [
+      3256583,
+      47.41027,
+      13.21726,
+      50,
+      "Molkereistrasse 32, 5500 Bischofshofen, AT",
+      "SMATRICS",
+      "BILLA PLUS Bischofshofen",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
+        ]
+      ]
+    ],
+    [
+      3258000,
+      47.44337,
+      12.39015,
+      50,
+      "Hahnenkammstraße 1, 6370 Kitzbühel, AT",
+      "SMATRICS",
+      "Hahnenkammbahn Kitzbühel",
+      [
+        [
+          50,
+          2
+        ],
+        [
+          22,
+          1
         ]
       ]
     ]
