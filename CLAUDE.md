@@ -16,6 +16,11 @@
   not in a test name. Changing code an item describes means updating that item in
   the same change.
 
+Documentation:
+
+- Make sure that the README.md, the screenshot in there and the docs/ folder
+  are kept up to date with every change.
+
 Wording:
 
 - Code should be written in English, but the UI is in German
